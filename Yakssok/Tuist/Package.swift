@@ -15,6 +15,14 @@ import PackageDescription
 let package = Package(
     name: "Yakssok",
     dependencies: [
+        .package(
+            url: "https://github.com/pointfreeco/swift-composable-architecture",
+            from: "1.0.0"
+        ),
+        .package(
+            url: "https://github.com/pointfreeco/swift-dependencies",
+            from: "1.0.0"
+        )
         // Add your own dependencies here:
         // .package(url: "https://github.com/Alamofire/Alamofire", from: "5.0.0"),
         // You can read more about dependencies here: https://docs.tuist.io/documentation/tuist/dependencies
