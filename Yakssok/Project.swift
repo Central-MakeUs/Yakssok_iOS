@@ -20,7 +20,8 @@ let project = Project(
             sources: ["Yakssok/Sources/**"],
             resources: ["Yakssok/Resources/**"],
             dependencies: [.external(name: "ComposableArchitecture"),
-                           .external(name: "Dependencies")]
+                           .external(name: "Dependencies"),
+                           .external(name: "YakssokDesignSystem")]
         ),
         .target(
             name: "YakssokTests",
