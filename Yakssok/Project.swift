@@ -8,18 +8,26 @@ let project = Project(
             destinations: .iOS,
             product: .app,
             bundleId: "com.yakssok.app",
+            deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(
                 with: [
                     "UILaunchScreen": [
                         "UIColorName": "",
                         "UIImageName": "",
                     ],
+                    "UIAppFonts": [
+                        "Pretendard-Regular.otf",
+                        "Pretendard-Medium.otf",
+                        "Pretendard-SemiBold.otf",
+                        "Pretendard-Bold.otf"
+                    ]
                 ]
             ),
             sources: ["Yakssok/Sources/**"],
             resources: ["Yakssok/Resources/**"],
             dependencies: [.external(name: "ComposableArchitecture"),
-                           .external(name: "Dependencies")]
+                           .external(name: "Dependencies"),
+                           .external(name: "YakssokDesignSystem")]
         ),
         .target(
             name: "YakssokTests",

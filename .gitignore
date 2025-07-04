@@ -46,7 +46,7 @@ playground.xcworkspace
 # *.xcodeproj
 # Xcode automatically generates this directory with a .xcworkspacedata file and xcuserdata
 # hence it is not needed unless you have added a package configuration file to your project
-# .swiftpm
+.swiftpm
 
 .build/
 
@@ -86,9 +86,16 @@ fastlane/test_output
 iOSInjectionProject/
 
 ### SwiftPackageManager ###
-Packages
 xcuserdata
 *.xcodeproj
 
+# SPM 로컬 패키지 포함
+Packages/*
+!Packages/YakssokDesignSystem/
+
+Derived/
+*.xcworkspace
+
+.tuist-cache/
 
 # End of https://www.toptal.com/developers/gitignore/api/swift,swiftpackagemanager
