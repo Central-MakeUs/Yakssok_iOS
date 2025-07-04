@@ -89,9 +89,8 @@ iOSInjectionProject/
 xcuserdata
 *.xcodeproj
 
-# SPM 의존성 제외하되 로컬 패키지만 포함
-Packages/*
+# SPM 로컬 패키지 포함
 !Packages/YakssokDesignSystem/
-
+!Packages/YakssokDesignSystem/**/*
 
 # End of https://www.toptal.com/developers/gitignore/api/swift,swiftpackagemanager
