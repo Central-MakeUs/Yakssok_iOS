@@ -90,7 +90,7 @@ xcuserdata
 *.xcodeproj
 
 # SPM 로컬 패키지 포함
-!Packages/YakssokDesignSystem/
-!Packages/YakssokDesignSystem/**/*
+!Packages/YakssokDesignSystem/Package.swift
+!Packages/YakssokDesignSystem/Sources/
 
 # End of https://www.toptal.com/developers/gitignore/api/swift,swiftpackagemanager
