@@ -15,6 +15,12 @@ let project = Project(
                         "UIColorName": "",
                         "UIImageName": "",
                     ],
+                    "UIAppFonts": [
+                        "Pretendard-Regular.otf",
+                        "Pretendard-Medium.otf",
+                        "Pretendard-SemiBold.otf",
+                        "Pretendard-Bold.otf"
+                    ]
                 ]
             ),
             sources: ["Yakssok/Sources/**"],
