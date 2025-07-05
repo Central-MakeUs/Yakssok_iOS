@@ -13,7 +13,15 @@ struct AppView: View {
 
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { ViewStore in
-            Text("Yakssok")
+            IfLetStore(
+                store.scope(state: \.splash, action: \.splash),
+                then: { splashStore in
+                    SplashView(store: splashStore)
+                },
+                else: {
+                    LoginView()
+                }
+            )
         }
     }
 }

@@ -9,18 +9,26 @@ import ComposableArchitecture
 
 struct AppFeature: Reducer {
     struct State: Equatable {
+        var splash: SplashFeature.State? = .init()
     }
 
+    @CasePathable
     enum Action: Equatable {
-        case viewAppeared
+        case splash(SplashFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .viewAppeared:
+            case .splash(.isCompleted):
+                state.splash = nil
+                return .none
+            default:
                 return .none
             }
+        }
+        .ifLet(\.splash, action: \.splash) {
+            SplashFeature()
         }
     }
 }
