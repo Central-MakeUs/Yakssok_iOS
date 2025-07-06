@@ -10,18 +10,18 @@ import ComposableArchitecture
 
 struct AppView: View {
     let store: StoreOf<AppFeature>
-
+    
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { ViewStore in
-            IfLetStore(
-                store.scope(state: \.splash, action: \.splash),
-                then: { splashStore in
-                    SplashView(store: splashStore)
-                },
-                else: {
-                    LoginView()
+        WithViewStore(self.store, observe: { $0 }) { viewStore in
+            Group {
+                if viewStore.splash != nil {
+                    IfLetStore(store.scope(state: \.splash, action: \.splash), then: SplashView.init)
+                } else if viewStore.auth != nil {
+                    IfLetStore(store.scope(state: \.auth, action: \.auth), then: AuthView.init)
+                } else {
+                    IfLetStore(store.scope(state: \.home, action: \.home), then: HomeView.init)
                 }
-            )
+            }
         }
     }
 }
