@@ -10,11 +10,15 @@ import ComposableArchitecture
 struct AppFeature: Reducer {
     struct State: Equatable {
         var splash: SplashFeature.State? = .init()
+        var auth: AuthFeature.State?
+        var home: HomeFeature.State?
     }
 
     @CasePathable
     enum Action: Equatable {
         case splash(SplashFeature.Action)
+        case auth(AuthFeature.Action)
+        case home(HomeFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
@@ -22,6 +26,11 @@ struct AppFeature: Reducer {
             switch action {
             case .splash(.isCompleted):
                 state.splash = nil
+                state.auth = .init()
+                return .none
+            case .auth(.authenticationCompleted):
+                state.auth = nil
+                state.home = .init()
                 return .none
             default:
                 return .none
@@ -29,6 +38,12 @@ struct AppFeature: Reducer {
         }
         .ifLet(\.splash, action: \.splash) {
             SplashFeature()
+        }
+        .ifLet(\.auth, action: \.auth) {
+            AuthFeature()
+        }
+        .ifLet(\.home, action: \.home) {
+            HomeFeature()
         }
     }
 }
