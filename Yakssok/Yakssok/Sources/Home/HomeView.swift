@@ -12,8 +12,56 @@ import YakssokDesignSystem
 struct HomeView: View {
     let store: StoreOf<HomeFeature>
 
+    private let logoHeight: CGFloat = 19
+    private let iconHeight: CGFloat = 24
+    private let horizontalPadding: CGFloat = 16
+    private let iconSpacing: CGFloat = 16
+    private let verticalPadding: CGFloat = 16
+
     var body: some View {
-        YKColor.Neutral.grey50
-            .ignoresSafeArea()
+        WithViewStore(store, observe: { $0 }) { viewStore in
+            VStack {
+                navigationBar(viewStore: viewStore)
+                ScrollView {
+                }
+            }
+        }
+        .background(YKColor.Neutral.grey50)
+    }
+
+    private func navigationBar(viewStore: ViewStoreOf<HomeFeature>) -> some View {
+        HStack {
+            Image("logo-nav-bar")
+                .resizable()
+                .scaledToFit()
+                .frame(height: logoHeight)
+                .padding(.leading, horizontalPadding)
+
+            Spacer()
+
+            HStack(spacing: iconSpacing) {
+                navigationButton(
+                    imageName: "calendar-nav-bar",
+                    action: { viewStore.send(.calendarTapped) }
+                )
+                navigationButton(
+                    imageName: "notif-nav-bar",
+                    action: { viewStore.send(.notificationTapped) }
+                )
+                navigationButton(
+                    imageName: "menu-nav-bar",
+                    action: { viewStore.send(.menuTapped) }
+                )
+            }
+            .padding(.trailing, horizontalPadding)
+        }
+        .padding(.vertical, verticalPadding)
+    }
+
+    private func navigationButton(imageName: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(imageName)
+                .frame(height: iconHeight)
+        }
     }
 }

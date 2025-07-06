@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "logo-nav-bar.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
