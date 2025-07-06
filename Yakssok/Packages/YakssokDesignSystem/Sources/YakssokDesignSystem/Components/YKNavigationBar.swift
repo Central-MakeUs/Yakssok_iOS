@@ -37,6 +37,7 @@ public struct YKNavigationBar<Content: View>: View {
                         onBackTapped?()
                     } label: {
                         Image(systemName: "arrow.left")
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundColor(YKColor.Neutral.grey900)
                     }
                     .accessibilityLabel("뒤로가기") :

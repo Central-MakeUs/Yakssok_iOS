@@ -35,6 +35,10 @@ struct AuthFeature: Reducer {
             case .onboarding(.isCompleted):
                 state.onboarding = nil
                 return .send(.authenticationCompleted)
+            case .onboarding(.backToLogin):
+                state.onboarding = nil
+                state.login = .init()
+                return .none
             default:
                 return .none
             }
