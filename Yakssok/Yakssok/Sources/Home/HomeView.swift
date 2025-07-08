@@ -17,12 +17,20 @@ struct HomeView: View {
     private let horizontalPadding: CGFloat = 16
     private let iconSpacing: CGFloat = 16
     private let verticalPadding: CGFloat = 16
+    private let contentSpacing: CGFloat = 16
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            VStack {
+            VStack(spacing: 0) {
                 navigationBar(viewStore: viewStore)
                 ScrollView {
+                    LazyVStack(spacing: contentSpacing) {
+                        IfLetStore(
+                            store.scope(state: \.userSelection, action: \.userSelection),
+                            then: MateSelectionView.init
+                        )
+                        .padding(.top, 10)
+                    }.padding(.horizontal, 16)
                 }
             }
         }

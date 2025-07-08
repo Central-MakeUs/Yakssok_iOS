@@ -9,6 +9,8 @@ import ComposableArchitecture
 
 struct HomeFeature: Reducer {
     struct State: Equatable {
+        var currentUser: User?
+        var userSelection: MateSelectionFeature.State? = .init()
     }
 
     @CasePathable
@@ -17,6 +19,7 @@ struct HomeFeature: Reducer {
         case calendarTapped
         case notificationTapped
         case menuTapped
+        case userSelection(MateSelectionFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
@@ -30,7 +33,12 @@ struct HomeFeature: Reducer {
                 return .none
             case .menuTapped:
                 return .none
+            case .userSelection:
+                return .none
             }
+        }
+        .ifLet(\.userSelection, action: \.userSelection) {
+            MateSelectionFeature()
         }
     }
 }

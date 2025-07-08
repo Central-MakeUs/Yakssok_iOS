@@ -11,7 +11,6 @@ struct AuthFeature: Reducer {
     struct State: Equatable {
         var login: LoginFeature.State? = .init()
         var onboarding: OnboardingFeature.State?
-
     }
 
     @CasePathable
