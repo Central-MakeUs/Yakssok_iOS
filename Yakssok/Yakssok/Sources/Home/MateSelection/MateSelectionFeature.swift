@@ -11,7 +11,8 @@ struct MateSelectionFeature: Reducer {
     struct State: Equatable {
         var users: [User] = []
         var selectedUserId: String = ""
-
+        var isLoading: Bool = false
+        var error: String?
         var selectedUser: User? {
             users.first { $0.id == selectedUserId }
         }
@@ -22,32 +23,44 @@ struct MateSelectionFeature: Reducer {
         case onAppear
         case userSelected(userId: String)
         case addUserButtonTapped
+        case loadUsers
         case usersLoaded([User])
+        case loadingFailed(String)
     }
+
+    @Dependency(\.userClient) var userClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
-#if DEBUG
-                // 테스트: 3가지 상태 중 하나 선택해서 테스트: onlyMe, sample, many
-                let mockUsers = MockUserData.users(for: .sample)
-                return .send(.usersLoaded(mockUsers))
-#else
-                // TODO: 실제 API 호출 (사용자 목록 조회)
-                return .none
-#endif
+                return .send(.loadUsers)
+            case .loadUsers:
+                state.isLoading = true
+                state.error = nil
+                return .run { send in
+                    do {
+                        let users = try await userClient.loadUsers()
+                        await send(.usersLoaded(users))
+                    } catch {
+                        await send(.loadingFailed(error.localizedDescription))
+                    }
+                }
             case .userSelected(let userId):
                 state.selectedUserId = userId
                 return .none
             case .addUserButtonTapped:
-                // TODO: 사용자 추가 화면으로 이동
                 return .none
             case .usersLoaded(let users):
                 state.users = users
+                state.isLoading = false
                 if state.selectedUserId.isEmpty, let firstUser = users.first {
                     state.selectedUserId = firstUser.id
                 }
+                return .none
+            case .loadingFailed(let error):
+                state.error = error
+                state.isLoading = false
                 return .none
             }
         }

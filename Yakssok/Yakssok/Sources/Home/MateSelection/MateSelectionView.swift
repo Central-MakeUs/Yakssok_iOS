@@ -20,7 +20,7 @@ struct MateSelectionView: View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: spacing) {
-                    ForEach(viewStore.users, id: \.id) { user in
+                    ForEach(Array(viewStore.users.enumerated()), id: \.element.id) { index, user in
                         MateProfileView(
                             user: user,
                             isSelected: user.id == viewStore.selectedUserId,
@@ -29,10 +29,12 @@ struct MateSelectionView: View {
                         ) {
                             viewStore.send(.userSelected(userId: user.id))
                         }
+                        .padding(.leading, index == 0 ? 16 : 0)
                     }
                     AddMateButton(profileSize: profileSize) {
                         viewStore.send(.addUserButtonTapped)
                     }
+                    .padding(.trailing, 16)
                 }
                 .padding(selectedBorderWidth)
             }
