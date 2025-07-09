@@ -123,6 +123,7 @@ private struct BottomContentSection: View {
         VStack(alignment: .center, spacing: 0) {
             MateSelectionSection(store: store, hasBackground: hasBackground)
             CalendarSection(store: store)
+            MedicineListSection(store: store)
         }
         .background(hasBackground ? YKColor.Neutral.grey50 : Color.clear)
         .if(hasBackground) { view in
@@ -151,7 +152,18 @@ private struct CalendarSection: View {
             CalendarView(store: $0)
         }
         .padding(.top, Layout.calendarTopPadding)
-        .padding(.bottom, Layout.calendarBottomPadding)
+    }
+}
+
+private struct MedicineListSection: View {
+    let store: StoreOf<HomeFeature>
+
+    var body: some View {
+        IfLetStore(store.scope(state: \.medicineList, action: \.medicineList)) {
+            MedicineListView(store: $0)
+        }
+        .padding(.top, Layout.MedicineListTopPadding)
+        .padding(.bottom, Layout.MedicineListBottomPadding)
     }
 }
 
@@ -178,7 +190,8 @@ private enum Layout {
     static let mateCardsBottomPadding: CGFloat = 12
     static let userSelectionTopPadding: CGFloat = 10
     static let userSelectionTopPaddingWithBackground: CGFloat = 32
-    static let calendarTopPadding: CGFloat = 13.5
-    static let calendarBottomPadding: CGFloat = 40
+    static let calendarTopPadding: CGFloat = 17.5
+    static let MedicineListTopPadding: CGFloat = 40
+    static let MedicineListBottomPadding: CGFloat = 100
     static let cornerRadius: CGFloat = 32
 }

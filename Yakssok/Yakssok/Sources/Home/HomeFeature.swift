@@ -15,6 +15,7 @@ struct HomeFeature: Reducer {
         var userSelection: MateSelectionFeature.State? = .init()
         var mateCards: MateCardsFeature.State? = .init()
         var calendar: CalendarFeature.State? = .init()
+        var medicineList: MedicineListFeature.State? = .init()
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
         }
@@ -29,6 +30,7 @@ struct HomeFeature: Reducer {
         case userSelection(MateSelectionFeature.Action)
         case mateCards(MateCardsFeature.Action)
         case calendar(CalendarFeature.Action)
+        case medicineList(MedicineListFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
@@ -48,7 +50,7 @@ struct HomeFeature: Reducer {
             case .menuTapped:
                 // TODO: 메뉴 화면 이동
                 return .none
-            case .userSelection, .mateCards, .calendar:
+            case .userSelection, .mateCards, .calendar, .medicineList:
                 return .none
             }
         }
@@ -60,6 +62,9 @@ struct HomeFeature: Reducer {
         }
         .ifLet(\.calendar, action: \.calendar) {
             CalendarFeature()
+        }
+        .ifLet(\.medicineList, action: \.medicineList) {
+            MedicineListFeature()
         }
     }
 }

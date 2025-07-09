@@ -47,8 +47,8 @@ private struct MonthYearText: View {
 
     var body: some View {
         Text(monthYear)
-            .font(YKFont.body1)
-            .foregroundColor(YKColor.Neutral.grey950)
+            .font(YKFont.body2)
+            .foregroundColor(YKColor.Neutral.grey500)
     }
 }
 
