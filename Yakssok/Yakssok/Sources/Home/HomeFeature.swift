@@ -5,13 +5,16 @@
 //  Created by 김사랑 on 7/5/25.
 //
 
+import Foundation
 import ComposableArchitecture
 
 struct HomeFeature: Reducer {
     struct State: Equatable {
         var currentUser: User?
+        var selectedDate: Date = Date()
         var userSelection: MateSelectionFeature.State? = .init()
         var mateCards: MateCardsFeature.State? = .init()
+        var calendar: CalendarFeature.State? = .init()
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
         }
@@ -20,21 +23,22 @@ struct HomeFeature: Reducer {
     @CasePathable
     enum Action: Equatable {
         case onAppear
-        case isCompleted
         case calendarTapped
         case notificationTapped
         case menuTapped
         case userSelection(MateSelectionFeature.Action)
         case mateCards(MateCardsFeature.Action)
+        case calendar(CalendarFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .send(.mateCards(.onAppear))
-            case .isCompleted:
-                return .none
+                return .merge(
+                    .send(.mateCards(.onAppear)),
+                    .send(.calendar(.onAppear))
+                )
             case .calendarTapped:
                 // TODO: 캘린더 화면 이동
                 return .none
@@ -44,9 +48,7 @@ struct HomeFeature: Reducer {
             case .menuTapped:
                 // TODO: 메뉴 화면 이동
                 return .none
-            case .userSelection:
-                return .none
-            case .mateCards(_):
+            case .userSelection, .mateCards, .calendar:
                 return .none
             }
         }
@@ -55,6 +57,9 @@ struct HomeFeature: Reducer {
         }
         .ifLet(\.mateCards, action: \.mateCards) {
             MateCardsFeature()
+        }
+        .ifLet(\.calendar, action: \.calendar) {
+            CalendarFeature()
         }
     }
 }

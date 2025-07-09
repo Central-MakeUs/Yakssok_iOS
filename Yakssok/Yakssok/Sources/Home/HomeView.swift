@@ -28,36 +28,44 @@ private struct NavigationBarView: View {
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack {
-                logoView
+                LogoView()
                 Spacer()
-                navigationButtons(viewStore: viewStore)
+                NavigationButtons(store: store)
             }
             .padding(.vertical, Layout.navigationVerticalPadding)
             .background(YKColor.Neutral.grey50)
         }
     }
+}
 
-    private var logoView: some View {
+private struct LogoView: View {
+    var body: some View {
         Image("logo-nav-bar")
             .resizable()
             .scaledToFit()
             .frame(height: Layout.logoHeight)
             .padding(.leading, Layout.horizontalPadding)
     }
+}
 
-    private func navigationButtons(viewStore: ViewStoreOf<HomeFeature>) -> some View {
-        HStack(spacing: Layout.iconSpacing) {
-            NavigationButton(imageName: "calendar-nav-bar") {
-                viewStore.send(.calendarTapped)
+private struct NavigationButtons: View {
+    let store: StoreOf<HomeFeature>
+
+    var body: some View {
+        WithViewStore(store, observe: { $0 }) { viewStore in
+            HStack(spacing: Layout.iconSpacing) {
+                NavigationButton(imageName: "calendar-nav-bar") {
+                    viewStore.send(.calendarTapped)
+                }
+                NavigationButton(imageName: "notif-nav-bar") {
+                    viewStore.send(.notificationTapped)
+                }
+                NavigationButton(imageName: "menu-nav-bar") {
+                    viewStore.send(.menuTapped)
+                }
             }
-            NavigationButton(imageName: "notif-nav-bar") {
-                viewStore.send(.notificationTapped)
-            }
-            NavigationButton(imageName: "menu-nav-bar") {
-                viewStore.send(.menuTapped)
-            }
+            .padding(.trailing, Layout.horizontalPadding)
         }
-        .padding(.trailing, Layout.horizontalPadding)
     }
 }
 
@@ -67,16 +75,15 @@ private struct MainContentView: View {
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             ZStack {
-                backgroundColor(shouldShowMateCards: viewStore.shouldShowMateCards)
+                BackgroundColor(shouldShowMateCards: viewStore.shouldShowMateCards)
                     .ignoresSafeArea()
-
                 ScrollView {
                     LazyVStack(spacing: Layout.contentSpacing) {
                         if viewStore.shouldShowMateCards {
                             MateCardsSection(store: store)
-                            UserSelectionSection(store: store, hasBackground: true)
+                            BottomContentSection(store: store, hasBackground: true)
                         } else {
-                            UserSelectionSection(store: store, hasBackground: false)
+                            BottomContentSection(store: store, hasBackground: false)
                         }
                     }
                     .onAppear {
@@ -86,9 +93,13 @@ private struct MainContentView: View {
             }
         }
     }
+}
 
-    private func backgroundColor(shouldShowMateCards: Bool) -> Color {
-        shouldShowMateCards ? YKColor.Neutral.grey100 : YKColor.Neutral.grey50
+private struct BackgroundColor: View {
+    let shouldShowMateCards: Bool
+
+    var body: some View {
+        (shouldShowMateCards ? YKColor.Neutral.grey100 : YKColor.Neutral.grey50)
     }
 }
 
@@ -104,23 +115,43 @@ private struct MateCardsSection: View {
     }
 }
 
-private struct UserSelectionSection: View {
+private struct BottomContentSection: View {
     let store: StoreOf<HomeFeature>
     let hasBackground: Bool
 
     var body: some View {
         VStack(alignment: .center, spacing: 0) {
-            IfLetStore(store.scope(state: \.userSelection, action: \.userSelection)) {
-                MateSelectionView(store: $0)
-            }
-            .padding(.top, hasBackground ? Layout.userSelectionTopPaddingWithBackground : Layout.userSelectionTopPadding)
+            MateSelectionSection(store: store, hasBackground: hasBackground)
+            CalendarSection(store: store)
         }
-        .padding(.horizontal, Layout.horizontalPadding)
-        .frame(maxWidth: .infinity, alignment: .top)
         .background(hasBackground ? YKColor.Neutral.grey50 : Color.clear)
         .if(hasBackground) { view in
             view.cornerRadius(Layout.cornerRadius, corners: [.topLeft, .topRight])
         }
+    }
+}
+
+private struct MateSelectionSection: View {
+    let store: StoreOf<HomeFeature>
+    let hasBackground: Bool
+
+    var body: some View {
+        IfLetStore(store.scope(state: \.userSelection, action: \.userSelection)) {
+            MateSelectionView(store: $0)
+        }
+        .padding(.top, hasBackground ? Layout.userSelectionTopPaddingWithBackground : Layout.userSelectionTopPadding)
+    }
+}
+
+private struct CalendarSection: View {
+    let store: StoreOf<HomeFeature>
+
+    var body: some View {
+        IfLetStore(store.scope(state: \.calendar, action: \.calendar)) {
+            CalendarView(store: $0)
+        }
+        .padding(.top, Layout.calendarTopPadding)
+        .padding(.bottom, Layout.calendarBottomPadding)
     }
 }
 
@@ -147,5 +178,7 @@ private enum Layout {
     static let mateCardsBottomPadding: CGFloat = 12
     static let userSelectionTopPadding: CGFloat = 10
     static let userSelectionTopPaddingWithBackground: CGFloat = 32
+    static let calendarTopPadding: CGFloat = 13.5
+    static let calendarBottomPadding: CGFloat = 40
     static let cornerRadius: CGFloat = 32
 }
