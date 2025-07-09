@@ -8,8 +8,7 @@
 import ComposableArchitecture
 
 struct LoginFeature: Reducer {
-    struct State: Equatable {
-    }
+    struct State: Equatable {}
 
     enum Action: Equatable {
         case onAppear
