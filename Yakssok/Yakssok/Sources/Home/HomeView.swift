@@ -13,11 +13,17 @@ struct HomeView: View {
     let store: StoreOf<HomeFeature>
 
     var body: some View {
-        WithViewStore(store, observe: { $0 }) { viewStore in
-            VStack(spacing: 0) {
-                NavigationBarView(store: store)
-                MainContentView(store: store)
+        WithPerceptionTracking {
+            ZStack {
+                VStack(spacing: 0) {
+                    NavigationBarView(store: store)
+                    MainContentView(store: store)
+                }
+                IfLetStore(store.scope(state: \.messageModal, action: \.messageModal)) { modalStore in
+                    MessageModalView(store: modalStore)
+                }
             }
+            .ignoresSafeArea(.keyboard)
         }
     }
 }

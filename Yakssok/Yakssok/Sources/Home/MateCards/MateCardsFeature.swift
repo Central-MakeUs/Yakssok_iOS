@@ -21,6 +21,12 @@ struct MateCardsFeature: Reducer {
         case loadCards
         case cardsLoaded([MateCard])
         case loadingFailed(String)
+        case delegate(Delegate)
+
+        @CasePathable
+        enum Delegate: Equatable {
+            case showMessageModal(targetUser: String, messageType: MessageType)
+        }
     }
 
     @Dependency(\.mateCardsClient) var mateCardsClient
@@ -42,8 +48,21 @@ struct MateCardsFeature: Reducer {
                     }
                 }
             case .cardTapped(let cardId):
-                // TODO: 메시지 보내기 기능 구현
-                return .none
+                guard let card = state.cards.first(where: { $0.id == cardId }) else {
+                    return .none
+                }
+                let messageType: MessageType = {
+                    switch card.status {
+                    case .missedMedicine:
+                        return .nagging
+                    case .completed:
+                        return .encouragement
+                    }
+                }()
+                return .send(.delegate(.showMessageModal(
+                    targetUser: card.userName,
+                    messageType: messageType
+                )))
             case .cardsLoaded(let cards):
                 state.cards = cards
                 state.isLoading = false
@@ -51,6 +70,8 @@ struct MateCardsFeature: Reducer {
             case .loadingFailed(let error):
                 state.error = error
                 state.isLoading = false
+                return .none
+            case .delegate(_):
                 return .none
             }
         }

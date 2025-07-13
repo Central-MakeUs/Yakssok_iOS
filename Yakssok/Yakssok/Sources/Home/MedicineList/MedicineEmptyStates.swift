@@ -50,7 +50,6 @@ private struct MedicineEmptyStateView: View {
                 title: title,
                 subtitle: subtitle
             )
-
             EmptyStateActionButton(
                 title: buttonTitle,
                 action: buttonAction
@@ -109,7 +108,6 @@ private struct EmptyStateActionButton: View {
                 Text(title)
                     .font(YKFont.body2)
                     .foregroundColor(YKColor.Neutral.grey600)
-
                 Image(systemName: "plus")
                     .font(.system(size: Layout.buttonIconSize, weight: .bold))
                     .foregroundColor(YKColor.Neutral.grey400)
