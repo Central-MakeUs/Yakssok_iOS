@@ -20,7 +20,7 @@ struct MedicineItemView: View {
             HStack {
                 Spacer()
                 Rectangle()
-                    .fill(isCompleted ? YKColor.Neutral.grey200 : YKColor.Primary.primary400)
+                    .fill(isCompleted ? YKColor.Primary.primary400 : YKColor.Neutral.grey200)
                     .frame(width: Layout.backgroundPadding + Layout.toggleButtonSize)
             }
             .clipShape(RoundedRectangle(cornerRadius: Layout.cornerRadius))
@@ -82,7 +82,7 @@ private struct MedicineToggleButton: View {
 
     var body: some View {
         Button(action: onToggle) {
-            Image(isCompleted ? "check-grey" : "check-orange")
+            Image(isCompleted ? "check-orange" : "check-grey")
                 .frame(width: Layout.toggleButtonSize, height: Layout.toggleButtonSize)
         }
     }
