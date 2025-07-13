@@ -20,6 +20,7 @@ struct HomeFeature: Reducer {
             mateCards?.cards.isEmpty == false
         }
         var messageModal: MessageModalFeature.State?
+        var reminderModal: ReminderModalFeature.State?
     }
 
     @CasePathable
@@ -35,6 +36,8 @@ struct HomeFeature: Reducer {
         case messageModal(MessageModalFeature.Action)
         case showMessageModal(targetUser: String, messageType: MessageType)
         case dismissMessageModal
+        case reminderModal(ReminderModalFeature.Action)
+        case showReminderModal
     }
 
     var body: some ReducerOf<Self> {
@@ -54,12 +57,16 @@ struct HomeFeature: Reducer {
             .ifLet(\.messageModal, action: \.messageModal) {
                 MessageModalFeature()
             }
+            .ifLet(\.reminderModal, action: \.reminderModal) {
+                ReminderModalFeature()
+            }
     }
 
     private func handleOnAppear() -> Effect<Action> {
         return .merge(
             .send(.mateCards(.onAppear)),
-            .send(.calendar(.onAppear))
+            .send(.calendar(.onAppear)),
+            .send(.showReminderModal)
         )
     }
 
@@ -72,6 +79,10 @@ struct HomeFeature: Reducer {
             Medicine(id: "5", name: "프로바이오틱스", dosage: nil, time: "9:00 pm", color: .pink),
             Medicine(id: "6", name: "칼슘", dosage: nil, time: "10:00 pm", color: .purple)
         ]
+        state.reminderModal = ReminderModalFeature.State(
+            userName: "김00",
+            missedMedicines: testMedicines
+        )
         return .none
     }
 
@@ -119,20 +130,25 @@ struct HomeFeature: Reducer {
             return handleOnAppear()
         case .calendarTapped, .notificationTapped, .menuTapped:
             return .none
+        case .showReminderModal:
+            return handleShowMissedMedicineModal(&state)
         case .showMessageModal(let targetUser, let messageType):
             return handleShowMessageModal(&state, targetUser: targetUser, messageType: messageType)
+        case .reminderModal(.takeMedicineNowTapped),
+                .reminderModal(.closeButtonTapped):
+            state.reminderModal = nil
+            return .none
         case .messageModal(.closeButtonTapped),
                 .messageModal(.sendButtonTapped):
             state.messageModal = nil
             return .none
         case .mateCards(.delegate(.showMessageModal(let targetUser, let messageType))):
             return .send(.showMessageModal(targetUser: targetUser, messageType: messageType))
-        case .dismissMessageModal: 
+        case .dismissMessageModal:
             state.messageModal = nil
             return .none
-        case .userSelection, .mateCards, .calendar, .medicineList, .messageModal:
+        case .userSelection, .mateCards, .calendar, .medicineList, .messageModal, .reminderModal:
             return .none
         }
     }
 }
-
