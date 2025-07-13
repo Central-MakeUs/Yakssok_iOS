@@ -50,7 +50,7 @@ public struct YKColor {
         // Green
         public static let green = Color(hex: "#3ADE4D")
         // Blue
-        public static let blue = Color(hex: "#3C99D7")
+        public static let blue = Color(hex: "#40B0FA")
         // Pink
         public static let pink = Color(hex: "#D224DB")
     }
