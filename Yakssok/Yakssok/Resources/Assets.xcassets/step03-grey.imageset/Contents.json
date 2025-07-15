@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "step03-grey.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
