@@ -27,17 +27,14 @@ struct MedicineTime: Equatable {
     let minute: Int
 
     var timeString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        let date = Calendar.current.date(from: DateComponents(hour: hour, minute: minute)) ?? Date()
-        return formatter.string(from: date)
-    }
-
-    var displayTimeString: String {
         let period = hour < 12 ? "오전" : "오후"
         let displayHour = hour <= 12 ? hour : hour - 12
         let finalHour = displayHour == 0 ? 12 : displayHour
         return String(format: "%@ %d:%02d", period, finalHour, minute)
+    }
+
+    var timeString24: String {
+        return String(format: "%02d:%02d", hour, minute)
     }
 }
 
