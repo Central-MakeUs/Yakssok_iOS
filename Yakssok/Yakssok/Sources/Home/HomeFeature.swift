@@ -16,11 +16,13 @@ struct HomeFeature: Reducer {
         var mateCards: MateCardsFeature.State? = .init()
         var calendar: CalendarFeature.State? = .init()
         var medicineList: MedicineListFeature.State? = .init()
+        var messageModal: MessageModalFeature.State?
+        var reminderModal: ReminderModalFeature.State?
+        var addRoutine: AddRoutineFeature.State?
+
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
         }
-        var messageModal: MessageModalFeature.State?
-        var reminderModal: ReminderModalFeature.State?
     }
 
     @CasePathable
@@ -38,6 +40,9 @@ struct HomeFeature: Reducer {
         case dismissMessageModal
         case reminderModal(ReminderModalFeature.Action)
         case showReminderModal
+        case addRoutine(AddRoutineFeature.Action)
+        case showAddRoutine
+        case dismissAddRoutine
     }
 
     var body: some ReducerOf<Self> {
@@ -60,68 +65,9 @@ struct HomeFeature: Reducer {
             .ifLet(\.reminderModal, action: \.reminderModal) {
                 ReminderModalFeature()
             }
-    }
-
-    private func handleOnAppear() -> Effect<Action> {
-        return .merge(
-            .send(.mateCards(.onAppear)),
-            .send(.calendar(.onAppear)),
-            .send(.showReminderModal)
-        )
-    }
-
-    private func handleShowMissedMedicineModal(_ state: inout State) -> Effect<Action> {
-        let testMedicines = [
-            Medicine(id: "1", name: "종합 비타민 오쏘몰", dosage: nil, time: "9:00 am", color: .purple),
-            Medicine(id: "2", name: "오메가3", dosage: nil, time: "9:00 am", color: .yellow),
-            Medicine(id: "3", name: "비타민 D", dosage: nil, time: "12:00 pm", color: .blue),
-            Medicine(id: "4", name: "마그네슘", dosage: nil, time: "6:00 pm", color: .green),
-            Medicine(id: "5", name: "프로바이오틱스", dosage: nil, time: "9:00 pm", color: .pink),
-            Medicine(id: "6", name: "칼슘", dosage: nil, time: "10:00 pm", color: .purple)
-        ]
-        state.reminderModal = ReminderModalFeature.State(
-            userName: "김00",
-            missedMedicines: testMedicines
-        )
-        return .none
-    }
-
-    private func handleShowMessageModal(
-        _ state: inout State,
-        targetUser: String,
-        messageType: MessageType
-    ) -> Effect<Action> {
-        guard let card = state.mateCards?.cards.first(where: { $0.userName == targetUser }) else {
-            return .none
-        }
-        let medicineCount = Self.getMedicineCount(for: targetUser, messageType: messageType, state: state)
-        let testMedicineData = MockMedicineData.medicineData(for: .hasMedicines)
-        let medicines = messageType == .nagging ?
-        testMedicineData.todayMedicines :
-        testMedicineData.completedMedicines
-
-        state.messageModal = MessageModalFeature.State(
-            targetUser: targetUser,
-            messageType: messageType,
-            medicineCount: medicineCount,
-            relationship: card.relationship,
-            medicines: medicines
-        )
-        return .none
-    }
-
-    private static func getMedicineCount(for targetUser: String, messageType: MessageType, state: State) -> Int {
-        guard let card = state.mateCards?.cards.first(where: { $0.userName == targetUser }) else {
-            return 0
-        }
-        switch (card.status, messageType) {
-        case (.missedMedicine(let count), .nagging):
-            return count
-        case (.completed, .encouragement):
-            return 2
-        default:
-            return 0
-        }
+            .ifLet(\.addRoutine, action: \.addRoutine) {
+                AddRoutineFeature()
+            }
     }
 
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
@@ -134,12 +80,10 @@ struct HomeFeature: Reducer {
             return handleShowMissedMedicineModal(&state)
         case .showMessageModal(let targetUser, let messageType):
             return handleShowMessageModal(&state, targetUser: targetUser, messageType: messageType)
-        case .reminderModal(.takeMedicineNowTapped),
-                .reminderModal(.closeButtonTapped):
+        case .reminderModal(.takeMedicineNowTapped), .reminderModal(.closeButtonTapped):
             state.reminderModal = nil
             return .none
-        case .messageModal(.closeButtonTapped),
-                .messageModal(.sendButtonTapped):
+        case .messageModal(.closeButtonTapped), .messageModal(.sendButtonTapped):
             state.messageModal = nil
             return .none
         case .mateCards(.delegate(.showMessageModal(let targetUser, let messageType))):
@@ -147,8 +91,76 @@ struct HomeFeature: Reducer {
         case .dismissMessageModal:
             state.messageModal = nil
             return .none
-        case .userSelection, .mateCards, .calendar, .medicineList, .messageModal, .reminderModal:
+        case .medicineList(.delegate(.addMedicineRequested)):
+            return .send(.showAddRoutine)
+        case .showAddRoutine:
+            state.addRoutine = .init()
             return .none
+        case .addRoutine(.dismissRequested):
+            state.addRoutine = nil
+            return .none
+        case .addRoutine(.routineCompleted):
+            state.addRoutine = nil
+            return .send(.medicineList(.onAppear))
+        case .dismissAddRoutine:
+            state.addRoutine = nil
+            return .none
+        case .userSelection, .mateCards, .calendar, .medicineList,
+             .messageModal, .reminderModal, .addRoutine:
+            return .none
+        }
+    }
+
+    private func handleOnAppear() -> Effect<Action> {
+        return .merge(
+            .send(.mateCards(.onAppear)),
+            .send(.calendar(.onAppear)),
+            .send(.showReminderModal)
+        )
+    }
+
+    private func handleShowMissedMedicineModal(_ state: inout State) -> Effect<Action> {
+        let mockData = MockMedicineData.medicineData(for: .hasMedicines)
+        state.reminderModal = ReminderModalFeature.State(
+            userName: "김00",
+            missedMedicines: mockData.todayMedicines
+        )
+        return .none
+    }
+
+    private func handleShowMessageModal(
+        _ state: inout State,
+        targetUser: String,
+        messageType: MessageType
+    ) -> Effect<Action> {
+        guard let card = state.mateCards?.cards.first(where: { $0.userName == targetUser }) else {
+            return .none
+        }
+
+        let medicineCount = getMedicineCount(for: card, messageType: messageType)
+        let mockData = MockMedicineData.medicineData(for: .hasMedicines)
+        let medicines = messageType == .nagging ?
+            mockData.todayMedicines :
+            mockData.completedMedicines
+
+        state.messageModal = MessageModalFeature.State(
+            targetUser: targetUser,
+            messageType: messageType,
+            medicineCount: medicineCount,
+            relationship: card.relationship,
+            medicines: medicines
+        )
+        return .none
+    }
+
+    private func getMedicineCount(for card: MateCard, messageType: MessageType) -> Int {
+        switch (card.status, messageType) {
+        case (.missedMedicine(let count), .nagging):
+            return count
+        case (.completed, .encouragement):
+            return 2
+        default:
+            return 0
         }
     }
 }
