@@ -29,39 +29,41 @@ struct CustomDatePickerModal: View {
                     Spacer()
 
                     VStack(spacing: 0) {
-                        // 핸들바
+
                         Rectangle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 37, height: 4)
-                            .cornerRadius(2)
+                            .foregroundColor(.clear)
+                            .frame(width: 37.44, height: 4)
+                            .background(Color(red: 0.86, green: 0.86, blue: 0.86))
+                            .cornerRadius(999)
                             .padding(.top, 12)
                             .padding(.bottom, 8)
 
-                        // 제목
                         Text(viewStore.isSelectingStartDate ? "복용 시작 날짜를 설정해주세요" : "복용 종료 날짜를 설정해주세요")
                             .font(YKFont.subtitle1)
-                            .foregroundColor(YKColor.Neutral.grey950)
+                            .foregroundColor(YKColor.Neutral.grey900)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 16)
                             .padding(.bottom, 20)
+                            .padding(.top, 16)
 
-                        // 커스텀 날짜 피커 (UIKit 사용)
                         CustomDatePicker(
                             selectedYear: $selectedYear,
                             selectedMonth: $selectedMonth,
                             selectedDay: $selectedDay
                         )
-                        .frame(height: 200)
+                        .frame(height: 175)
                         .background(Color.clear)
                         .overlay(
-                            VStack(spacing: 30) {
+                            VStack(spacing: 40) {
                                 Rectangle()
-                                    .fill(YKColor.Primary.primary400)
+                                    .fill(YKColor.Primary.primary300)
                                     .frame(height: 1)
                                 Rectangle()
-                                    .fill(YKColor.Primary.primary400)
+                                    .fill(YKColor.Primary.primary300)
                                     .frame(height: 1)
                             }
                         )
-                        .padding(.horizontal, 13.5)
+                        .padding(.horizontal, 16)
 
                         // 종료일 없음 체크박스 (종료일 선택시만)
                         if !viewStore.isSelectingStartDate {
@@ -69,15 +71,22 @@ struct CustomDatePickerModal: View {
                                 Spacer()
                                 HStack(spacing: 8) {
                                     Text("종료일 없음")
-                                        .font(YKFont.body2)
-                                        .foregroundColor(YKColor.Neutral.grey400)
+                                        .font(YKFont.body1)
+                                        .foregroundColor(YKColor.Neutral.grey950)
 
                                     Button(action: {
                                         viewStore.send(.endDateToggled)
                                     }) {
-                                        Image(systemName: viewStore.hasEndDate ? "square" : "checkmark.square.fill")
-                                            .foregroundColor(viewStore.hasEndDate ? YKColor.Neutral.grey300 : YKColor.Primary.primary400)
-                                            .font(.system(size: 20))
+                                        ZStack {
+                                            Rectangle()
+                                                .fill(viewStore.hasEndDate ? YKColor.Neutral.grey100 : YKColor.Neutral.grey800)
+                                                .frame(width: 24, height: 24)
+                                                .cornerRadius(6.57)
+                                            Image(viewStore.hasEndDate ? "check-no" : "check-yes")
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .frame(width: 20, height: 20)
+                                        }
                                     }
                                 }
                                 .padding(.trailing, 16)
@@ -86,16 +95,16 @@ struct CustomDatePickerModal: View {
                         }
 
                         Spacer()
-                            .frame(height: 40)
+                            .frame(height: 60)
 
-                        // 버튼들
                         HStack(spacing: 8) {
                             Button("닫기") {
                                 viewStore.send(.datePickerDismissed)
                             }
-                            .frame(width: 84, height: 56)
+                            .font(YKFont.subtitle2)
+                            .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey400)
+                            .foregroundColor(YKColor.Neutral.grey500)
                             .cornerRadius(16)
 
                             Button("선택") {
@@ -104,15 +113,17 @@ struct CustomDatePickerModal: View {
                                     viewStore.send(.dateChanged(date))
                                 }
                             }
+                            .font(YKFont.subtitle2)
                             .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Primary.primary400)
-                            .foregroundColor(.white)
+                            .foregroundColor(YKColor.Neutral.grey50)
                             .cornerRadius(16)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
+
                     }
-                    .background(Color.white)
+                    .background(YKColor.Neutral.grey50)
                     .cornerRadius(24)
                     .padding(.horizontal, 13.5)
                 }
@@ -164,11 +175,9 @@ struct CustomDatePicker: UIViewRepresentable {
     private func makePickerTransparent(_ picker: UIPickerView) {
         picker.backgroundColor = UIColor.clear
 
-        // 배경만 투명하게 하고 텍스트는 보존
         func clearBackgroundOnly(view: UIView) {
             view.backgroundColor = UIColor.clear
 
-            // UILabel은 건드리지 않음 (텍스트 보존)
             if !(view is UILabel) {
                 for subview in view.subviews {
                     clearBackgroundOnly(view: subview)
@@ -178,9 +187,8 @@ struct CustomDatePicker: UIViewRepresentable {
 
         clearBackgroundOnly(view: picker)
 
-        // 선택 영역의 회색 배경만 제거 (텍스트는 건드리지 않음)
+        // 선택 영역의 회색 배경만 제거
         picker.subviews.forEach { subview in
-            // UILabel이 아닌 뷰만 처리
             if !(subview is UILabel) {
                 subview.backgroundColor = UIColor.clear
                 if subview.frame.height < 50 && subview.subviews.isEmpty {
@@ -238,6 +246,9 @@ struct CustomDatePicker: UIViewRepresentable {
                 let monthText = "\(row + 1)"
                 let unitText = "월"
 
+                // 현재 피커에서 선택된 월과 비교
+                let isSelected = row == pickerView.selectedRow(inComponent: 1)
+
                 let attributedString = NSMutableAttributedString()
                 attributedString.append(NSAttributedString(
                     string: monthText,
@@ -246,19 +257,25 @@ struct CustomDatePicker: UIViewRepresentable {
                         .foregroundColor: UIColor(YKColor.Neutral.grey950)
                     ]
                 ))
-                attributedString.append(NSAttributedString(
-                    string: "   " + unitText,
-                    attributes: [
-                        .font: UIFont.systemFont(ofSize: 14),
-                        .foregroundColor: UIColor(YKColor.Neutral.grey500)
-                    ]
-                ))
+
+                if isSelected {
+                    attributedString.append(NSAttributedString(
+                        string: "   " + unitText,
+                        attributes: [
+                            .font: UIFont.systemFont(ofSize: 18, weight: .medium),
+                            .foregroundColor: UIColor(YKColor.Neutral.grey500)
+                        ]
+                    ))
+                }
 
                 label.attributedText = attributedString
 
             case 2: // 일
                 let dayText = "\(row + 1)"
                 let unitText = "일"
+
+                // 현재 피커에서 선택된 일과 비교
+                let isSelected = row == pickerView.selectedRow(inComponent: 2)
 
                 let attributedString = NSMutableAttributedString()
                 attributedString.append(NSAttributedString(
@@ -268,13 +285,16 @@ struct CustomDatePicker: UIViewRepresentable {
                         .foregroundColor: UIColor(YKColor.Neutral.grey950)
                     ]
                 ))
-                attributedString.append(NSAttributedString(
-                    string: "   " + unitText,
-                    attributes: [
-                        .font: UIFont.systemFont(ofSize: 14),
-                        .foregroundColor: UIColor(YKColor.Neutral.grey500)
-                    ]
-                ))
+
+                if isSelected {
+                    attributedString.append(NSAttributedString(
+                        string: "   " + unitText,
+                        attributes: [
+                            .font: UIFont.systemFont(ofSize: 18, weight: .medium),
+                            .foregroundColor: UIColor(YKColor.Neutral.grey500)
+                        ]
+                    ))
+                }
 
                 label.attributedText = attributedString
 
@@ -297,9 +317,11 @@ struct CustomDatePicker: UIViewRepresentable {
                 pickerView.reloadComponent(2)
             case 1:
                 parent.selectedMonth = row + 1
+                pickerView.reloadComponent(1) // 월 컴포넌트 리로드 추가
                 pickerView.reloadComponent(2)
             case 2:
                 parent.selectedDay = row + 1
+                pickerView.reloadComponent(2) // 일 컴포넌트 리로드 추가
             default:
                 break
             }

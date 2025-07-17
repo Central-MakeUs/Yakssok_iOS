@@ -1,5 +1,5 @@
 //
-//  FrequencySelector.swift
+//  FrequencySelectorModal.swift
 //  Yakssok
 //
 //  Created by 김사랑 on 7/16/25.
@@ -29,21 +29,24 @@ struct FrequencySelectionModal: View {
                     VStack(spacing: 0) {
                         // 핸들바
                         Rectangle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 37, height: 4)
-                            .cornerRadius(2)
+                            .foregroundColor(.clear)
+                            .frame(width: 37.44, height: 4)
+                            .background(Color(red: 0.86, green: 0.86, blue: 0.86))
+                            .cornerRadius(999)
                             .padding(.top, 12)
                             .padding(.bottom, 8)
 
-                        // 제목
                         Text("복용주기를 선택해주세요")
                             .font(YKFont.subtitle1)
-                            .foregroundColor(YKColor.Neutral.grey950)
-                            .padding(.bottom, 40)
+                            .foregroundColor(YKColor.Neutral.grey900)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 16)
+                            .padding(.bottom, 20)
+                            .padding(.top, 16)
 
                         // 요일 선택 버튼들
-                        VStack(spacing: 16) {
-                            HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 4) {
                                 ForEach([Weekday.monday, .tuesday, .wednesday, .thursday, .friday, .saturday], id: \.self) { weekday in
                                     WeekdayButton(
                                         weekday: weekday,
@@ -54,7 +57,6 @@ struct FrequencySelectionModal: View {
                                             } else {
                                                 selectedWeekdays.insert(weekday)
                                             }
-                                            // 매일 체크박스 상태 업데이트
                                             isDaily = selectedWeekdays.count == 7
                                         }
                                     )
@@ -71,7 +73,6 @@ struct FrequencySelectionModal: View {
                                         } else {
                                             selectedWeekdays.insert(.sunday)
                                         }
-                                        // 매일 체크박스 상태 업데이트
                                         isDaily = selectedWeekdays.count == 7
                                     }
                                 )
@@ -85,8 +86,8 @@ struct FrequencySelectionModal: View {
                             Spacer()
                             HStack(spacing: 8) {
                                 Text("매일")
-                                    .font(YKFont.body2)
-                                    .foregroundColor(YKColor.Neutral.grey400)
+                                    .font(YKFont.body1)
+                                    .foregroundColor(YKColor.Neutral.grey950)
 
                                 Button(action: {
                                     isDaily.toggle()
@@ -96,41 +97,51 @@ struct FrequencySelectionModal: View {
                                         selectedWeekdays.removeAll()
                                     }
                                 }) {
-                                    Image(systemName: isDaily ? "checkmark.square.fill" : "square")
-                                        .foregroundColor(isDaily ? YKColor.Primary.primary400 : YKColor.Neutral.grey300)
-                                        .font(.system(size: 20))
+                                    ZStack {
+                                        Rectangle()
+                                            .fill(isDaily ? YKColor.Neutral.grey800 : YKColor.Neutral.grey100)
+                                            .frame(width: 24, height: 24)
+                                            .cornerRadius(6.57)
+                                        Image(isDaily ? "check-yes" : "check-no")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(width: 20, height: 20)
+                                    }
                                 }
                             }
                             .padding(.trailing, 16)
                             .padding(.top, 40)
                         }
 
+
                         Spacer()
                             .frame(height: 60)
 
-                        // 버튼들
                         HStack(spacing: 8) {
                             Button("닫기") {
                                 viewStore.send(.dismissFrequencyModal)
                             }
-                            .frame(width: 84, height: 56)
+                            .font(YKFont.subtitle2)
+                            .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey400)
+                            .foregroundColor(YKColor.Neutral.grey500)
                             .cornerRadius(16)
 
                             Button("선택") {
                                 let frequency: ScheduleSelectionFeature.State.FrequencyType = isDaily ? .daily : .weekly
                                 viewStore.send(.frequencySelected(frequency, selectedWeekdays))
                             }
+                            .font(YKFont.subtitle2)
                             .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Primary.primary400)
-                            .foregroundColor(.white)
+                            .foregroundColor(YKColor.Neutral.grey50)
                             .cornerRadius(16)
                         }
+
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
                     }
-                    .background(Color.white)
+                    .background(YKColor.Neutral.grey50)
                     .cornerRadius(24)
                     .padding(.horizontal, 13.5)
                 }
@@ -149,19 +160,18 @@ struct WeekdayButton: View {
     let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            Text(weekday.shortName)
-                .font(YKFont.subtitle2)
-                .foregroundColor(isSelected ? YKColor.Primary.primary400 : YKColor.Neutral.grey400)
-                .frame(width: 44, height: 44)
-                .background(
-                    Circle()
-                        .fill(isSelected ? YKColor.Primary.primary50 : YKColor.Neutral.grey100)
-                        .overlay(
-                            Circle()
-                                .stroke(isSelected ? YKColor.Primary.primary400 : Color.clear, lineWidth: 2)
-                        )
-                )
+            Button(action: onTap) {
+                Text(weekday.shortName)
+                    .font(YKFont.subtitle2)
+                    .foregroundColor(isSelected ? YKColor.Primary.primary400 : YKColor.Neutral.grey400)
+                    .frame(width: 48, height: 48)
+                    .background(isSelected ? YKColor.Primary.primary100 : YKColor.Neutral.grey100)
+                    .cornerRadius(24)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .inset(by: 0.5)
+                            .stroke(isSelected ? YKColor.Primary.primary400 : Color.clear, lineWidth: 1)
+                    )
+            }
         }
-    }
 }

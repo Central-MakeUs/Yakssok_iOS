@@ -28,55 +28,62 @@ struct TimesPerDaySelectionModal: View {
                     VStack(spacing: 0) {
                         // 핸들바
                         Rectangle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 37, height: 4)
-                            .cornerRadius(2)
+                            .foregroundColor(.clear)
+                            .frame(width: 37.44, height: 4)
+                            .background(Color(red: 0.86, green: 0.86, blue: 0.86))
+                            .cornerRadius(999)
                             .padding(.top, 12)
                             .padding(.bottom, 8)
 
-                        // 제목
                         Text("하루에 먹을 횟수를 선택해주세요")
                             .font(YKFont.subtitle1)
-                            .foregroundColor(YKColor.Neutral.grey950)
-                            .padding(.bottom, 40)
+                            .foregroundColor(YKColor.Neutral.grey900)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 16)
+                            .padding(.bottom, 20)
+                            .padding(.top, 16)
 
                         // 횟수 선택 버튼들
-                        HStack(spacing: 16) {
-                            ForEach(1...3, id: \.self) { count in
-                                TimesButton(
-                                    count: count,
-                                    isSelected: selectedTimes == count,
-                                    onTap: { selectedTimes = count }
-                                )
+                        VStack(alignment: .leading) {
+                            HStack(spacing: 4) {
+                                ForEach(1...3, id: \.self) { count in
+                                    TimesButton(
+                                        count: count,
+                                        isSelected: selectedTimes == count,
+                                        onTap: { selectedTimes = count }
+                                    )
+                                }
+                                Spacer()
                             }
                         }
                         .padding(.horizontal, 16)
 
                         Spacer()
-                            .frame(height: 120)
+                            .frame(height: 60)
 
-                        // 버튼들
                         HStack(spacing: 8) {
                             Button("닫기") {
                                 viewStore.send(.dismissTimesPerDayModal)
                             }
-                            .frame(width: 84, height: 56)
+                            .font(YKFont.subtitle2)
+                            .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey400)
+                            .foregroundColor(YKColor.Neutral.grey500)
                             .cornerRadius(16)
 
                             Button("선택") {
                                 viewStore.send(.timesSelected(selectedTimes))
                             }
+                            .font(YKFont.subtitle2)
                             .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Primary.primary400)
-                            .foregroundColor(.white)
+                            .foregroundColor(YKColor.Neutral.grey50)
                             .cornerRadius(16)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
                     }
-                    .background(Color.white)
+                    .background(YKColor.Neutral.grey50)
                     .cornerRadius(24)
                     .padding(.horizontal, 13.5)
                 }
@@ -98,14 +105,13 @@ struct TimesButton: View {
             Text("\(count)")
                 .font(YKFont.subtitle2)
                 .foregroundColor(isSelected ? YKColor.Primary.primary400 : YKColor.Neutral.grey400)
-                .frame(width: 64, height: 64)
-                .background(
-                    Circle()
-                        .fill(isSelected ? YKColor.Primary.primary50 : YKColor.Neutral.grey100)
-                        .overlay(
-                            Circle()
-                                .stroke(isSelected ? YKColor.Primary.primary400 : Color.clear, lineWidth: 2)
-                        )
+                .frame(width: 48, height: 48)
+                .background(isSelected ? YKColor.Primary.primary100 : YKColor.Neutral.grey100)
+                .cornerRadius(24)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .inset(by: 0.5)
+                        .stroke(isSelected ? YKColor.Primary.primary400 : Color.clear, lineWidth: 1)
                 )
         }
     }

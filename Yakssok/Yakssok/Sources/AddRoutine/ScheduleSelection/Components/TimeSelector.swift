@@ -46,7 +46,6 @@ private struct TimeSlotView: View {
                         .font(YKFont.subtitle2)
                         .foregroundColor(YKColor.Neutral.grey700)
 
-                    // 위아래 화살표 아이콘 추가
                     VStack(spacing: 2) {
                         Image(systemName: "chevron.up")
                             .font(.system(size: 8, weight: .medium))
@@ -60,7 +59,7 @@ private struct TimeSlotView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(YKColor.Neutral.grey50)
             )
         }

@@ -15,7 +15,7 @@ struct ScheduleSelectionView: View {
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 20) {
                     Text("복용기간을 선택해주세요")
                         .font(YKFont.subtitle2)
                         .foregroundColor(YKColor.Neutral.grey950)
@@ -38,7 +38,7 @@ struct ScheduleSelectionView: View {
                 }
 
                 Spacer()
-                    .frame(height: 32)
+                    .frame(height: 20)
 
                 TimeSelector(store: store)
                     .padding(.horizontal, 16)
@@ -54,7 +54,7 @@ struct FrequencySelector: View {
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 FrequencyButton(
                     title: "매주",
                     subtitle: viewStore.frequencyDisplayText,
@@ -92,10 +92,10 @@ private struct FrequencyButton: View {
                     .foregroundColor(YKColor.Neutral.grey950)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 16)
+            .padding(.vertical, 12)
             .padding(.horizontal, 16)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(YKColor.Neutral.grey50)
             )
         }
@@ -119,10 +119,10 @@ private struct TimesPerDayButton: View {
                     .foregroundColor(YKColor.Neutral.grey950)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 16)
+            .padding(.vertical, 12)
             .padding(.horizontal, 16)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 16)
                     .fill(YKColor.Neutral.grey50)
             )
         }
@@ -134,25 +134,23 @@ struct DateRangeSelector: View {
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            VStack(spacing: 16) {
-                HStack(spacing: 16) {
-                    DateButton(
-                        title: "시작일",
-                        date: viewStore.startDate,
-                        onTap: { viewStore.send(.startDateButtonTapped) }
-                    )
+            HStack(spacing: 12) {
+                DateButton(
+                    title: "시작일",
+                    date: viewStore.startDate,
+                    onTap: { viewStore.send(.startDateButtonTapped) }
+                )
 
-                    Text("~")
-                        .font(YKFont.body1)
-                        .foregroundColor(YKColor.Neutral.grey400)
+                Text("~")
+                    .font(YKFont.body1)
+                    .foregroundColor(YKColor.Neutral.grey400)
 
-                    DateButton(
-                        title: "종료일",
-                        date: viewStore.endDate,
-                        isEnabled: viewStore.hasEndDate,
-                        onTap: { viewStore.send(.endDateButtonTapped) }
-                    )
-                }
+                DateButton(
+                    title: "종료일",
+                    date: viewStore.endDate,
+                    isEnabled: viewStore.hasEndDate,
+                    onTap: { viewStore.send(.endDateButtonTapped) }
+                )
             }
         }
     }
@@ -186,10 +184,10 @@ private struct DateButton: View {
 
                 Text(dateString)
                     .font(YKFont.body1)
-                    .foregroundColor(isEnabled ? YKColor.Neutral.grey950 : YKColor.Neutral.grey100)
+                    .foregroundColor(isEnabled ? YKColor.Neutral.grey950 : YKColor.Neutral.grey50)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 16)
+            .padding(.vertical, 12)
             .padding(.horizontal, 16)
             .background(
                 RoundedRectangle(cornerRadius: 16)

@@ -28,21 +28,23 @@ struct CustomTimePickerModal: View {
                     Spacer()
 
                     VStack(spacing: 0) {
-                        // 핸들바
                         Rectangle()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 37, height: 4)
-                            .cornerRadius(2)
+                            .foregroundColor(.clear)
+                            .frame(width: 37.44, height: 4)
+                            .background(Color(red: 0.86, green: 0.86, blue: 0.86))
+                            .cornerRadius(999)
                             .padding(.top, 12)
                             .padding(.bottom, 8)
 
-                        // 제목
+                        // 제목 수정
                         Text("알림받을 시간을 설정해주세요")
                             .font(YKFont.subtitle1)
-                            .foregroundColor(YKColor.Neutral.grey950)
+                            .foregroundColor(YKColor.Neutral.grey900)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 16)
                             .padding(.bottom, 20)
+                            .padding(.top, 16)
 
-                        // 커스텀 시간 피커 (UIKit 사용)
                         CustomTimePicker(
                             selectedPeriod: $selectedPeriod,
                             selectedHour: $selectedHour,
@@ -51,29 +53,29 @@ struct CustomTimePickerModal: View {
                         .frame(height: 200)
                         .background(Color.clear)
                         .overlay(
-                            VStack(spacing: 30) {
+                            VStack(spacing: 40) {
                                 Rectangle()
-                                    .fill(YKColor.Primary.primary400)
+                                    .fill(YKColor.Primary.primary300)
                                     .frame(height: 1)
                                 Rectangle()
-                                    .fill(YKColor.Primary.primary400)
+                                    .fill(YKColor.Primary.primary300)
                                     .frame(height: 1)
                             }
                         )
-                        .padding(.horizontal, 13.5)
+                        .padding(.horizontal, 16)
 
                         Spacer()
                             .frame(height: 50)
 
-                        // 버튼들
                         HStack(spacing: 8) {
                             Button("닫기") {
-                                viewStore.send(.dismissTimePickerModal)
-                            }
-                            .frame(width: 84, height: 56)
-                            .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey400)
-                            .cornerRadius(16)
+                                    viewStore.send(.dismissTimePickerModal)
+                                }
+                                .font(YKFont.subtitle2)
+                                .frame(maxWidth: .infinity, minHeight: 56)
+                                .background(YKColor.Neutral.grey100)
+                                .foregroundColor(YKColor.Neutral.grey500)
+                                .cornerRadius(16)
 
                             Button("선택") {
                                 var hour24 = selectedHour
@@ -86,15 +88,16 @@ struct CustomTimePickerModal: View {
                                 viewStore.send(.tempTimeChanged(time))
                                 viewStore.send(.confirmTimeSelection)
                             }
-                            .frame(maxWidth: .infinity, minHeight: 56)
-                            .background(YKColor.Primary.primary400)
-                            .foregroundColor(.white)
-                            .cornerRadius(16)
+                            .font(YKFont.subtitle2)
+                                .frame(maxWidth: .infinity, minHeight: 56)
+                                .background(YKColor.Primary.primary400)
+                                .foregroundColor(YKColor.Neutral.grey50)
+                                .cornerRadius(16)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
                     }
-                    .background(Color.white)
+                    .background(YKColor.Neutral.grey50)
                     .cornerRadius(24)
                     .padding(.horizontal, 13.5)
                 }
@@ -155,11 +158,9 @@ struct CustomTimePicker: UIViewRepresentable {
     private func makePickerTransparent(_ picker: UIPickerView) {
         picker.backgroundColor = UIColor.clear
 
-        // 배경만 투명하게 하고 텍스트는 보존
         func clearBackgroundOnly(view: UIView) {
             view.backgroundColor = UIColor.clear
 
-            // UILabel은 건드리지 않음 (텍스트 보존)
             if !(view is UILabel) {
                 for subview in view.subviews {
                     clearBackgroundOnly(view: subview)
@@ -171,7 +172,6 @@ struct CustomTimePicker: UIViewRepresentable {
 
         // 선택 영역의 회색 배경만 제거 (텍스트는 건드리지 않음)
         picker.subviews.forEach { subview in
-            // UILabel이 아닌 뷰만 처리
             if !(subview is UILabel) {
                 subview.backgroundColor = UIColor.clear
                 if subview.frame.height < 50 && subview.subviews.isEmpty {
@@ -229,6 +229,9 @@ struct CustomTimePicker: UIViewRepresentable {
                 let hourText = "\(row + 1)"
                 let unitText = "시"
 
+                // 현재 피커에서 선택된 시와 비교
+                let isSelected = row == pickerView.selectedRow(inComponent: 1)
+
                 let attributedString = NSMutableAttributedString()
                 attributedString.append(NSAttributedString(
                     string: hourText,
@@ -237,19 +240,26 @@ struct CustomTimePicker: UIViewRepresentable {
                         .foregroundColor: UIColor(YKColor.Neutral.grey950)
                     ]
                 ))
-                attributedString.append(NSAttributedString(
-                    string: "   " + unitText,
-                    attributes: [
-                        .font: UIFont.systemFont(ofSize: 14),
-                        .foregroundColor: UIColor(YKColor.Neutral.grey500)
-                    ]
-                ))
+
+                // 선택된 것만 "시" 표시
+                if isSelected {
+                    attributedString.append(NSAttributedString(
+                        string: "   " + unitText,
+                        attributes: [
+                            .font: UIFont.systemFont(ofSize: 18, weight: .medium),
+                            .foregroundColor: UIColor(YKColor.Neutral.grey500)
+                        ]
+                    ))
+                }
 
                 label.attributedText = attributedString
 
             case 2: // 분
                 let minuteText = String(format: "%02d", row)
                 let unitText = "분"
+
+                // 현재 피커에서 선택된 분과 비교
+                let isSelected = row == pickerView.selectedRow(inComponent: 2)
 
                 let attributedString = NSMutableAttributedString()
                 attributedString.append(NSAttributedString(
@@ -259,13 +269,17 @@ struct CustomTimePicker: UIViewRepresentable {
                         .foregroundColor: UIColor(YKColor.Neutral.grey950)
                     ]
                 ))
-                attributedString.append(NSAttributedString(
-                    string: "   " + unitText,
-                    attributes: [
-                        .font: UIFont.systemFont(ofSize: 14),
-                        .foregroundColor: UIColor(YKColor.Neutral.grey500)
-                    ]
-                ))
+
+                // 선택된 것만 "분" 표시
+                if isSelected {
+                    attributedString.append(NSAttributedString(
+                        string: "   " + unitText,
+                        attributes: [
+                            .font: UIFont.systemFont(ofSize: 18, weight: .medium),
+                            .foregroundColor: UIColor(YKColor.Neutral.grey500)
+                        ]
+                    ))
+                }
 
                 label.attributedText = attributedString
 
@@ -282,8 +296,10 @@ struct CustomTimePicker: UIViewRepresentable {
                 parent.selectedPeriod = row
             case 1:
                 parent.selectedHour = row + 1
+                pickerView.reloadComponent(1) // 시 컴포넌트 리로드 추가 (선택된 것만 "시" 표시하기 위해)
             case 2:
                 parent.selectedMinute = row
+                pickerView.reloadComponent(2) // 분 컴포넌트 리로드 추가 (선택된 것만 "분" 표시하기 위해)
             default:
                 break
             }
