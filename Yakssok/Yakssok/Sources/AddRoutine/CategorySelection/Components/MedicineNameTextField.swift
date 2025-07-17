@@ -22,10 +22,7 @@ struct MedicineNameTextField: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
         .background(YKColor.Neutral.grey50)
-        .overlay(
-            RoundedRectangle(cornerRadius: AddRoutineConstants.Layout.textFieldCornerRadius)
-                .stroke(YKColor.Neutral.grey200, lineWidth: 1)
-        )
+        .cornerRadius(AddRoutineConstants.Layout.textFieldCornerRadius)
     }
 
     private var placeholderView: some View {
