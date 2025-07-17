@@ -34,7 +34,6 @@ struct FrequencySelectionModal: View {
                             .background(Color(red: 0.86, green: 0.86, blue: 0.86))
                             .cornerRadius(999)
                             .padding(.top, 12)
-                            .padding(.bottom, 8)
 
                         Text("복용주기를 선택해주세요")
                             .font(YKFont.subtitle1)
@@ -42,7 +41,7 @@ struct FrequencySelectionModal: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.leading, 16)
                             .padding(.bottom, 20)
-                            .padding(.top, 16)
+                            .padding(.top, 28)
 
                         // 요일 선택 버튼들
                         VStack(alignment: .leading, spacing: 4) {

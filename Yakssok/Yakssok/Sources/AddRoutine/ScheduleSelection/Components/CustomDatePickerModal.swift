@@ -36,7 +36,6 @@ struct CustomDatePickerModal: View {
                             .background(Color(red: 0.86, green: 0.86, blue: 0.86))
                             .cornerRadius(999)
                             .padding(.top, 12)
-                            .padding(.bottom, 8)
 
                         Text(viewStore.isSelectingStartDate ? "복용 시작 날짜를 설정해주세요" : "복용 종료 날짜를 설정해주세요")
                             .font(YKFont.subtitle1)
@@ -44,7 +43,7 @@ struct CustomDatePickerModal: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.leading, 16)
                             .padding(.bottom, 20)
-                            .padding(.top, 16)
+                            .padding(.top, 28)
 
                         CustomDatePicker(
                             selectedYear: $selectedYear,
