@@ -56,7 +56,7 @@ struct AlarmOptionButton: View {
                 Spacer()
 
                 if isNaggingType {
-                    HStack(alignment: .center, spacing: 8) {
+                    HStack(alignment: .center) {
                         Text("인기")
                             .font(YKFont.body2)
                             .multilineTextAlignment(.center)
