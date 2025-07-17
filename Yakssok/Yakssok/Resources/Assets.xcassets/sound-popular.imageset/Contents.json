@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "sound-popular.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
