@@ -26,14 +26,12 @@ struct TimesPerDaySelectionModal: View {
                     Spacer()
 
                     VStack(spacing: 0) {
-                        // 핸들바
                         Rectangle()
                             .foregroundColor(.clear)
                             .frame(width: 37.44, height: 4)
                             .background(Color(red: 0.86, green: 0.86, blue: 0.86))
                             .cornerRadius(999)
                             .padding(.top, 12)
-                            .padding(.bottom, 8)
 
                         Text("하루에 먹을 횟수를 선택해주세요")
                             .font(YKFont.subtitle1)
@@ -41,7 +39,7 @@ struct TimesPerDaySelectionModal: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.leading, 16)
                             .padding(.bottom, 20)
-                            .padding(.top, 16)
+                            .padding(.top, 28)
 
                         // 횟수 선택 버튼들
                         VStack(alignment: .leading) {

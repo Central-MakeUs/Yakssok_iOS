@@ -14,8 +14,6 @@ struct AlarmSelectionFeature: Reducer {
         var isNextButtonEnabled: Bool = true
         var isPlaying: Bool = false
         var currentlyPlayingAlarm: AlarmType? = nil
-        var showCompletionModal: Bool = false
-        var registrationData: MedicineRegistrationData?
 
         enum AlarmType: String, CaseIterable, Equatable {
             case gentle = "gentle"
@@ -90,7 +88,6 @@ struct AlarmSelectionFeature: Reducer {
                 }
                 state.isPlaying = true
                 state.currentlyPlayingAlarm = alarmType
-
                 return .run { send in
                     await audioPlayer.play(alarmType.soundFileName)
                     await send(.audioPlayerFinished)

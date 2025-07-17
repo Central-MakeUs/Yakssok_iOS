@@ -34,7 +34,6 @@ struct CustomTimePickerModal: View {
                             .background(Color(red: 0.86, green: 0.86, blue: 0.86))
                             .cornerRadius(999)
                             .padding(.top, 12)
-                            .padding(.bottom, 8)
 
                         // 제목 수정
                         Text("알림받을 시간을 설정해주세요")
@@ -43,7 +42,7 @@ struct CustomTimePickerModal: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.leading, 16)
                             .padding(.bottom, 20)
-                            .padding(.top, 16)
+                            .padding(.top, 28)
 
                         CustomTimePicker(
                             selectedPeriod: $selectedPeriod,

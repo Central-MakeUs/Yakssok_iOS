@@ -11,8 +11,22 @@ struct AddRoutineFeature: Reducer {
     struct State: Equatable {
         var currentStep: Int = 1
         var categorySelection: CategorySelectionFeature.State? = .init()
-        var scheduleSelection: ScheduleSelectionFeature.State?
-        var alarmSelection: AlarmSelectionFeature.State?
+        var scheduleSelection: ScheduleSelectionFeature.State? = nil
+        var alarmSelection: AlarmSelectionFeature.State? = nil
+        var showFinalCompletionModal: Bool = false
+        var completedRoutineData: MedicineRegistrationData? = nil
+        var completedCategoryData: CompletedCategoryData? = nil
+        var completedScheduleData: CompletedScheduleData? = nil
+    }
+
+    struct CompletedCategoryData: Equatable {
+        let medicineName: String
+        let category: MedicineCategory
+    }
+
+    struct CompletedScheduleData: Equatable {
+        let dateRange: DateRange
+        let frequency: MedicineFrequency
     }
 
     @CasePathable
@@ -23,6 +37,7 @@ struct AddRoutineFeature: Reducer {
         case alarmSelection(AlarmSelectionFeature.Action)
         case routineCompleted
         case dismissRequested
+        case dismissFinalCompletionModal
     }
 
     var body: some ReducerOf<Self> {
@@ -42,20 +57,59 @@ struct AddRoutineFeature: Reducer {
                 } else {
                     return .send(.dismissRequested)
                 }
+
             case .categorySelection(.nextButtonTapped):
+                if let categoryState = state.categorySelection,
+                   let selectedCategory = categoryState.selectedCategory {
+                    state.completedCategoryData = CompletedCategoryData(
+                        medicineName: categoryState.medicineName,
+                        category: selectedCategory
+                    )
+                }
+
                 state.currentStep = 2
                 state.categorySelection = nil
                 state.scheduleSelection = .init()
                 return .none
+
             case .scheduleSelection(.nextButtonTapped):
+                if let scheduleState = state.scheduleSelection {
+                    let dateRange = DateRange(
+                        startDate: scheduleState.startDate,
+                        endDate: scheduleState.hasEndDate ? scheduleState.endDate : scheduleState.startDate
+                    )
+
+                    let frequency = MedicineFrequency(
+                        type: scheduleState.frequencyType == .daily ? .daily : .weekly(Array(scheduleState.selectedWeekdays)),
+                        times: scheduleState.selectedTimes
+                    )
+
+                    state.completedScheduleData = CompletedScheduleData(
+                        dateRange: dateRange,
+                        frequency: frequency
+                    )
+                }
+
                 state.currentStep = 3
                 state.scheduleSelection = nil
                 state.alarmSelection = .init()
                 return .none
+
             case .alarmSelection(.nextButtonTapped):
-                return .send(.routineCompleted)
+                if let finalData = createFinalRoutineData(from: state) {
+                    state.completedRoutineData = finalData
+                    state.showFinalCompletionModal = true
+                } else {
+                }
+                return .none
+
+            case .dismissFinalCompletionModal:
+                state.showFinalCompletionModal = false
+                return .send(.dismissRequested)
+
             case .routineCompleted:
                 return .none
+
             default:
                 return .none
             }
@@ -69,5 +123,30 @@ struct AddRoutineFeature: Reducer {
         .ifLet(\.alarmSelection, action: \.alarmSelection) {
             AlarmSelectionFeature()
         }
+    }
+
+    private func createFinalRoutineData(from state: State) -> MedicineRegistrationData? {
+
+        guard let categoryData = state.completedCategoryData,
+              let scheduleData = state.completedScheduleData,
+              let alarmState = state.alarmSelection else {
+            return nil
+        }
+
+        let medicineInfo = MedicineInfo(
+            name: categoryData.medicineName,
+            dosage: nil,
+            color: .purple
+        )
+
+        let data = MedicineRegistrationData(
+            category: categoryData.category,
+            dateRange: scheduleData.dateRange,
+            frequency: scheduleData.frequency,
+            alarmSound: alarmState.selectedAlarmType.toAlarmSound,
+            medicineInfo: medicineInfo
+        )
+
+        return data
     }
 }

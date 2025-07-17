@@ -83,6 +83,14 @@ struct AddRoutineView: View {
                         }
                     }
                 }
+
+                // 최종 확인 모달
+                if viewStore.showFinalCompletionModal {
+                    FinalCompletionModal(
+                        routineData: viewStore.completedRoutineData,
+                        onDismiss: { viewStore.send(.dismissFinalCompletionModal) }
+                    )
+                }
             }
         }
     }
