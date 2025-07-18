@@ -19,7 +19,7 @@ struct HomeFeature: Reducer {
         var messageModal: MessageModalFeature.State?
         var reminderModal: ReminderModalFeature.State?
         var addRoutine: AddRoutineFeature.State?
-
+        var notificationList: NotificationListFeature.State?
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
         }
@@ -28,7 +28,6 @@ struct HomeFeature: Reducer {
     @CasePathable
     enum Action: Equatable {
         case onAppear
-        case calendarTapped
         case notificationTapped
         case menuTapped
         case userSelection(MateSelectionFeature.Action)
@@ -43,6 +42,9 @@ struct HomeFeature: Reducer {
         case addRoutine(AddRoutineFeature.Action)
         case showAddRoutine
         case dismissAddRoutine
+        case notificationList(NotificationListFeature.Action)
+        case showNotificationList
+        case dismissNotificationList
     }
 
     var body: some ReducerOf<Self> {
@@ -68,13 +70,18 @@ struct HomeFeature: Reducer {
             .ifLet(\.addRoutine, action: \.addRoutine) {
                 AddRoutineFeature()
             }
+            .ifLet(\.notificationList, action: \.notificationList) {
+                NotificationListFeature()
+            }
     }
 
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
         switch action {
         case .onAppear:
             return handleOnAppear()
-        case .calendarTapped, .notificationTapped, .menuTapped:
+        case .notificationTapped:
+            return .send(.showNotificationList)
+        case .menuTapped:
             return .none
         case .showReminderModal:
             return handleShowMissedMedicineModal(&state)
@@ -105,8 +112,17 @@ struct HomeFeature: Reducer {
         case .dismissAddRoutine:
             state.addRoutine = nil
             return .none
+        case .showNotificationList:
+            state.notificationList = .init()
+            return .none
+        case .notificationList(.backButtonTapped):
+            state.notificationList = nil
+            return .none
+        case .dismissNotificationList:
+            state.notificationList = nil
+            return .none
         case .userSelection, .mateCards, .calendar, .medicineList,
-             .messageModal, .reminderModal, .addRoutine:
+                .messageModal, .reminderModal, .addRoutine, .notificationList:
             return .none
         }
     }
@@ -140,8 +156,8 @@ struct HomeFeature: Reducer {
         let medicineCount = getMedicineCount(for: card, messageType: messageType)
         let mockData = MockMedicineData.medicineData(for: .hasMedicines)
         let medicines = messageType == .nagging ?
-            mockData.todayMedicines :
-            mockData.completedMedicines
+        mockData.todayMedicines :
+        mockData.completedMedicines
 
         state.messageModal = MessageModalFeature.State(
             targetUser: targetUser,
