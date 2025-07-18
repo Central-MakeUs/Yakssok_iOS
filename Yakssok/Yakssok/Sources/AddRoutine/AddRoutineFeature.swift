@@ -46,14 +46,38 @@ struct AddRoutineFeature: Reducer {
             case .backButtonTapped:
                 if state.currentStep == 2 {
                     state.currentStep = 1
-                    state.scheduleSelection = nil
-                    state.categorySelection = .init()
+                    state.categorySelection = state.completedCategoryData.map { categoryData in
+                        var categoryState = CategorySelectionFeature.State()
+                        categoryState.medicineName = categoryData.medicineName
+                        categoryState.selectedCategory = categoryData.category
+                        return categoryState
+                    } ?? .init()
                     return .none
+
                 } else if state.currentStep == 3 {
                     state.currentStep = 2
-                    state.alarmSelection = nil
-                    state.scheduleSelection = .init()
+                    state.scheduleSelection = state.completedScheduleData.map { scheduleData in
+                        var scheduleState = ScheduleSelectionFeature.State()
+                        scheduleState.startDate = scheduleData.dateRange.startDate
+                        scheduleState.endDate = scheduleData.dateRange.endDate
+                        scheduleState.hasEndDate = scheduleData.dateRange.startDate != scheduleData.dateRange.endDate
+
+                        switch scheduleData.frequency.type {
+                        case .daily:
+                            scheduleState.frequencyType = .daily
+                            scheduleState.selectedWeekdays = Set(Weekday.allCases)
+                        case .weekly(let weekdays):
+                            scheduleState.frequencyType = .weekly
+                            scheduleState.selectedWeekdays = Set(weekdays)
+                        }
+
+                        scheduleState.timesPerDay = scheduleData.frequency.times.count
+                        scheduleState.selectedTimes = scheduleData.frequency.times
+
+                        return scheduleState
+                    } ?? .init()
                     return .none
+
                 } else {
                     return .send(.dismissRequested)
                 }
@@ -68,8 +92,9 @@ struct AddRoutineFeature: Reducer {
                 }
 
                 state.currentStep = 2
-                state.categorySelection = nil
-                state.scheduleSelection = .init()
+                if state.scheduleSelection == nil {
+                    state.scheduleSelection = .init()
+                }
                 return .none
 
             case .scheduleSelection(.nextButtonTapped):
@@ -91,8 +116,9 @@ struct AddRoutineFeature: Reducer {
                 }
 
                 state.currentStep = 3
-                state.scheduleSelection = nil
-                state.alarmSelection = .init()
+                if state.alarmSelection == nil {
+                    state.alarmSelection = .init()
+                }
                 return .none
 
             case .alarmSelection(.nextButtonTapped):

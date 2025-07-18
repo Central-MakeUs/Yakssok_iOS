@@ -27,29 +27,30 @@ public struct YKNavigationBar<Content: View>: View {
     }
 
     public var body: some View {
-        NavigationView {
-            content
-                .navigationTitle(title)
-                .navigationBarTitleDisplayMode(.inline)
-                .navigationBarItems(
-                    leading: hasBackButton ?
-                    Button {
-                        onBackTapped?()
-                    } label: {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(YKColor.Neutral.grey900)
-                    }
+        content
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarItems(
+                leading: hasBackButton ?
+                Button {
+                    onBackTapped?()
+                } label: {
+                    Image(systemName: "arrow.left")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(YKColor.Neutral.grey900)
+                }
                     .accessibilityLabel("뒤로가기") :
-                        nil
-                )
-        }
-        .onAppear {
-            let appearance = UINavigationBarAppearance()
-            appearance.configureWithTransparentBackground()
-            appearance.shadowColor = .clear
-            UINavigationBar.appearance().standardAppearance = appearance
-            UINavigationBar.appearance().scrollEdgeAppearance = appearance
-        }
+                    nil
+            )
+            .onAppear {
+                let appearance = UINavigationBarAppearance()
+                appearance.configureWithTransparentBackground()
+                appearance.shadowColor = .clear
+                appearance.titleTextAttributes = [
+                    .foregroundColor: UIColor(YKColor.Neutral.grey900)
+                ]
+                UINavigationBar.appearance().standardAppearance = appearance
+                UINavigationBar.appearance().scrollEdgeAppearance = appearance
+            }
     }
 }

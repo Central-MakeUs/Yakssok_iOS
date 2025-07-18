@@ -16,7 +16,7 @@ struct AddRoutineView: View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             ZStack {
                 Group {
-                    if viewStore.categorySelection != nil {
+                    if viewStore.currentStep == 1 {
                         IfLetStore(store.scope(state: \.categorySelection, action: \.categorySelection)) { categoryStore in
                             WithViewStore(categoryStore, observe: { $0 }) { categoryViewStore in
                                 AddRoutineContainerView(
@@ -30,7 +30,7 @@ struct AddRoutineView: View {
                                 }
                             }
                         }
-                    } else if viewStore.scheduleSelection != nil {
+                    } else if viewStore.currentStep == 2 {
                         IfLetStore(store.scope(state: \.scheduleSelection, action: \.scheduleSelection)) { scheduleStore in
                             WithViewStore(scheduleStore, observe: { $0 }) { scheduleViewStore in
                                 AddRoutineContainerView(
@@ -44,7 +44,7 @@ struct AddRoutineView: View {
                                 }
                             }
                         }
-                    } else if viewStore.alarmSelection != nil {
+                    } else if viewStore.currentStep == 3 {
                         IfLetStore(store.scope(state: \.alarmSelection, action: \.alarmSelection)) { alarmStore in
                             WithViewStore(alarmStore, observe: { $0 }) { alarmViewStore in
                                 AddRoutineContainerView(
@@ -60,9 +60,7 @@ struct AddRoutineView: View {
                         }
                     }
                 }
-
-                // 스케줄 선택 단계의 커스텀 모달들 - 전체 화면을 덮도록 ZStack 최상위에 배치
-                if viewStore.scheduleSelection != nil {
+                if viewStore.currentStep == 2 {
                     IfLetStore(store.scope(state: \.scheduleSelection, action: \.scheduleSelection)) { scheduleStore in
                         WithViewStore(scheduleStore, observe: { $0 }) { scheduleViewStore in
                             if scheduleViewStore.showDatePicker {

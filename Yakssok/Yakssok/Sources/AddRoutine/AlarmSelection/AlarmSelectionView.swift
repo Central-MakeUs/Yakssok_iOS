@@ -11,7 +11,7 @@ import YakssokDesignSystem
 
 struct AlarmSelectionView: View {
     let store: StoreOf<AlarmSelectionFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             VStack(alignment: .leading, spacing: 20) {
@@ -19,7 +19,7 @@ struct AlarmSelectionView: View {
                     .font(YKFont.subtitle2)
                     .foregroundColor(YKColor.Neutral.grey950)
                     .padding(.horizontal, 16)
-                
+
                 VStack(spacing: 12) {
                     ForEach(AlarmSelectionFeature.State.AlarmType.allCases, id: \.self) { alarmType in
                         AlarmOptionButton(
@@ -31,7 +31,7 @@ struct AlarmSelectionView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                
+
                 Spacer()
             }
         }
@@ -43,18 +43,18 @@ struct AlarmOptionButton: View {
     let isSelected: Bool
     let isPlaying: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .center, spacing: 16) {
-                Image(isNaggingType ? "sound-popular" : "sound")
+                Image(isSelected ? "sound-popular" : "sound")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 24, height: 24)
                     .foregroundColor(iconColor)
-                
+
                 Spacer()
-                
+
                 if isNaggingType {
                     HStack(alignment: .center) {
                         Text("인기")
@@ -93,11 +93,11 @@ struct AlarmOptionButton: View {
             .cornerRadius(16)
         }
     }
-    
+
     private var backgroundColor: Color {
         return YKColor.Neutral.grey50
     }
-    
+
     private var borderGradient: LinearGradient {
         if isSelected {
             return LinearGradient(
@@ -119,7 +119,7 @@ struct AlarmOptionButton: View {
             )
         }
     }
-    
+
     private var textColor: Color {
         if isSelected {
             return YKColor.Primary.primary400
@@ -127,7 +127,7 @@ struct AlarmOptionButton: View {
             return YKColor.Neutral.grey950
         }
     }
-    
+
     private var iconColor: Color {
         if isSelected {
             return YKColor.Primary.primary400
@@ -135,7 +135,7 @@ struct AlarmOptionButton: View {
             return YKColor.Neutral.grey400
         }
     }
-    
+
     private var isNaggingType: Bool {
         switch alarmType {
         case AlarmSelectionFeature.State.AlarmType.nagging:
@@ -149,15 +149,15 @@ struct AlarmOptionButton: View {
 struct FinalCompletionModal: View {
     let routineData: MedicineRegistrationData?
     let onDismiss: () -> Void
-    
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.4)
                 .ignoresSafeArea(.all)
-            
+
             VStack(spacing: 0) {
                 Spacer()
-                
+
                 VStack(spacing: 0) {
                     // 핸들바
                     Rectangle()
@@ -166,7 +166,7 @@ struct FinalCompletionModal: View {
                         .background(Color(red: 0.86, green: 0.86, blue: 0.86))
                         .cornerRadius(999)
                         .padding(.top, 12)
-                    
+
                     HStack(spacing: 4) {
                         Text("복약알림이 등록되었어요!")
                             .font(YKFont.subtitle1)
@@ -178,7 +178,7 @@ struct FinalCompletionModal: View {
                     .padding(.leading, 16)
                     .padding(.bottom, 20)
                     .padding(.top, 28)
-                    
+
                     // 루틴 정보 카드
                     if let registrationData = routineData {
                         VStack(alignment: .leading, spacing: 0) {
@@ -188,7 +188,7 @@ struct FinalCompletionModal: View {
                                         Circle()
                                             .fill(registrationData.category.colorType.textColor)
                                             .frame(width: 6, height: 6)
-                                        
+
                                         Text(registrationData.category.name)
                                             .font(YKFont.caption1)
                                             .foregroundColor(registrationData.category.colorType.textColor)
@@ -198,17 +198,17 @@ struct FinalCompletionModal: View {
                                     .padding(.horizontal, 8)
                                     .background(registrationData.category.colorType.backgroundColor)
                                     .cornerRadius(9999)
-                                    
+
                                     Spacer()
                                 }
                                 .padding(.bottom, 16)
-                                
+
                                 // 약 이름
                                 Text(registrationData.medicineInfo.name)
                                     .font(YKFont.subtitle1)
                                     .foregroundColor(YKColor.Neutral.grey950)
                                     .padding(.bottom, 8)
-                                
+
                                 // 복용 요일 (점 구분자 포함)
                                 HStack(spacing: 4) {
                                     ForEach(Array(getWeekdayList(for: registrationData.frequency).enumerated()), id: \.offset) { index, weekday in
@@ -221,7 +221,7 @@ struct FinalCompletionModal: View {
                                         .frame(width: 25, alignment: .center)
                                         .background(YKColor.Neutral.grey100)
                                         .cornerRadius(4)
-                                        
+
                                         // 마지막이 아니면 점 구분자 추가
                                         if index < getWeekdayList(for: registrationData.frequency).count - 1 {
                                             Text("·")
@@ -234,7 +234,7 @@ struct FinalCompletionModal: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 16)
                             .padding(.bottom, 16)
-                            
+
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: 6) {
                                     Image("alarm")
@@ -243,7 +243,7 @@ struct FinalCompletionModal: View {
                                         .font(YKFont.body1)
                                         .foregroundColor(YKColor.Neutral.grey600)
                                 }
-                                
+
                                 // 복용 시간
                                 Text(registrationData.frequency.times.map { $0.timeString }.joined(separator: " / "))
                                     .font(YKFont.body2)
@@ -261,10 +261,10 @@ struct FinalCompletionModal: View {
                         )
                         .padding(.horizontal, 16)
                     }
-                    
+
                     Spacer()
                         .frame(height: 60)
-                    
+
                     // 완료 버튼
                     Button(action: {
                         onDismiss()
@@ -285,7 +285,7 @@ struct FinalCompletionModal: View {
             }
         }
     }
-    
+
     private func getWeekdayList(for frequency: MedicineFrequency) -> [String] {
         switch frequency.type {
         case .daily:
