@@ -26,6 +26,12 @@ struct MateSelectionFeature: Reducer {
         case loadUsers
         case usersLoaded([User])
         case loadingFailed(String)
+        case delegate(Delegate)
+
+        @CasePathable
+        enum Delegate: Equatable {
+            case addUserRequested
+        }
     }
 
     @Dependency(\.userClient) var userClient
@@ -35,6 +41,7 @@ struct MateSelectionFeature: Reducer {
             switch action {
             case .onAppear:
                 return .send(.loadUsers)
+
             case .loadUsers:
                 state.isLoading = true
                 state.error = nil
@@ -46,11 +53,14 @@ struct MateSelectionFeature: Reducer {
                         await send(.loadingFailed(error.localizedDescription))
                     }
                 }
+
             case .userSelected(let userId):
                 state.selectedUserId = userId
                 return .none
+
             case .addUserButtonTapped:
-                return .none
+                return .send(.delegate(.addUserRequested))
+
             case .usersLoaded(let users):
                 state.users = users
                 state.isLoading = false
@@ -58,9 +68,13 @@ struct MateSelectionFeature: Reducer {
                     state.selectedUserId = firstUser.id
                 }
                 return .none
+
             case .loadingFailed(let error):
                 state.error = error
                 state.isLoading = false
+                return .none
+
+            case .delegate(_):
                 return .none
             }
         }

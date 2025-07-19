@@ -20,6 +20,7 @@ struct HomeFeature: Reducer {
         var reminderModal: ReminderModalFeature.State?
         var addRoutine: AddRoutineFeature.State?
         var notificationList: NotificationListFeature.State?
+        var mateRegistration: MateRegistrationFeature.State?
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
         }
@@ -45,6 +46,9 @@ struct HomeFeature: Reducer {
         case notificationList(NotificationListFeature.Action)
         case showNotificationList
         case dismissNotificationList
+        case mateRegistration(MateRegistrationFeature.Action)
+        case showMateRegistration
+        case dismissMateRegistration
     }
 
     var body: some ReducerOf<Self> {
@@ -72,6 +76,9 @@ struct HomeFeature: Reducer {
             }
             .ifLet(\.notificationList, action: \.notificationList) {
                 NotificationListFeature()
+            }
+            .ifLet(\.mateRegistration, action: \.mateRegistration) { // 추가
+                MateRegistrationFeature()
             }
     }
 
@@ -121,8 +128,24 @@ struct HomeFeature: Reducer {
         case .dismissNotificationList:
             state.notificationList = nil
             return .none
+        case .showMateRegistration:
+            state.mateRegistration = .init()
+            return .none
+        case .mateRegistration(.backButtonTapped):
+            state.mateRegistration = nil
+            return .none
+        case .dismissMateRegistration:
+            state.mateRegistration = nil
+            return .none
+        case .userSelection(.addUserButtonTapped):
+            return .send(.showMateRegistration)
+        case .mateRegistration(.delegate(.mateAddingCompleted)):
+            state.mateRegistration = nil
+            return .send(.userSelection(.loadUsers))
+        case .userSelection(.delegate(.addUserRequested)):
+            return .send(.showMateRegistration)
         case .userSelection, .mateCards, .calendar, .medicineList,
-                .messageModal, .reminderModal, .addRoutine, .notificationList:
+                .messageModal, .reminderModal, .addRoutine, .notificationList, .mateRegistration:
             return .none
         }
     }
