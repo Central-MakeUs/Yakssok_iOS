@@ -11,14 +11,14 @@ import YakssokDesignSystem
 
 struct MyPageView: View {
     let store: StoreOf<MyPageFeature>
-    
+
     var body: some View {
         NavigationView {
             WithViewStore(store, observe: { $0 }) { viewStore in
                 ZStack {
                     YKColor.Neutral.grey100
                         .ignoresSafeArea(.all)
-                    
+
                     YKNavigationBar(
                         title: "",
                         hasBackButton: true,
@@ -28,29 +28,31 @@ struct MyPageView: View {
                     ) {
                         VStack(spacing: 0) {
                             ProfileSection(store: store)
-                                .padding(.bottom, Layout.profileToStatsSpacing) // 명시적 padding 추가
-                            
+                                .padding(.bottom, Layout.profileToStatsSpacing)
+
                             StatsSection(store: store)
-                                .padding(.bottom, Layout.statsToMenuSpacing) // 명시적 padding 추가
-                            
+                                .padding(.bottom, Layout.statsToMenuSpacing)
+
                             MenuSection(store: store)
-                                .padding(.bottom, Layout.menuToVersionSpacing) // 명시적 padding 추가
-                            
+                                .padding(.bottom, Layout.menuToVersionSpacing)
+
                             VersionSection(store: store)
-                            
+
                             Spacer()
-                            
+
                             BottomButtonsSection(store: store)
-                            
+
                             Spacer()
                                 .frame(height: Layout.bottomSpacing)
                         }
                         .ignoresSafeArea(.container, edges: .bottom)
                         .padding(.horizontal, Layout.horizontalPadding)
                     }
-                    // ZStack 안에 추가
                     IfLetStore(store.scope(state: \.myMedicines, action: \.myMedicines)) { myMedicinesStore in
                         MyMedicinesView(store: myMedicinesStore)
+                    }
+                    IfLetStore(store.scope(state: \.myMates, action: \.myMates)) { myMatesStore in
+                        MyMatesView(store: myMatesStore)
                     }
                 }
             }
@@ -63,7 +65,7 @@ struct MyPageView: View {
 
 private struct ProfileSection: View {
     let store: StoreOf<MyPageFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack(spacing: Layout.profileSpacing) {
@@ -91,14 +93,14 @@ private struct ProfileSection: View {
                             .clipShape(Circle())
                     }
                 }
-                
+
                 // 닉네임
                 Text(viewStore.userProfile?.name ?? "사용자")
                     .font(YKFont.header2)
                     .foregroundColor(YKColor.Neutral.grey900)
-                
+
                 Spacer()
-                
+
                 // 프로필 변경 버튼 - 프로필 화면으로 링크
                 Button(action: {
                     viewStore.send(.profileEditTapped)
@@ -107,7 +109,7 @@ private struct ProfileSection: View {
                         Text("프로필 변경")
                             .font(YKFont.body2)
                             .foregroundColor(YKColor.Neutral.grey600)
-                        
+
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(YKColor.Neutral.grey400)
@@ -129,7 +131,7 @@ private struct ProfileSection: View {
 
 private struct StatsSection: View {
     let store: StoreOf<MyPageFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack(spacing: 0) {
@@ -143,9 +145,9 @@ private struct StatsSection: View {
                 ) {
                     viewStore.send(.myMedicinesTapped)
                 }
-                
+
                 StitchLine()
-                
+
                 // 내 메이트
                 StatCard(
                     count: viewStore.mateCount,
@@ -168,11 +170,11 @@ private struct StatCard: View {
     let stickerImage: String
     let cardType: CardType
     let onTap: () -> Void
-    
+
     enum CardType {
         case medicine
         case mate
-        
+
         var unit: String {
             switch self {
             case .medicine:
@@ -182,7 +184,7 @@ private struct StatCard: View {
             }
         }
     }
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 0) {
@@ -190,20 +192,20 @@ private struct StatCard: View {
                     Text("\(count)\(cardType.unit)")
                         .font(YKFont.header1)
                         .foregroundColor(YKColor.Neutral.grey50)
-                    
+
                     HStack(spacing: 4) {
                         Text(title)
                             .font(YKFont.body2)
                             .foregroundColor(YKColor.Primary.primary100)
-                        
+
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(YKColor.Primary.primary100)
                     }
                 }
-                
+
                 Spacer()
-                
+
                 Image(stickerImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -231,7 +233,7 @@ private struct StitchLine: View {
 
 private struct MenuSection: View {
     let store: StoreOf<MyPageFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             VStack(spacing: Layout.menuItemSpacing) {
@@ -241,7 +243,7 @@ private struct MenuSection: View {
                     title: "개인정보 정책",
                     onTap: { viewStore.send(.personalInfoPolicyTapped) }
                 )
-                
+
                 // 이용약관 화면으로 링크
                 MenuRow(
                     iconImage: "terms",
@@ -257,7 +259,7 @@ private struct MenuRow: View {
     let iconImage: String
     let title: String
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 4) {
@@ -265,13 +267,13 @@ private struct MenuRow: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 24, height: 24)
-                
+
                 Text(title)
                     .font(YKFont.body1)
                     .foregroundColor(YKColor.Neutral.grey900)
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(YKColor.Neutral.grey400)
@@ -286,16 +288,16 @@ private struct MenuRow: View {
 
 private struct VersionSection: View {
     let store: StoreOf<MyPageFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack {
                 Text("앱 버전")
                     .font(YKFont.body1)
                     .foregroundColor(YKColor.Neutral.grey900)
-                
+
                 Spacer()
-                
+
                 Text(viewStore.appVersion)
                     .font(YKFont.body1)
                     .foregroundColor(YKColor.Neutral.grey500)
@@ -313,7 +315,7 @@ private struct VersionSection: View {
 
 private struct BottomButtonsSection: View {
     let store: StoreOf<MyPageFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack(spacing: 0) {
@@ -327,11 +329,11 @@ private struct BottomButtonsSection: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 56)
                 .background(Color.clear)
-                
+
                 Rectangle()
                     .fill(YKColor.Neutral.grey300)
                     .frame(width: 1, height: 40)
-                
+
                 // 회원탈퇴 버튼
                 Button(action: {
                     viewStore.send(.withdrawalTapped)

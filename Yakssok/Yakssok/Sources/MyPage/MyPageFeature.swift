@@ -16,6 +16,7 @@ struct MyPageFeature: Reducer {
         var appVersion: String = "1.1.10"
         var isLoading: Bool = false
         var myMedicines: MyMedicinesFeature.State?
+        var myMates: MyMatesFeature.State?
     }
 
     @CasePathable
@@ -30,6 +31,7 @@ struct MyPageFeature: Reducer {
         case logoutTapped
         case withdrawalTapped
         case myMedicines(MyMedicinesFeature.Action)
+        case myMates(MyMatesFeature.Action)
         case delegate(Delegate)
 
         @CasePathable
@@ -64,6 +66,14 @@ struct MyPageFeature: Reducer {
                 return .none
 
             case .myMatesTapped:
+                state.myMates = .init()
+                return .none
+
+            case .myMates(.delegate(.backToMyPage)):
+                state.myMates = nil
+                return .none
+
+            case .myMates:
                 return .none
 
             case .personalInfoPolicyTapped:
@@ -87,6 +97,9 @@ struct MyPageFeature: Reducer {
         }
         .ifLet(\.myMedicines, action: \.myMedicines) {
             MyMedicinesFeature()
+        }
+        .ifLet(\.myMates, action: \.myMates) {
+            MyMatesFeature()
         }
     }
 }
