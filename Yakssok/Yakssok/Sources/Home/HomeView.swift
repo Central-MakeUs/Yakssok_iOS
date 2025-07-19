@@ -34,6 +34,9 @@ struct HomeView: View {
                 IfLetStore(store.scope(state: \.mateRegistration, action: \.mateRegistration)) { mateRegistrationStore in
                     MateRegistrationView(store: mateRegistrationStore)
                 }
+                IfLetStore(store.scope(state: \.myPage, action: \.myPage)) { myPageStore in
+                    MyPageView(store: myPageStore)
+                }
             }
             .ignoresSafeArea(.keyboard)
         }
