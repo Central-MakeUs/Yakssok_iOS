@@ -48,6 +48,10 @@ struct MyPageView: View {
                         .ignoresSafeArea(.container, edges: .bottom)
                         .padding(.horizontal, Layout.horizontalPadding)
                     }
+                    // ZStack 안에 추가
+                    IfLetStore(store.scope(state: \.myMedicines, action: \.myMedicines)) { myMedicinesStore in
+                        MyMedicinesView(store: myMedicinesStore)
+                    }
                 }
             }
             .onAppear {
