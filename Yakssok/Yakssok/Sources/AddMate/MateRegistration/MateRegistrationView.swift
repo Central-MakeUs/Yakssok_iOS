@@ -55,6 +55,17 @@ struct MateRegistrationView: View {
                             .ignoresSafeArea(.container, edges: .bottom)
                         }
                     }
+                    .sheet(isPresented: viewStore.binding(
+                        get: \.showShareSheet,
+                        send: { _ in .dismissShareSheet }
+                    )) {
+                        ShareSheet(items: [
+                            "약쏙 메이트가 되어 복약을 함께 관리해요!",
+                            "내 코드: \(viewStore.myCode)",
+                            URL(string: "https://yakssok.app/invite/\(viewStore.myCode)")!
+                        ])
+                        .presentationDetents([.medium])
+                    }
                 }
 
                 // 성공/에러 메시지 오버레이

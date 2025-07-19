@@ -15,6 +15,7 @@ struct MateRegistrationFeature: Reducer {
         var isLoading: Bool = false
         var error: String?
         var showSuccessMessage: Bool = false
+        var showShareSheet: Bool = false
         var mateRelationship: MateRelationshipFeature.State?
 
         var isAddButtonEnabled: Bool {
@@ -30,6 +31,7 @@ struct MateRegistrationFeature: Reducer {
         case addMateButtonTapped
         case copyMyCodeTapped
         case shareInviteTapped
+        case dismissShareSheet
         case addMateSuccess(MateRelationshipFeature.State.MateInfo)
         case addMateFailed(String)
         case dismissSuccessMessage
@@ -97,6 +99,11 @@ struct MateRegistrationFeature: Reducer {
                 return .none
 
             case .shareInviteTapped:
+                state.showShareSheet = true
+                return .none
+
+            case .dismissShareSheet:
+                state.showShareSheet = false
                 return .none
 
             case .addMateSuccess(let mateInfo):
