@@ -192,16 +192,18 @@ private struct MyCodeSection: View {
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            VStack(spacing: Layout.myCodeSectionSpacing) {
+            VStack(spacing: 0) {
                 Text("내 코드 알려주고,\n팔로우 요청해보세요!")
                     .font(YKFont.body1)
                     .foregroundColor(YKColor.Neutral.grey950)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
+                    .padding(.bottom, 32)
 
                 Text("내 코드 복사")
                     .font(YKFont.body2)
                     .foregroundColor(YKColor.Neutral.grey950)
+                    .padding(.bottom, 9)
 
                 MyCodeCard(
                     code: viewStore.myCode,

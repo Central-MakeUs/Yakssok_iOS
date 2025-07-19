@@ -11,12 +11,12 @@ import YakssokDesignSystem
 
 struct MateRelationshipView: View {
     let store: StoreOf<MateRelationshipFeature>
-    
+
     var body: some View {
         ZStack {
             YKColor.Neutral.grey100
                 .ignoresSafeArea(.all)
-            
+
             WithViewStore(store, observe: { $0 }) { viewStore in
                 YKNavigationBar(
                     title: "",
@@ -27,19 +27,19 @@ struct MateRelationshipView: View {
                 ) {
                     VStack(spacing: 0) {
                         MateProfileSection(mateInfo: viewStore.mateInfo)
-                        
+
                         Spacer()
                             .frame(height: Layout.profileToQuestionSpacing)
-                        
+
                         QuestionSection()
-                        
+
                         Spacer()
                             .frame(height: Layout.questionToInputSpacing)
-                        
+
                         RelationshipInputSection(store: store)
-                        
+
                         Spacer()
-                        
+
                         MateAddButton(store: store)
                             .padding(.bottom, Layout.buttonBottomPadding)
                     }
@@ -47,7 +47,7 @@ struct MateRelationshipView: View {
                     .padding(.horizontal, Layout.horizontalPadding)
                 }
             }
-            
+
             // 완료 모달
             WithViewStore(store, observe: \.showCompletionModal) { modalViewStore in
                 if modalViewStore.state {
@@ -57,10 +57,10 @@ struct MateRelationshipView: View {
         }
     }
 }
-// test12345
+
 private struct MateProfileSection: View {
     let mateInfo: MateRelationshipFeature.State.MateInfo
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer()
@@ -90,7 +90,7 @@ private struct MateProfileSection: View {
                     }
                     Spacer()
                 }
-                
+
                 HStack {
                     Text(mateInfo.name)
                         .font(YKFont.body2)
@@ -114,7 +114,7 @@ private struct QuestionSection: View {
                     .lineSpacing(4)
                 Spacer()
             }
-            
+
             HStack {
                 Text("내가 이 사람을 칭하고 싶은 말을 적어주세요!")
                     .font(YKFont.body1)
@@ -129,7 +129,7 @@ private struct QuestionSection: View {
 private struct RelationshipInputSection: View {
     let store: StoreOf<MateRelationshipFeature>
     @State private var localRelationship: String = ""
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             VStack(alignment: .leading, spacing: 8) {
@@ -159,7 +159,7 @@ private struct RelationshipInputSection: View {
             }
         }
     }
-    
+
     private func inputFieldView(viewStore: ViewStoreOf<MateRelationshipFeature>) -> some View {
         HStack {
             TextField("", text: $localRelationship)
@@ -171,17 +171,17 @@ private struct RelationshipInputSection: View {
                 }
                 .font(YKFont.body1)
                 .foregroundColor(YKColor.Neutral.grey950)
-            
+
             counterAndClearButton(viewStore: viewStore)
         }
     }
-    
+
     private func counterAndClearButton(viewStore: ViewStoreOf<MateRelationshipFeature>) -> some View {
         HStack(spacing: 12) {
             Text("\(localRelationship.count)/5")
                 .font(YKFont.body1)
                 .foregroundColor(YKColor.Neutral.grey400)
-            
+
             if !localRelationship.isEmpty {
                 Button(action: {
                     localRelationship = ""
@@ -198,7 +198,7 @@ private struct RelationshipInputSection: View {
 
 private struct MateAddButton: View {
     let store: StoreOf<MateRelationshipFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             Button(action: {
@@ -221,11 +221,11 @@ private struct MateAddButton: View {
             .disabled(!viewStore.isAddButtonEnabled || viewStore.isLoading)
         }
     }
-    
+
     private func buttonTextColor(isEnabled: Bool) -> Color {
         isEnabled ? YKColor.Neutral.grey50 : YKColor.Neutral.grey400
     }
-    
+
     private func buttonBackgroundColor(isEnabled: Bool) -> Color {
         isEnabled ? YKColor.Primary.primary400 : YKColor.Neutral.grey200
     }
@@ -233,16 +233,16 @@ private struct MateAddButton: View {
 
 private struct MateAddCompletionModal: View {
     let store: StoreOf<MateRelationshipFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             ZStack {
                 Color.black.opacity(0.3)
                     .ignoresSafeArea(.all)
-                
+
                 VStack(spacing: 0) {
                     Spacer()
-                    
+
                     VStack(spacing: 0) {
                         // 핸들바
                         Rectangle()
@@ -251,7 +251,7 @@ private struct MateAddCompletionModal: View {
                             .background(Color(red: 0.86, green: 0.86, blue: 0.86))
                             .cornerRadius(999)
                             .padding(.top, 12)
-                        
+
                         HStack(spacing: 4) {
                             Text("\(viewStore.mateInfo.name)님과 메이트가 되었어요!")
                                 .font(YKFont.subtitle1)
@@ -263,17 +263,17 @@ private struct MateAddCompletionModal: View {
                         .padding(.leading, 16)
                         .padding(.bottom, 20)
                         .padding(.top, 28)
-                        
+
                         // 메이트 정보 카드
                         MateInfoCard(
                             mateInfo: viewStore.mateInfo,
                             relationship: viewStore.relationship
                         )
                         .padding(.horizontal, 16)
-                        
+
                         Spacer()
                             .frame(height: 60)
-                        
+
                         // 확인 버튼
                         Button(action: {
                             viewStore.send(.confirmButtonTapped)
@@ -300,7 +300,7 @@ private struct MateAddCompletionModal: View {
 private struct MateInfoCard: View {
     let mateInfo: MateRelationshipFeature.State.MateInfo
     let relationship: String
-    
+
     var body: some View {
         HStack(spacing: 8) {
             Spacer()
@@ -326,17 +326,17 @@ private struct MateInfoCard: View {
                         .clipShape(Circle())
                 }
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(relationship)
                     .font(YKFont.body2)
                     .foregroundColor(YKColor.Neutral.grey400)
-                
+
                 Text(mateInfo.name)
                     .font(YKFont.subtitle2)
                     .foregroundColor(YKColor.Neutral.grey900)
             }
-            
+
             Spacer()
         }
     }
@@ -345,14 +345,14 @@ private struct MateInfoCard: View {
 private enum Layout {
     static let horizontalPadding: CGFloat = 16
     static let topSpacing: CGFloat = 60
-    
+
     static let profileSectionSpacing: CGFloat = 8
     static let profileImageSize: CGFloat = 64
     static let profileToQuestionSpacing: CGFloat = 16
-    
+
     static let questionSpacing: CGFloat = 16
     static let questionToInputSpacing: CGFloat = 60
-    
+
     static let buttonBottomPadding: CGFloat = 50
     static let buttonHeight: CGFloat = 56
     static let buttonCornerRadius: CGFloat = 16
