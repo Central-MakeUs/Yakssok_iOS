@@ -15,6 +15,7 @@ struct MyPageFeature: Reducer {
         var mateCount: Int = 3
         var appVersion: String = "1.1.10"
         var isLoading: Bool = false
+        var myMedicines: MyMedicinesFeature.State?
     }
 
     @CasePathable
@@ -28,6 +29,7 @@ struct MyPageFeature: Reducer {
         case termsOfUseTapped
         case logoutTapped
         case withdrawalTapped
+        case myMedicines(MyMedicinesFeature.Action)
         case delegate(Delegate)
 
         @CasePathable
@@ -40,9 +42,8 @@ struct MyPageFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                // Mock 사용자 정보
                 state.userProfile = UserProfile(
-                    name: "리아",
+                    name: "1234",
                     profileImage: "https://randomuser.me/api/portraits/med/women/1.jpg",
                     relationship: nil
                 )
@@ -52,36 +53,40 @@ struct MyPageFeature: Reducer {
                 return .send(.delegate(.backToHome))
 
             case .profileEditTapped:
-                // TODO: 프로필 편집 화면으로 이동
                 return .none
 
             case .myMedicinesTapped:
-                // TODO: 내 복약 화면으로 이동
+                state.myMedicines = .init()
+                return .none
+
+            case .myMedicines(.delegate(.backToMyPage)):
+                state.myMedicines = nil
                 return .none
 
             case .myMatesTapped:
-                // TODO: 메이트 화면으로 이동
                 return .none
 
             case .personalInfoPolicyTapped:
-                // TODO: 개인정보 정책 화면으로 이동
                 return .none
 
             case .termsOfUseTapped:
-                // TODO: 이용약관 화면으로 이동
                 return .none
 
             case .logoutTapped:
-                // TODO: 로그아웃 처리
                 return .none
 
             case .withdrawalTapped:
-                // TODO: 회원탈퇴 처리
+                return .none
+
+            case .myMedicines:
                 return .none
 
             case .delegate:
                 return .none
             }
+        }
+        .ifLet(\.myMedicines, action: \.myMedicines) {
+            MyMedicinesFeature()
         }
     }
 }
