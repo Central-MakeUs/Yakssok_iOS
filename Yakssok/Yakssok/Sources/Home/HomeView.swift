@@ -11,7 +11,7 @@ import YakssokDesignSystem
 
 struct HomeView: View {
     let store: StoreOf<HomeFeature>
-    
+
     var body: some View {
         WithPerceptionTracking {
             ZStack {
@@ -31,6 +31,9 @@ struct HomeView: View {
                 IfLetStore(store.scope(state: \.notificationList, action: \.notificationList)) { notificationStore in
                     NotificationListView(store: notificationStore)
                 }
+                IfLetStore(store.scope(state: \.mateRegistration, action: \.mateRegistration)) { mateRegistrationStore in
+                    MateRegistrationView(store: mateRegistrationStore)
+                }
             }
             .ignoresSafeArea(.keyboard)
         }
@@ -39,7 +42,7 @@ struct HomeView: View {
 
 private struct NavigationBarView: View {
     let store: StoreOf<HomeFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack {
@@ -65,7 +68,7 @@ private struct LogoView: View {
 
 private struct NavigationButtons: View {
     let store: StoreOf<HomeFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack(spacing: Layout.iconSpacing) {
@@ -83,7 +86,7 @@ private struct NavigationButtons: View {
 
 private struct MainContentView: View {
     let store: StoreOf<HomeFeature>
-    
+
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             ZStack {
@@ -109,7 +112,7 @@ private struct MainContentView: View {
 
 private struct BackgroundColor: View {
     let shouldShowMateCards: Bool
-    
+
     var body: some View {
         (shouldShowMateCards ? YKColor.Neutral.grey100 : YKColor.Neutral.grey50)
     }
@@ -117,7 +120,7 @@ private struct BackgroundColor: View {
 
 private struct MateCardsSection: View {
     let store: StoreOf<HomeFeature>
-    
+
     var body: some View {
         IfLetStore(store.scope(state: \.mateCards, action: \.mateCards)) {
             MateCardsView(store: $0)
@@ -130,7 +133,7 @@ private struct MateCardsSection: View {
 private struct BottomContentSection: View {
     let store: StoreOf<HomeFeature>
     let hasBackground: Bool
-    
+
     var body: some View {
         VStack(alignment: .center, spacing: 0) {
             MateSelectionSection(store: store, hasBackground: hasBackground)
@@ -147,7 +150,7 @@ private struct BottomContentSection: View {
 private struct MateSelectionSection: View {
     let store: StoreOf<HomeFeature>
     let hasBackground: Bool
-    
+
     var body: some View {
         IfLetStore(store.scope(state: \.userSelection, action: \.userSelection)) {
             MateSelectionView(store: $0)
@@ -158,7 +161,7 @@ private struct MateSelectionSection: View {
 
 private struct CalendarSection: View {
     let store: StoreOf<HomeFeature>
-    
+
     var body: some View {
         IfLetStore(store.scope(state: \.calendar, action: \.calendar)) {
             CalendarView(store: $0)
@@ -169,7 +172,6 @@ private struct CalendarSection: View {
 
 private struct MedicineListSection: View {
     let store: StoreOf<HomeFeature>
-    
     var body: some View {
         IfLetStore(store.scope(state: \.medicineList, action: \.medicineList)) {
             MedicineListView(store: $0)
@@ -182,7 +184,7 @@ private struct MedicineListSection: View {
 private struct NavigationButton: View {
     let imageName: String
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
             Image(imageName)
