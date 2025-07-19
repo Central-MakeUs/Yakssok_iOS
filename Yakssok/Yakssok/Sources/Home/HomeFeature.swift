@@ -21,6 +21,7 @@ struct HomeFeature: Reducer {
         var addRoutine: AddRoutineFeature.State?
         var notificationList: NotificationListFeature.State?
         var mateRegistration: MateRegistrationFeature.State?
+        var myPage: MyPageFeature.State?
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
         }
@@ -49,6 +50,9 @@ struct HomeFeature: Reducer {
         case mateRegistration(MateRegistrationFeature.Action)
         case showMateRegistration
         case dismissMateRegistration
+        case myPage(MyPageFeature.Action)
+        case showMyPage
+        case dismissMyPage
     }
 
     var body: some ReducerOf<Self> {
@@ -77,8 +81,11 @@ struct HomeFeature: Reducer {
             .ifLet(\.notificationList, action: \.notificationList) {
                 NotificationListFeature()
             }
-            .ifLet(\.mateRegistration, action: \.mateRegistration) { // 추가
+            .ifLet(\.mateRegistration, action: \.mateRegistration) {
                 MateRegistrationFeature()
+            }
+            .ifLet(\.myPage, action: \.myPage) {
+                MyPageFeature()
             }
     }
 
@@ -89,6 +96,15 @@ struct HomeFeature: Reducer {
         case .notificationTapped:
             return .send(.showNotificationList)
         case .menuTapped:
+            return .send(.showMyPage)
+        case .showMyPage:
+            state.myPage = .init()
+            return .none
+        case .myPage(.delegate(.backToHome)):
+            state.myPage = nil
+            return .none
+        case .dismissMyPage:
+            state.myPage = nil
             return .none
         case .showReminderModal:
             return handleShowMissedMedicineModal(&state)
@@ -145,7 +161,7 @@ struct HomeFeature: Reducer {
         case .userSelection(.delegate(.addUserRequested)):
             return .send(.showMateRegistration)
         case .userSelection, .mateCards, .calendar, .medicineList,
-                .messageModal, .reminderModal, .addRoutine, .notificationList, .mateRegistration:
+                .messageModal, .reminderModal, .addRoutine, .notificationList, .mateRegistration, .myPage:
             return .none
         }
     }

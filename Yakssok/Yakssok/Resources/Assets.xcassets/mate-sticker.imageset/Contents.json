@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "mate-sticker.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
