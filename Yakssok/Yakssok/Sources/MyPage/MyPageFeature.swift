@@ -18,6 +18,8 @@ struct MyPageFeature: Reducer {
         var myMedicines: MyMedicinesFeature.State?
         var myMates: MyMatesFeature.State?
         var profileEdit: ProfileEditFeature.State?
+        var showPrivacyPolicy: Bool = false
+        var showTermsOfUse: Bool = false
     }
 
     @CasePathable
@@ -34,6 +36,8 @@ struct MyPageFeature: Reducer {
         case myMedicines(MyMedicinesFeature.Action)
         case myMates(MyMatesFeature.Action)
         case profileEdit(ProfileEditFeature.Action)
+        case dismissPrivacyPolicy
+        case dismissTermsOfUse
         case delegate(Delegate)
 
         @CasePathable
@@ -88,9 +92,19 @@ struct MyPageFeature: Reducer {
                 return .none
 
             case .personalInfoPolicyTapped:
+                state.showPrivacyPolicy = true
                 return .none
 
             case .termsOfUseTapped:
+                state.showTermsOfUse = true
+                return .none
+
+            case .dismissPrivacyPolicy:
+                state.showPrivacyPolicy = false
+                return .none
+
+            case .dismissTermsOfUse:
+                state.showTermsOfUse = false
                 return .none
 
             case .logoutTapped:
