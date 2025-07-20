@@ -21,7 +21,7 @@ struct MyMedicinesView: View {
 
                     YKNavigationBar(
                         title: "내 복약",
-                        hasBackButton: false,
+                        hasBackButton: true,
                         onBackTapped: {
                             viewStore.send(.backButtonTapped)
                         }

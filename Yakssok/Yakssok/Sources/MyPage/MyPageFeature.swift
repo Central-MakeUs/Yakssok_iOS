@@ -17,6 +17,7 @@ struct MyPageFeature: Reducer {
         var isLoading: Bool = false
         var myMedicines: MyMedicinesFeature.State?
         var myMates: MyMatesFeature.State?
+        var profileEdit: ProfileEditFeature.State?
     }
 
     @CasePathable
@@ -32,6 +33,7 @@ struct MyPageFeature: Reducer {
         case withdrawalTapped
         case myMedicines(MyMedicinesFeature.Action)
         case myMates(MyMatesFeature.Action)
+        case profileEdit(ProfileEditFeature.Action)
         case delegate(Delegate)
 
         @CasePathable
@@ -55,7 +57,16 @@ struct MyPageFeature: Reducer {
                 return .send(.delegate(.backToHome))
 
             case .profileEditTapped:
+                state.profileEdit = .init()
                 return .none
+
+            case .profileEdit(.delegate(.backToMyPage)):
+                state.profileEdit = nil
+                return .none
+
+            case .profileEdit(.delegate(.profileUpdated)):
+                state.profileEdit = nil
+                return .send(.onAppear)
 
             case .myMedicinesTapped:
                 state.myMedicines = .init()
@@ -91,6 +102,9 @@ struct MyPageFeature: Reducer {
             case .myMedicines:
                 return .none
 
+            case .profileEdit:
+                return .none
+
             case .delegate:
                 return .none
             }
@@ -100,6 +114,9 @@ struct MyPageFeature: Reducer {
         }
         .ifLet(\.myMates, action: \.myMates) {
             MyMatesFeature()
+        }
+        .ifLet(\.profileEdit, action: \.profileEdit) {
+            ProfileEditFeature()
         }
     }
 }

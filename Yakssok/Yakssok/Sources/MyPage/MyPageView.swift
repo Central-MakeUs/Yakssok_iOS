@@ -48,11 +48,15 @@ struct MyPageView: View {
                         .ignoresSafeArea(.container, edges: .bottom)
                         .padding(.horizontal, Layout.horizontalPadding)
                     }
+
                     IfLetStore(store.scope(state: \.myMedicines, action: \.myMedicines)) { myMedicinesStore in
                         MyMedicinesView(store: myMedicinesStore)
                     }
                     IfLetStore(store.scope(state: \.myMates, action: \.myMates)) { myMatesStore in
                         MyMatesView(store: myMatesStore)
+                    }
+                    IfLetStore(store.scope(state: \.profileEdit, action: \.profileEdit)) { profileEditStore in
+                        ProfileEditView(store: profileEditStore)
                     }
                 }
             }
