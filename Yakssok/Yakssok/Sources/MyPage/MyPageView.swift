@@ -59,6 +59,18 @@ struct MyPageView: View {
                         ProfileEditView(store: profileEditStore)
                     }
                 }
+                .sheet(isPresented: viewStore.binding(
+                    get: \.showPrivacyPolicy,
+                    send: { _ in .dismissPrivacyPolicy }
+                )) {
+                    WebView(url: URL(string: "https://www.notion.so/2351221cc28180ebbd2ff7f6feefd0e0")!)
+                }
+                .sheet(isPresented: viewStore.binding(
+                    get: \.showTermsOfUse,
+                    send: { _ in .dismissTermsOfUse }
+                )) {
+                    WebView(url: URL(string: "https://www.notion.so/2351221cc2818066b34ec4ee545031f9")!)
+                }
             }
             .onAppear {
                 store.send(.onAppear)
