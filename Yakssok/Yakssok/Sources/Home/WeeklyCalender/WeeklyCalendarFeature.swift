@@ -8,7 +8,7 @@
 import ComposableArchitecture
 import Foundation
 
-struct CalendarFeature: Reducer {
+struct WeeklyCalendarFeature: Reducer {
     struct State: Equatable {
         var selectedDate: Date = Date()
         var currentWeekDates: [Date] = []
@@ -26,6 +26,12 @@ struct CalendarFeature: Reducer {
         case dateSelected(Date)
         case calendarButtonTapped
         case weekDatesCalculated([Date])
+        case delegate(Delegate)
+
+        @CasePathable
+        enum Delegate: Equatable {
+            case showFullCalendar
+        }
     }
 
     var body: some ReducerOf<Self> {
@@ -37,10 +43,11 @@ struct CalendarFeature: Reducer {
                 state.selectedDate = date
                 return .none
             case .calendarButtonTapped:
-                // TODO: 전체 캘린더 화면으로 이동
-                return .none
+                return .send(.delegate(.showFullCalendar))
             case .weekDatesCalculated(let dates):
                 state.currentWeekDates = dates
+                return .none
+            case .delegate:
                 return .none
             }
         }

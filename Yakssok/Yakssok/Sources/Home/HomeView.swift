@@ -14,31 +14,43 @@ struct HomeView: View {
 
     var body: some View {
         WithPerceptionTracking {
-            ZStack {
-                VStack(spacing: 0) {
-                    NavigationBarView(store: store)
-                    MainContentView(store: store)
-                }
-                IfLetStore(store.scope(state: \.messageModal, action: \.messageModal)) { modalStore in
-                    MessageModalView(store: modalStore)
-                }
-                IfLetStore(store.scope(state: \.reminderModal, action: \.reminderModal)) { modalStore in
-                    ReminderModalView(store: modalStore)
-                }
-                IfLetStore(store.scope(state: \.addRoutine, action: \.addRoutine)) { addRoutineStore in
-                    AddRoutineView(store: addRoutineStore)
-                }
-                IfLetStore(store.scope(state: \.notificationList, action: \.notificationList)) { notificationStore in
-                    NotificationListView(store: notificationStore)
-                }
-                IfLetStore(store.scope(state: \.mateRegistration, action: \.mateRegistration)) { mateRegistrationStore in
-                    MateRegistrationView(store: mateRegistrationStore)
-                }
-                IfLetStore(store.scope(state: \.myPage, action: \.myPage)) { myPageStore in
-                    MyPageView(store: myPageStore)
+            WithViewStore(store, observe: { $0 }) { viewStore in
+                ZStack {
+                    NavigationView {
+                        ZStack {
+                            VStack(spacing: 0) {
+                                NavigationBarView(store: store)
+                                MainContentView(store: store)
+                            }
+                            IfLetStore(store.scope(state: \.messageModal, action: \.messageModal)) { modalStore in
+                                MessageModalView(store: modalStore)
+                            }
+                            IfLetStore(store.scope(state: \.reminderModal, action: \.reminderModal)) { modalStore in
+                                ReminderModalView(store: modalStore)
+                            }
+                            IfLetStore(store.scope(state: \.addRoutine, action: \.addRoutine)) { addRoutineStore in
+                                AddRoutineView(store: addRoutineStore)
+                            }
+                            IfLetStore(store.scope(state: \.notificationList, action: \.notificationList)) { notificationStore in
+                                NotificationListView(store: notificationStore)
+                            }
+                            IfLetStore(store.scope(state: \.mateRegistration, action: \.mateRegistration)) { mateRegistrationStore in
+                                MateRegistrationView(store: mateRegistrationStore)
+                            }
+                            IfLetStore(store.scope(state: \.myPage, action: \.myPage)) { myPageStore in
+                                MyPageView(store: myPageStore)
+                            }
+                        }
+                    }
+                    .navigationViewStyle(StackNavigationViewStyle())
+                    .opacity(viewStore.fullCalendar != nil ? 0 : 1)
+                    if viewStore.fullCalendar != nil {
+                        IfLetStore(store.scope(state: \.fullCalendar, action: \.fullCalendar)) { fullCalendarStore in
+                            FullCalendarView(store: fullCalendarStore)
+                        }
+                    }
                 }
             }
-            .ignoresSafeArea(.keyboard)
         }
     }
 }
@@ -166,8 +178,8 @@ private struct CalendarSection: View {
     let store: StoreOf<HomeFeature>
 
     var body: some View {
-        IfLetStore(store.scope(state: \.calendar, action: \.calendar)) {
-            CalendarView(store: $0)
+        IfLetStore(store.scope(state: \.weeklyCalendar, action: \.weeklyCalendar)) {
+            WeeklyCalendarView(store: $0)
         }
         .padding(.top, Layout.calendarTopPadding)
     }

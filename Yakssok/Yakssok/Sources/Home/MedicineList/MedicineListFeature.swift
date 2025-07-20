@@ -27,13 +27,13 @@ struct MedicineListFeature {
         }
     }
 
-
     enum Action: Equatable {
         case onAppear
         case medicineToggled(id: String)
         case addMedicineButtonTapped
         case loadMedicineData
         case medicineDataLoaded(MedicineDataResponse)
+        case updateMedicines(todayMedicines: [Medicine], completedMedicines: [Medicine])
         case loadingFailed(String)
         case delegate(Delegate)
 
@@ -76,6 +76,10 @@ struct MedicineListFeature {
                 state.todayMedicines = response.todayMedicines
                 state.completedMedicines = response.completedMedicines
                 state.isLoading = false
+                return .none
+            case let .updateMedicines(todayMedicines, completedMedicines):
+                state.todayMedicines = todayMedicines
+                state.completedMedicines = completedMedicines
                 return .none
             case .loadingFailed(let error):
                 state.error = error
