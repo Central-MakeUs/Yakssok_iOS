@@ -13,21 +13,18 @@ public struct YKNavigationBar<Content: View>: View {
     let hasBackButton: Bool
     let onBackTapped: (() -> Void)?
     let content: Content
-    let rightButton: AnyView?
     let backgroundColor: Color
 
     public init(
         title: String,
         hasBackButton: Bool = false,
         onBackTapped: (() -> Void)? = nil,
-        rightButton: AnyView? = nil,
         backgroundColor: Color = YKColor.Neutral.grey100,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.hasBackButton = hasBackButton
         self.onBackTapped = onBackTapped
-        self.rightButton = rightButton
         self.backgroundColor = backgroundColor
         self.content = content()
     }
@@ -42,7 +39,6 @@ public struct YKNavigationBar<Content: View>: View {
             title: title,
             hasBackButton: hasBackButton,
             onBackTapped: onBackTapped,
-            rightButton: nil,
             backgroundColor: YKColor.Neutral.grey100,
             content: content
         )
@@ -72,8 +68,8 @@ public struct YKNavigationBar<Content: View>: View {
 
             Spacer()
 
-            // 오른쪽 버튼
-            rightButtonView
+            // 오른쪽 여백
+            rightSpacer
         }
         .frame(height: Layout.navigationBarHeight)
         .background(backgroundColor)
@@ -88,8 +84,8 @@ public struct YKNavigationBar<Content: View>: View {
                     Image(systemName: "arrow.left")
                         .font(.system(size: Layout.backButtonIconSize, weight: .medium))
                         .foregroundColor(YKColor.Neutral.grey900)
-                        .frame(width: Layout.buttonSize, height: Layout.buttonSize)
                 }
+                .frame(width: Layout.buttonSize, height: Layout.buttonSize)
                 .accessibilityLabel("뒤로가기")
                 .padding(.leading, Layout.horizontalPadding)
             } else {
@@ -107,75 +103,15 @@ public struct YKNavigationBar<Content: View>: View {
             .truncationMode(.tail)
     }
 
-    private var rightButtonView: some View {
-        Group {
-            if let rightButton = rightButton {
-                rightButton
-                    .padding(.trailing, Layout.horizontalPadding)
-            } else {
-                Spacer()
-                    .frame(width: Layout.buttonSize + Layout.horizontalPadding)
-            }
-        }
+    private var rightSpacer: some View {
+        Spacer()
+            .frame(width: Layout.buttonSize + Layout.horizontalPadding)
     }
 }
 
-// MARK: - Layout Constants
 private enum Layout {
     static let navigationBarHeight: CGFloat = 56
     static let horizontalPadding: CGFloat = 8
     static let buttonSize: CGFloat = 44
     static let backButtonIconSize: CGFloat = 18
-}
-
-// MARK: - Convenience Extensions
-public extension YKNavigationBar {
-    /// 오른쪽 버튼이 있는 네비게이션 바
-    init(
-        title: String,
-        hasBackButton: Bool = false,
-        onBackTapped: (() -> Void)? = nil,
-        rightButtonText: String,
-        onRightButtonTapped: @escaping () -> Void,
-        @ViewBuilder content: () -> Content
-    ) {
-        let rightButton = Button(action: onRightButtonTapped) {
-            Text(rightButtonText)
-                .font(YKFont.body2)
-                .foregroundColor(YKColor.Primary.primary400)
-        }
-
-        self.init(
-            title: title,
-            hasBackButton: hasBackButton,
-            onBackTapped: onBackTapped,
-            rightButton: AnyView(rightButton),
-            content: content
-        )
-    }
-
-    /// 오른쪽 아이콘 버튼이 있는 네비게이션 바
-    init(
-        title: String,
-        hasBackButton: Bool = false,
-        onBackTapped: (() -> Void)? = nil,
-        rightButtonIcon: String,
-        onRightButtonTapped: @escaping () -> Void,
-        @ViewBuilder content: () -> Content
-    ) {
-        let rightButton = Button(action: onRightButtonTapped) {
-            Image(systemName: rightButtonIcon)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(YKColor.Neutral.grey900)
-                .frame(width: Layout.buttonSize, height: Layout.buttonSize)
-        }
-
-        self.init(
-            title: title,
-            hasBackButton: hasBackButton,
-            onBackTapped: onBackTapped,
-            rightButton: AnyView(rightButton),
-            content: content
-        )
-    }
 }
