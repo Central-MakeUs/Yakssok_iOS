@@ -14,7 +14,7 @@ struct HomeFeature: Reducer {
         var selectedDate: Date = Date()
         var userSelection: MateSelectionFeature.State? = .init()
         var mateCards: MateCardsFeature.State? = .init()
-        var calendar: CalendarFeature.State? = .init()
+        var weeklyCalendar: WeeklyCalendarFeature.State? = .init()
         var medicineList: MedicineListFeature.State? = .init()
         var messageModal: MessageModalFeature.State?
         var reminderModal: ReminderModalFeature.State?
@@ -22,10 +22,12 @@ struct HomeFeature: Reducer {
         var notificationList: NotificationListFeature.State?
         var mateRegistration: MateRegistrationFeature.State?
         var myPage: MyPageFeature.State?
+        var fullCalendar: FullCalendarFeature.State?
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
         }
     }
+    
 
     @CasePathable
     enum Action: Equatable {
@@ -34,7 +36,7 @@ struct HomeFeature: Reducer {
         case menuTapped
         case userSelection(MateSelectionFeature.Action)
         case mateCards(MateCardsFeature.Action)
-        case calendar(CalendarFeature.Action)
+        case weeklyCalendar(WeeklyCalendarFeature.Action)
         case medicineList(MedicineListFeature.Action)
         case messageModal(MessageModalFeature.Action)
         case showMessageModal(targetUser: String, messageType: MessageType)
@@ -51,6 +53,7 @@ struct HomeFeature: Reducer {
         case showMateRegistration
         case dismissMateRegistration
         case myPage(MyPageFeature.Action)
+        case fullCalendar(FullCalendarFeature.Action)
         case showMyPage
         case dismissMyPage
     }
@@ -63,8 +66,8 @@ struct HomeFeature: Reducer {
             .ifLet(\.mateCards, action: \.mateCards) {
                 MateCardsFeature()
             }
-            .ifLet(\.calendar, action: \.calendar) {
-                CalendarFeature()
+            .ifLet(\.weeklyCalendar, action: \.weeklyCalendar) {
+                WeeklyCalendarFeature()
             }
             .ifLet(\.medicineList, action: \.medicineList) {
                 MedicineListFeature()
@@ -87,6 +90,9 @@ struct HomeFeature: Reducer {
             .ifLet(\.myPage, action: \.myPage) {
                 MyPageFeature()
             }
+            .ifLet(\.fullCalendar, action: \.fullCalendar) {
+                FullCalendarFeature()
+            }
     }
 
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
@@ -97,11 +103,10 @@ struct HomeFeature: Reducer {
             return .send(.showNotificationList)
         case .menuTapped:
             return .send(.showMyPage)
+
+        // 간단한 show/dismiss 케이스들
         case .showMyPage:
             state.myPage = .init()
-            return .none
-        case .myPage(.delegate(.backToHome)):
-            state.myPage = nil
             return .none
         case .dismissMyPage:
             state.myPage = nil
@@ -110,36 +115,17 @@ struct HomeFeature: Reducer {
             return handleShowMissedMedicineModal(&state)
         case .showMessageModal(let targetUser, let messageType):
             return handleShowMessageModal(&state, targetUser: targetUser, messageType: messageType)
-        case .reminderModal(.takeMedicineNowTapped), .reminderModal(.closeButtonTapped):
-            state.reminderModal = nil
-            return .none
-        case .messageModal(.closeButtonTapped), .messageModal(.sendButtonTapped):
-            state.messageModal = nil
-            return .none
-        case .mateCards(.delegate(.showMessageModal(let targetUser, let messageType))):
-            return .send(.showMessageModal(targetUser: targetUser, messageType: messageType))
         case .dismissMessageModal:
             state.messageModal = nil
             return .none
-        case .medicineList(.delegate(.addMedicineRequested)):
-            return .send(.showAddRoutine)
         case .showAddRoutine:
             state.addRoutine = .init()
             return .none
-        case .addRoutine(.dismissRequested):
-            state.addRoutine = nil
-            return .none
-        case .addRoutine(.routineCompleted):
-            state.addRoutine = nil
-            return .send(.medicineList(.onAppear))
         case .dismissAddRoutine:
             state.addRoutine = nil
             return .none
         case .showNotificationList:
             state.notificationList = .init()
-            return .none
-        case .notificationList(.backButtonTapped):
-            state.notificationList = nil
             return .none
         case .dismissNotificationList:
             state.notificationList = nil
@@ -147,11 +133,19 @@ struct HomeFeature: Reducer {
         case .showMateRegistration:
             state.mateRegistration = .init()
             return .none
-        case .mateRegistration(.backButtonTapped):
-            state.mateRegistration = nil
-            return .none
         case .dismissMateRegistration:
             state.mateRegistration = nil
+            return .none
+
+        // Delegate 케이스들
+        case .myPage(.delegate(.backToHome)):
+            state.myPage = nil
+            return .none
+        case .weeklyCalendar(.delegate(.showFullCalendar)):
+            state.fullCalendar = FullCalendarFeature.State()
+            return .none
+        case .fullCalendar(.delegate(.backToHome)):
+            state.fullCalendar = nil
             return .none
         case .userSelection(.addUserButtonTapped):
             return .send(.showMateRegistration)
@@ -160,8 +154,35 @@ struct HomeFeature: Reducer {
             return .send(.userSelection(.loadUsers))
         case .userSelection(.delegate(.addUserRequested)):
             return .send(.showMateRegistration)
-        case .userSelection, .mateCards, .calendar, .medicineList,
-                .messageModal, .reminderModal, .addRoutine, .notificationList, .mateRegistration, .myPage:
+        case .mateCards(.delegate(.showMessageModal(let targetUser, let messageType))):
+            return .send(.showMessageModal(targetUser: targetUser, messageType: messageType))
+        case .medicineList(.delegate(.addMedicineRequested)):
+            return .send(.showAddRoutine)
+
+        // Modal 종료 케이스들
+        case .reminderModal(.takeMedicineNowTapped), .reminderModal(.closeButtonTapped):
+            state.reminderModal = nil
+            return .none
+        case .messageModal(.closeButtonTapped), .messageModal(.sendButtonTapped):
+            state.messageModal = nil
+            return .none
+        case .addRoutine(.dismissRequested):
+            state.addRoutine = nil
+            return .none
+        case .addRoutine(.routineCompleted):
+            state.addRoutine = nil
+            return .send(.medicineList(.onAppear))
+        case .notificationList(.backButtonTapped):
+            state.notificationList = nil
+            return .none
+        case .mateRegistration(.backButtonTapped):
+            state.mateRegistration = nil
+            return .none
+
+        // 나머지 모든 케이스들 (맨 마지막에!)
+        case .userSelection, .mateCards, .weeklyCalendar, .medicineList,
+             .messageModal, .reminderModal, .addRoutine, .notificationList,
+             .mateRegistration, .myPage, .fullCalendar:
             return .none
         }
     }
@@ -169,7 +190,7 @@ struct HomeFeature: Reducer {
     private func handleOnAppear() -> Effect<Action> {
         return .merge(
             .send(.mateCards(.onAppear)),
-            .send(.calendar(.onAppear)),
+            .send(.weeklyCalendar(.onAppear)),
             .send(.showReminderModal)
         )
     }

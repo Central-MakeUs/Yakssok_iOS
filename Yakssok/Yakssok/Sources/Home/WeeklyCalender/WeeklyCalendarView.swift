@@ -9,8 +9,8 @@ import SwiftUI
 import ComposableArchitecture
 import YakssokDesignSystem
 
-struct CalendarView: View {
-    let store: StoreOf<CalendarFeature>
+struct WeeklyCalendarView: View {
+    let store: StoreOf<WeeklyCalendarFeature>
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
@@ -27,7 +27,7 @@ struct CalendarView: View {
 }
 
 private struct HeaderView: View {
-    let store: StoreOf<CalendarFeature>
+    let store: StoreOf<WeeklyCalendarFeature>
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
@@ -71,7 +71,7 @@ private struct CalendarButton: View {
 }
 
 private struct CalendarContentView: View {
-    let store: StoreOf<CalendarFeature>
+    let store: StoreOf<WeeklyCalendarFeature>
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
@@ -86,7 +86,7 @@ private struct CalendarContentView: View {
 }
 
 private struct WeekdayHeaderView: View {
-    let store: StoreOf<CalendarFeature>
+    let store: StoreOf<WeeklyCalendarFeature>
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
@@ -101,7 +101,7 @@ private struct WeekdayHeaderView: View {
         }
     }
 
-    private func isWeekdaySelected(index: Int, viewStore: ViewStoreOf<CalendarFeature>) -> Bool {
+    private func isWeekdaySelected(index: Int, viewStore: ViewStoreOf<WeeklyCalendarFeature>) -> Bool {
         guard index < viewStore.currentWeekDates.count else { return false }
         return Calendar.current.isDate(viewStore.currentWeekDates[index], inSameDayAs: viewStore.selectedDate)
     }
@@ -120,7 +120,7 @@ private struct WeekdayText: View {
 }
 
 private struct WeekDatesView: View {
-    let store: StoreOf<CalendarFeature>
+    let store: StoreOf<WeeklyCalendarFeature>
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
@@ -160,7 +160,7 @@ private struct DateButton: View {
 }
 
 private struct SelectedColumnBackground: View {
-    let store: StoreOf<CalendarFeature>
+    let store: StoreOf<WeeklyCalendarFeature>
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
