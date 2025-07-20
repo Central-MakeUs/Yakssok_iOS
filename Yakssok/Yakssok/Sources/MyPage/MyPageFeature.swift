@@ -18,6 +18,8 @@ struct MyPageFeature: Reducer {
         var myMedicines: MyMedicinesFeature.State?
         var myMates: MyMatesFeature.State?
         var profileEdit: ProfileEditFeature.State?
+        var logoutModal: LogoutModalFeature.State?
+        var withdrawalModal: WithdrawalModalFeature.State?
         var showPrivacyPolicy: Bool = false
         var showTermsOfUse: Bool = false
     }
@@ -36,6 +38,8 @@ struct MyPageFeature: Reducer {
         case myMedicines(MyMedicinesFeature.Action)
         case myMates(MyMatesFeature.Action)
         case profileEdit(ProfileEditFeature.Action)
+        case logoutModal(LogoutModalFeature.Action)
+        case withdrawalModal(WithdrawalModalFeature.Action)
         case dismissPrivacyPolicy
         case dismissTermsOfUse
         case delegate(Delegate)
@@ -108,9 +112,35 @@ struct MyPageFeature: Reducer {
                 return .none
 
             case .logoutTapped:
+                state.logoutModal = .init()
                 return .none
 
             case .withdrawalTapped:
+                state.withdrawalModal = .init()
+                return .none
+
+            case .logoutModal(.delegate(.dismissed)):
+                state.logoutModal = nil
+                return .none
+
+            case .logoutModal(.delegate(.logoutCompleted)):
+                state.logoutModal = nil
+                // TODO: 로그인 화면으로 이동
+                return .none
+
+            case .withdrawalModal(.delegate(.dismissed)):
+                state.withdrawalModal = nil
+                return .none
+
+            case .withdrawalModal(.delegate(.withdrawalCompleted)):
+                state.withdrawalModal = nil
+                // TODO: 로그인 화면으로 이동
+                return .none
+
+            case .logoutModal:
+                return .none
+
+            case .withdrawalModal:
                 return .none
 
             case .myMedicines:
@@ -131,6 +161,12 @@ struct MyPageFeature: Reducer {
         }
         .ifLet(\.profileEdit, action: \.profileEdit) {
             ProfileEditFeature()
+        }
+        .ifLet(\.logoutModal, action: \.logoutModal) {
+            LogoutModalFeature()
+        }
+        .ifLet(\.withdrawalModal, action: \.withdrawalModal) {
+            WithdrawalModalFeature()
         }
     }
 }
