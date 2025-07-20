@@ -58,7 +58,14 @@ struct MyPageView: View {
                     IfLetStore(store.scope(state: \.profileEdit, action: \.profileEdit)) { profileEditStore in
                         ProfileEditView(store: profileEditStore)
                     }
+                    IfLetStore(store.scope(state: \.logoutModal, action: \.logoutModal)) { logoutStore in
+                        LogoutModalView(store: logoutStore)
+                    }
+                    IfLetStore(store.scope(state: \.withdrawalModal, action: \.withdrawalModal)) { withdrawalStore in
+                        WithdrawalModalView(store: withdrawalStore)
+                    }
                 }
+                .ignoresSafeArea(.container, edges: .bottom)
                 .sheet(isPresented: viewStore.binding(
                     get: \.showPrivacyPolicy,
                     send: { _ in .dismissPrivacyPolicy }

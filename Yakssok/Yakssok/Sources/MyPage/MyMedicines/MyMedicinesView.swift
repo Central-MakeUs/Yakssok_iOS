@@ -347,8 +347,7 @@ private struct StopMedicineConfirmationModal: View {
                         .background(Color(red: 0.86, green: 0.86, blue: 0.86))
                         .cornerRadius(999)
                         .padding(.top, 12)
-                        .padding(.bottom, 16)
-
+                        .padding(.bottom, 8)
 
                     VStack(spacing: 16) {
                         Text("이 복약 루틴을 종료하시겠습니까?")
@@ -363,6 +362,7 @@ private struct StopMedicineConfirmationModal: View {
                             .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .padding(.top, 16)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 60)
 
@@ -371,14 +371,14 @@ private struct StopMedicineConfirmationModal: View {
                             .frame(height: 56)
                             .frame(maxWidth: .infinity)
                             .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey400)
+                            .foregroundColor(YKColor.Neutral.grey500)
                             .cornerRadius(16)
 
                         Button("종료") { onConfirm() }
                             .frame(height: 56)
                             .frame(maxWidth: .infinity)
                             .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey400)
+                            .foregroundColor(YKColor.Neutral.grey500)
                             .cornerRadius(16)
                     }
                     .padding(.horizontal, 16)
