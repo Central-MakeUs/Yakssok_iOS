@@ -27,7 +27,7 @@ struct HomeFeature: Reducer {
             mateCards?.cards.isEmpty == false
         }
     }
-    
+
 
     @CasePathable
     enum Action: Equatable {
@@ -179,7 +179,6 @@ struct HomeFeature: Reducer {
             state.mateRegistration = nil
             return .none
 
-        // 나머지 모든 케이스들 (맨 마지막에!)
         case .userSelection, .mateCards, .weeklyCalendar, .medicineList,
              .messageModal, .reminderModal, .addRoutine, .notificationList,
              .mateRegistration, .myPage, .fullCalendar:

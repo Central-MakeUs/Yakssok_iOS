@@ -80,6 +80,8 @@ struct FullCalendarFeature: Reducer {
         }
     }
 
+    @Dependency(\.fullCalendarMedicineClient) var fullCalendarMedicineClient
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
@@ -103,9 +105,14 @@ struct FullCalendarFeature: Reducer {
 
             case .dayTapped(let date):
                 state.selectedDate = date
-                return .send(.medicineList(.medicineDataLoaded(
-                    MockCalendarData.medicineDataForDate(date)
-                )))
+                return .run { send in
+                    do {
+                        let response = try await fullCalendarMedicineClient.loadMedicineDataForDate(date)
+                        await send(.medicineList(.medicineDataLoaded(response)))
+                    } catch {
+                        // 에러 처리
+                    }
+                }
 
             case .updateMedicines(let today, let completed):
                 state.medicineList?.todayMedicines = today
@@ -281,3 +288,4 @@ private func generateCalendarDays(for date: Date) -> [CalendarDay] {
 
     return days
 }
+
