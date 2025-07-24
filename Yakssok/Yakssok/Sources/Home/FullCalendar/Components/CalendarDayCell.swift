@@ -29,6 +29,7 @@ struct CalendarDayCell: View {
                         .lineLimit(1)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
+                        .frame(width: 31, height: 21)
                         .background(dateBackgroundColor)
                         .cornerRadius(999)
 
@@ -64,7 +65,8 @@ struct CalendarDayCell: View {
         Group {
             let today = Date()
 
-            if day.isToday {
+            if day.date <= today {
+                // 오늘 포함 과거 날짜
                 switch medicineStatus {
                 case .completed:
                     Image(fixedCompletedIcon)
@@ -75,26 +77,12 @@ struct CalendarDayCell: View {
                         .resizable()
                         .frame(width: 40, height: 40)
                 case .none:
-                    Image("calendar-basic")
-                        .resizable()
-                        .frame(width: 40, height: 40)
-                }
-            } else if day.date < today {
-                switch medicineStatus {
-                case .completed:
-                    Image(fixedCompletedIcon)
-                        .resizable()
-                        .frame(width: 40, height: 40)
-                case .incomplete:
                     Image(fixedIncompleteIcon)
-                        .resizable()
-                        .frame(width: 40, height: 40)
-                case .none:
-                    Image("calendar-basic")
                         .resizable()
                         .frame(width: 40, height: 40)
                 }
             } else {
+                // 미래 날짜
                 switch medicineStatus {
                 case .completed:
                     Image(fixedCompletedIcon)

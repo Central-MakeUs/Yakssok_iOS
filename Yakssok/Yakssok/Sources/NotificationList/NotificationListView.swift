@@ -52,9 +52,7 @@ private struct NotificationContentView: View {
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            if viewStore.isLoading {
-                LoadingView()
-            } else if let error = viewStore.error {
+            if let error = viewStore.error {
                 ErrorView(message: error) {
                     viewStore.send(.loadNotifications)
                 }
@@ -81,18 +79,6 @@ private struct NotificationListContentView: View {
                 }
             }
             .padding(.horizontal, Constants.horizontalPadding)
-        }
-    }
-}
-
-private struct LoadingView: View {
-    var body: some View {
-        VStack {
-            ProgressView()
-            Text("알림을 불러오는 중...")
-                .font(YKFont.body2)
-                .foregroundColor(YKColor.Neutral.grey500)
-                .padding(.top, 8)
         }
     }
 }

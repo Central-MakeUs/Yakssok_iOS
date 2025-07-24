@@ -13,7 +13,7 @@ enum ReminderModalConstants {
             return "\(userName)님,"
         }
         static let reminderMessage = "지금 드셔야할 약이에요"
-        static let actionButtonTitle = "지금 먹을게요!"
+        static let actionButtonTitle = "닫기"
     }
 
     enum Layout {

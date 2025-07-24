@@ -15,51 +15,51 @@ struct OnboardingView: View {
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            YKNavigationBar(
-                title: "",
-                hasBackButton: true,
-                onBackTapped: {
-                    viewStore.send(.backToLogin)
-                }
-            ) {
-                VStack(alignment: .leading, spacing: 0) {
-                    // 안내 텍스트
-                    Text(instructionText)
-                        .font(YKFont.header2)
-                        .multilineTextAlignment(.leading)
-                        .foregroundColor(YKColor.Neutral.grey950)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
+            NavigationView {
+                YKNavigationBar(
+                    title: "",
+                    hasBackButton: true,
+                    onBackTapped: {viewStore.send(.backToLogin)}
+                ) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // 안내 텍스트
+                        Text(instructionText)
+                            .font(YKFont.header2)
+                            .multilineTextAlignment(.leading)
+                            .foregroundColor(YKColor.Neutral.grey950)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 16)
 
-                    // 텍스트 필드
-                    VStack(alignment: .leading, spacing: 8) {
-                        textFieldView(viewStore: viewStore)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 24)
-
-                    Spacer()
-
-                    // 시작하기 버튼
-                    Button(action: {
-                        if viewStore.isButtonEnabled {
-                            viewStore.send(.startButtonTapped)
+                        // 텍스트 필드
+                        VStack(alignment: .leading, spacing: 8) {
+                            textFieldView(viewStore: viewStore)
                         }
-                    }) {
-                        Text("시작하기")
-                            .font(YKFont.subtitle2)
-                            .foregroundColor(viewStore.isButtonEnabled ? YKColor.Neutral.grey50 : YKColor.Neutral.grey400)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(viewStore.isButtonEnabled ? YKColor.Primary.primary400 : YKColor.Neutral.grey200)
-                            .cornerRadius(16)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 24)
+
+                        Spacer()
+
+                        // 시작하기 버튼
+                        Button(action: {
+                            if viewStore.isButtonEnabled {
+                                viewStore.send(.startButtonTapped)
+                            }
+                        }) {
+                            Text("시작하기")
+                                .font(YKFont.subtitle2)
+                                .foregroundColor(viewStore.isButtonEnabled ? YKColor.Neutral.grey50 : YKColor.Neutral.grey400)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(viewStore.isButtonEnabled ? YKColor.Primary.primary400 : YKColor.Neutral.grey200)
+                                .cornerRadius(16)
+                        }
+                        .disabled(!viewStore.isButtonEnabled)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
                     }
-                    .disabled(!viewStore.isButtonEnabled)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(YKColor.Neutral.grey100)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(YKColor.Neutral.grey50)
             }
             .navigationBarHidden(true)
         }

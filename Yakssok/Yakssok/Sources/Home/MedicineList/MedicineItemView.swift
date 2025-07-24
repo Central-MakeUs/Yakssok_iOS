@@ -11,24 +11,34 @@ import YakssokDesignSystem
 struct MedicineItemView: View {
     let medicine: Medicine
     let isCompleted: Bool
+    let canToggle: Bool
     let onToggle: () -> Void
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: Layout.cornerRadius)
                 .fill(YKColor.Neutral.grey100)
-            HStack {
-                Spacer()
-                Rectangle()
-                    .fill(isCompleted ? YKColor.Primary.primary400 : YKColor.Neutral.grey200)
-                    .frame(width: Layout.backgroundPadding + Layout.toggleButtonSize)
+
+            if canToggle {
+                HStack {
+                    Spacer()
+                    Rectangle()
+                        .fill(isCompleted ? YKColor.Primary.primary400 : YKColor.Neutral.grey200)
+                        .frame(width: Layout.backgroundPadding + Layout.toggleButtonSize)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: Layout.cornerRadius))
             }
-            .clipShape(RoundedRectangle(cornerRadius: Layout.cornerRadius))
+
             HStack(spacing: Layout.horizontalSpacing) {
                 MedicineColorDot(color: medicine.color)
                 MedicineInfoView(medicine: medicine, isCompleted: isCompleted)
                 Spacer()
-                MedicineToggleButton(isCompleted: isCompleted, onToggle: onToggle)
+
+                MedicineToggleButton(
+                    isCompleted: isCompleted,
+                    canToggle: canToggle,
+                    onToggle: onToggle
+                )
             }
             .padding(.horizontal, Layout.horizontalPadding)
             .padding(.vertical, Layout.verticalPadding)
@@ -78,13 +88,21 @@ private struct MedicineInfoView: View {
 
 private struct MedicineToggleButton: View {
     let isCompleted: Bool
+    let canToggle: Bool
     let onToggle: () -> Void
 
     var body: some View {
-        Button(action: onToggle) {
-            Image(isCompleted ? "check-orange" : "check-grey")
-                .frame(width: Layout.toggleButtonSize, height: Layout.toggleButtonSize)
+        Button(action: canToggle ? onToggle : {}) {
+            if canToggle {
+                Image(isCompleted ? "check-orange" : "check-grey")
+                    .frame(width: Layout.toggleButtonSize, height: Layout.toggleButtonSize)
+            } else {
+                // 토글할 수 없을 때는 투명하게 처리
+                Color.clear
+                    .frame(width: Layout.toggleButtonSize, height: Layout.toggleButtonSize)
+            }
         }
+        .disabled(!canToggle)
     }
 }
 
