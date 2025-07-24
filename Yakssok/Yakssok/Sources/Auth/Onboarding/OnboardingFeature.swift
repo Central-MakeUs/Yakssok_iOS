@@ -20,7 +20,7 @@ struct OnboardingFeature: Reducer {
         case onAppear
         case nicknameChanged(String)
         case startButtonTapped
-        case isCompleted
+        case isCompleted(nickname: String)
         case backToLogin
     }
 
@@ -36,7 +36,7 @@ struct OnboardingFeature: Reducer {
                 return .none
             case .startButtonTapped:
                 guard state.isButtonEnabled else { return .none }
-                return .send(.isCompleted)
+                return .send(.isCompleted(nickname: state.nickname))
             case .backToLogin:
                 return .none
             case .isCompleted:

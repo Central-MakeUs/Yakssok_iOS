@@ -19,6 +19,8 @@ struct AuthView: View {
                     IfLetStore(store.scope(state: \.login, action: \.login), then: LoginView.init)
                 } else if viewStore.onboarding != nil {
                     IfLetStore(store.scope(state: \.onboarding, action: \.onboarding), then: OnboardingView.init)
+                } else if viewStore.loading != nil {
+                    IfLetStore(store.scope(state: \.loading, action: \.loading), then: LoadingView.init)
                 }
             }
         }
