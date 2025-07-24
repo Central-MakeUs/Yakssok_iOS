@@ -20,7 +20,7 @@ struct MateProfileView: View {
             profileImageButton
             Text(user.name)
                 .font(YKFont.body2)
-                .foregroundColor(YKColor.Neutral.grey600)
+                .foregroundColor(isSelected ? YKColor.Primary.primary500 : YKColor.Neutral.grey600)
         }
     }
 }
