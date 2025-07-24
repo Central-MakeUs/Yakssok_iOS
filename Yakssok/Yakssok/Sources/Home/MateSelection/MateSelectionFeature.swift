@@ -13,6 +13,7 @@ struct MateSelectionFeature: Reducer {
         var selectedUserId: String = ""
         var isLoading: Bool = false
         var error: String?
+
         var selectedUser: User? {
             users.first { $0.id == selectedUserId }
         }
@@ -30,6 +31,7 @@ struct MateSelectionFeature: Reducer {
 
         @CasePathable
         enum Delegate: Equatable {
+            case userSelectionChanged(User?)
             case addUserRequested
         }
     }
@@ -56,7 +58,8 @@ struct MateSelectionFeature: Reducer {
 
             case .userSelected(let userId):
                 state.selectedUserId = userId
-                return .none
+                let selectedUser = state.users.first { $0.id == userId }
+                return .send(.delegate(.userSelectionChanged(selectedUser)))
 
             case .addUserButtonTapped:
                 return .send(.delegate(.addUserRequested))
@@ -64,8 +67,14 @@ struct MateSelectionFeature: Reducer {
             case .usersLoaded(let users):
                 state.users = users
                 state.isLoading = false
-                if state.selectedUserId.isEmpty, let firstUser = users.first {
-                    state.selectedUserId = firstUser.id
+
+                // 초기 사용자 선택 로직
+                if state.selectedUserId.isEmpty {
+                    let userToSelect = selectInitialUser(from: users)
+                    if let user = userToSelect {
+                        state.selectedUserId = user.id
+                        return .send(.delegate(.userSelectionChanged(user)))
+                    }
                 }
                 return .none
 
@@ -74,9 +83,17 @@ struct MateSelectionFeature: Reducer {
                 state.isLoading = false
                 return .none
 
-            case .delegate(_):
+            case .delegate:
                 return .none
             }
         }
+    }
+
+    private func selectInitialUser(from users: [User]) -> User? {
+        // 현재 사용자 자신을 우선 선택
+        if let currentUser = users.first(where: { $0.name == "나" || $0.id == "current_user_id" }) {
+            return currentUser
+        }
+        return nil
     }
 }

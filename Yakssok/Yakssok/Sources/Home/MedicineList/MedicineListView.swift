@@ -20,7 +20,7 @@ struct MedicineListView: View {
                     VStack(spacing: Layout.sectionSpacing) {
                         MedicineSectionHeaderView(
                             title: "먹을 약",
-                            showAddButton: false,
+                            showAddButton: viewStore.isViewingOwnMedicines,
                             onAddTapped: {
                                 viewStore.send(.addMedicineButtonTapped)
                             }
@@ -33,7 +33,7 @@ struct MedicineListView: View {
                     VStack(spacing: Layout.sectionSpacing) {
                         MedicineSectionHeaderView(
                             title: "먹을 약",
-                            showAddButton: false,
+                            showAddButton: viewStore.isViewingOwnMedicines, // 본인 것만 볼 때만 추가 버튼 표시
                             onAddTapped: {
                                 viewStore.send(.addMedicineButtonTapped)
                             }
@@ -90,12 +90,13 @@ private struct HasMedicinesView: View {
                         title: "먹을 약",
                         medicines: viewStore.todayMedicines,
                         isCompleted: false,
+                        canToggle: viewStore.isViewingOwnMedicines, // canToggle로 변경
                         onMedicineToggle: { medicineId in
                             viewStore.send(.medicineToggled(id: medicineId))
                         },
-                        onAddMedicine: {
+                        onAddMedicine: viewStore.isViewingOwnMedicines ? {
                             viewStore.send(.addMedicineButtonTapped)
-                        }
+                        } : nil
                     )
                 }
                 // 복용 완료 섹션
@@ -104,6 +105,7 @@ private struct HasMedicinesView: View {
                         title: "복용 완료",
                         medicines: viewStore.completedMedicines,
                         isCompleted: true,
+                        canToggle: viewStore.isViewingOwnMedicines,
                         onMedicineToggle: { medicineId in
                             viewStore.send(.medicineToggled(id: medicineId))
                         },
@@ -119,18 +121,21 @@ private struct MedicineSectionView: View {
     let title: String
     let medicines: [Medicine]
     let isCompleted: Bool
+    let canToggle: Bool
     let onMedicineToggle: (String) -> Void
     let onAddMedicine: (() -> Void)?
+
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.sectionHeaderSpacing) {
             MedicineSectionHeaderView(
                 title: title,
-                showAddButton: !isCompleted,
+                showAddButton: !isCompleted && onAddMedicine != nil,
                 onAddTapped: onAddMedicine
             )
             MedicineListContainerView(
                 medicines: medicines,
                 isCompleted: isCompleted,
+                canToggle: canToggle,
                 onMedicineToggle: onMedicineToggle
             )
         }
@@ -140,6 +145,7 @@ private struct MedicineSectionView: View {
 private struct MedicineListContainerView: View {
     let medicines: [Medicine]
     let isCompleted: Bool
+    let canToggle: Bool
     let onMedicineToggle: (String) -> Void
 
     var body: some View {
@@ -148,6 +154,7 @@ private struct MedicineListContainerView: View {
                 MedicineItemView(
                     medicine: medicine,
                     isCompleted: isCompleted,
+                    canToggle: canToggle,
                     onToggle: {
                         onMedicineToggle(medicine.id)
                     }

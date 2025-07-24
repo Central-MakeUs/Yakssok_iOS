@@ -28,7 +28,6 @@ struct HomeFeature: Reducer {
         }
     }
 
-
     @CasePathable
     enum Action: Equatable {
         case onAppear
@@ -137,6 +136,12 @@ struct HomeFeature: Reducer {
             state.mateRegistration = nil
             return .none
 
+        // MateSelection 사용자 변경 감지 및 MedicineList 업데이트
+        case .userSelection(.delegate(.userSelectionChanged(let user))):
+            return .send(.medicineList(.updateSelectedUser(user)))
+        case .userSelection(.userSelected(let userId)):
+            return .none
+
         // Delegate 케이스들
         case .myPage(.delegate(.backToHome)):
             state.myPage = nil
@@ -180,14 +185,18 @@ struct HomeFeature: Reducer {
             return .none
 
         case .userSelection, .mateCards, .weeklyCalendar, .medicineList,
-             .messageModal, .reminderModal, .addRoutine, .notificationList,
-             .mateRegistration, .myPage, .fullCalendar:
+                .messageModal, .reminderModal, .addRoutine, .notificationList,
+                .mateRegistration, .myPage, .fullCalendar:
             return .none
         }
     }
 
     private func handleOnAppear() -> Effect<Action> {
+        // 임시
+        let currentUser = User(id: "current_user_id", name: "나", profileImage: nil)
+
         return .merge(
+            .send(.medicineList(.updateCurrentUser(currentUser))),
             .send(.mateCards(.onAppear)),
             .send(.weeklyCalendar(.onAppear)),
             .send(.showReminderModal)
