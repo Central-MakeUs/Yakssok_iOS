@@ -87,8 +87,11 @@ struct FullCalendarFeature: Reducer {
             switch action {
             case .onAppear:
                 state.calendarDays = generateCalendarDays(for: state.currentDate)
+                let currentUser = User(id: "current_user_id", name: "나", profileImage: nil)
+
                 return .merge(
                     .send(.loadMonthlyData),
+                    .send(.medicineList(.updateCurrentUser(currentUser))),
                     .send(.userSelection(.onAppear)),
                     .send(.medicineList(.onAppear))
                 )
@@ -173,6 +176,14 @@ struct FullCalendarFeature: Reducer {
 
             case .myPage(.delegate(.backToHome)):
                 state.myPage = nil
+                return .none
+
+                // MateSelection 사용자 변경 감지 및 MedicineList 업데이트
+                // MateSelection 사용자 변경 감지 수정
+            case .userSelection(.delegate(.userSelectionChanged(let user))):
+                return .send(.medicineList(.updateSelectedUser(user)))
+
+            case .userSelection(.userSelected(let userId)):
                 return .none
 
             case .userSelection(.addUserButtonTapped):
@@ -288,4 +299,3 @@ private func generateCalendarDays(for date: Date) -> [CalendarDay] {
 
     return days
 }
-
