@@ -20,6 +20,10 @@ let package = Package(
             url: "https://github.com/pointfreeco/swift-dependencies",
             from: "1.0.0"
         ),
+        .package(
+            url: "https://github.com/kakao/kakao-ios-sdk",
+            from: "2.24.5"
+        ),
         .package(path: "../Packages/YakssokDesignSystem")
     ]
 )

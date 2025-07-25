@@ -1,21 +1,13 @@
 //
-//  Medicine.swift
+//  MedicineRoutine.swift
 //  Yakssok
 //
-//  Created by 김사랑 on 7/10/25.
+//  Created by 김사랑 on 7/26/25.
 //
 
 import Foundation
 import SwiftUI
 import YakssokDesignSystem
-
-struct Medicine: Equatable, Identifiable {
-    let id: String
-    let name: String
-    let dosage: String?
-    let time: String
-    let color: MedicineColor
-}
 
 struct MedicineRoutine: Equatable, Identifiable {
     let id: String
@@ -82,12 +74,4 @@ struct MedicineRoutine: Equatable, Identifiable {
             }
         }
     }
-}
-
-enum MedicineColor: Equatable {
-    case purple
-    case yellow
-    case blue
-    case green
-    case pink
 }

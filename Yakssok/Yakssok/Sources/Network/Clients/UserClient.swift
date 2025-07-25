@@ -19,20 +19,6 @@ extension UserClient: DependencyKey {
             return MockUserData.users(for: .sample)
         }
     )
-
-    #if DEBUG
-    static let previewValue = Self(
-        loadUsers: {
-            return MockUserData.users(for: .sample)
-        }
-    )
-
-    static let testValue = Self(
-        loadUsers: {
-            return MockUserData.users(for: .onlyMe)
-        }
-    )
-    #endif
 }
 
 extension DependencyValues {

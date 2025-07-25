@@ -25,18 +25,20 @@ struct AuthFeature: Reducer {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .login(.isCompleted(let isExistingUser)):
+            case .login(.isCompleted(let isExistingUser, let authorizationCode)):
                 state.login = nil
                 if isExistingUser {
                     return .send(.authenticationCompleted)
                 } else {
-                    state.onboarding = .init()
+                    var onboardingState = OnboardingFeature.State()
+                    onboardingState.authorizationCode = authorizationCode ?? ""
+                    state.onboarding = onboardingState
                     return .none
                 }
 
-            case .onboarding(.isCompleted(let nickname)):
+            case .onboarding(.isCompleted(let nickname, let authorizationCode)):
                 state.onboarding = nil
-                state.loading = LoadingFeature.State(nickname: nickname)
+                state.loading = LoadingFeature.State(nickname: nickname, authorizationCode: authorizationCode)
                 return .none
 
             case .loading(.registrationCompleted):
@@ -44,7 +46,6 @@ struct AuthFeature: Reducer {
                 return .send(.authenticationCompleted)
 
             case .loading(.registrationFailed):
-                // 에러 발생 시 온보딩으로 돌아가기
                 state.loading = nil
                 state.onboarding = .init()
                 return .none

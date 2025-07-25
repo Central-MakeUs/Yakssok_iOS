@@ -19,20 +19,6 @@ extension MedicineClient: DependencyKey {
             return MockMedicineData.medicineData(for: .noMedicineToday)
         }
     )
-
-    #if DEBUG
-    static let previewValue = Self(
-        loadMedicineData: {
-            return MockMedicineData.medicineData(for: .hasMedicines)
-        }
-    )
-
-    static let testValue = Self(
-        loadMedicineData: {
-            return MockMedicineData.medicineData(for: .noRoutines)
-        }
-    )
-    #endif
 }
 
 extension DependencyValues {

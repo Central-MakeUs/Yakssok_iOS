@@ -10,6 +10,7 @@ import ComposableArchitecture
 struct OnboardingFeature: Reducer {
     struct State: Equatable {
         var nickname: String = ""
+        var authorizationCode: String = ""
 
         var isButtonEnabled: Bool {
             !nickname.trimmingCharacters(in: .whitespaces).isEmpty && nickname.count <= 5
@@ -20,7 +21,7 @@ struct OnboardingFeature: Reducer {
         case onAppear
         case nicknameChanged(String)
         case startButtonTapped
-        case isCompleted(nickname: String)
+        case isCompleted(nickname: String, authorizationCode: String)
         case backToLogin
     }
 
@@ -29,16 +30,20 @@ struct OnboardingFeature: Reducer {
             switch action {
             case .onAppear:
                 return .none
+
             case .nicknameChanged(let nickname):
                 if nickname.count <= 5 {
                     state.nickname = nickname
                 }
                 return .none
+
             case .startButtonTapped:
                 guard state.isButtonEnabled else { return .none }
-                return .send(.isCompleted(nickname: state.nickname))
+                return .send(.isCompleted(nickname: state.nickname, authorizationCode: state.authorizationCode))
+
             case .backToLogin:
                 return .none
+
             case .isCompleted:
                 return .none
             }

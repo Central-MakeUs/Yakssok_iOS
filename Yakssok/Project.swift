@@ -2,6 +2,12 @@ import ProjectDescription
 
 let project = Project(
     name: "Yakssok",
+    settings: .settings(
+        configurations: [
+            .debug(name: "Debug", xcconfig: "Config.xcconfig"),
+            .release(name: "Release", xcconfig: "Config.xcconfig")
+        ]
+    ),
     targets: [
         .target(
             name: "Yakssok",
@@ -20,14 +26,31 @@ let project = Project(
                         "Pretendard-Medium.otf",
                         "Pretendard-SemiBold.otf",
                         "Pretendard-Bold.otf"
+                    ],
+                    "KAKAO_NATIVE_APP_KEY": "$(KAKAO_NATIVE_APP_KEY)",
+                    "API_BASE_URL": "$(API_BASE_URL)",
+                    "CFBundleURLTypes": [
+                        [
+                            "CFBundleURLName": "kakao",
+                            "CFBundleURLSchemes": ["kakao$(KAKAO_NATIVE_APP_KEY)"]
+                        ]
+                    ],
+                    "LSApplicationQueriesSchemes": [
+                        "kakaokompassauth",
+                        "kakaolink"
                     ]
                 ]
             ),
             sources: ["Yakssok/Sources/**"],
             resources: ["Yakssok/Resources/**"],
-            dependencies: [.external(name: "ComposableArchitecture"),
-                           .external(name: "Dependencies"),
-                           .external(name: "YakssokDesignSystem")]
+            dependencies: [
+                .external(name: "ComposableArchitecture"),
+                .external(name: "Dependencies"),
+                .external(name: "KakaoSDKCommon"),
+                .external(name: "KakaoSDKAuth"),
+                .external(name: "KakaoSDKUser"),
+                .external(name: "YakssokDesignSystem")
+            ]
         ),
         .target(
             name: "YakssokTests",

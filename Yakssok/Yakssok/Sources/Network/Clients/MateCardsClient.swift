@@ -19,20 +19,6 @@ extension MateCardsClient: DependencyKey {
             return MockMateCardData.cards(for: .sample)
         }
     )
-
-    #if DEBUG
-    static let previewValue = Self(
-        loadCards: {
-            return MockMateCardData.cards(for: .sample)
-        }
-    )
-
-    static let testValue = Self(
-        loadCards: {
-            return MockMateCardData.cards(for: .empty)
-        }
-    )
-    #endif
 }
 
 extension DependencyValues {
