@@ -18,20 +18,6 @@ extension FullCalendarMedicineClient: DependencyKey {
             return MockCalendarData.medicineDataForDate(date)
         }
     )
-
-    #if DEBUG
-    static let previewValue = Self(
-        loadMedicineDataForDate: { date in
-            return MockCalendarData.medicineDataForDate(date)
-        }
-    )
-
-    static let testValue = Self(
-        loadMedicineDataForDate: { date in
-            return MockCalendarData.medicineDataForDate(date)
-        }
-    )
-    #endif
 }
 
 extension DependencyValues {
