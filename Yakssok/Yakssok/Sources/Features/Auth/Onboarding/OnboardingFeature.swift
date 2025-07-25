@@ -11,6 +11,8 @@ struct OnboardingFeature: Reducer {
     struct State: Equatable {
         var nickname: String = ""
         var authorizationCode: String = ""
+        var oauthType: String = ""
+        var identityToken: String? // Apple 로그인용
 
         var isButtonEnabled: Bool {
             !nickname.trimmingCharacters(in: .whitespaces).isEmpty && nickname.count <= 5
@@ -21,7 +23,7 @@ struct OnboardingFeature: Reducer {
         case onAppear
         case nicknameChanged(String)
         case startButtonTapped
-        case isCompleted(nickname: String, authorizationCode: String)
+        case isCompleted(nickname: String, authorizationCode: String, oauthType: String)
         case backToLogin
     }
 
@@ -39,8 +41,12 @@ struct OnboardingFeature: Reducer {
 
             case .startButtonTapped:
                 guard state.isButtonEnabled else { return .none }
-                return .send(.isCompleted(nickname: state.nickname, authorizationCode: state.authorizationCode))
-
+                return .send(.isCompleted(
+                    nickname: state.nickname,
+                    authorizationCode: state.authorizationCode,
+                    oauthType: state.oauthType
+                ))
+                
             case .backToLogin:
                 return .none
 

@@ -17,14 +17,16 @@ struct LoginFeature: Reducer {
         case onAppear
         case kakaoLoginTapped
         case appleLoginTapped
-        case kakaoLoginSuccess(authorizationCode: String)
+        case kakaoLoginSuccess(result: KakaoLoginResult)
+        case appleLoginSuccess(result: AppleLoginResult)
         case loginAPISuccess(accessToken: String, refreshToken: String)
         case loginAPIFailure(String)
-        case userNotFound(authorizationCode: String)
-        case isCompleted(isExistingUser: Bool, authorizationCode: String? = nil)
+        case userNotFound(authorizationCode: String, oauthType: String)
+        case isCompleted(isExistingUser: Bool, authorizationCode: String? = nil, oauthType: String? = nil)
     }
 
     @Dependency(\.kakaoAuthClient) var kakaoAuthClient
+    @Dependency(\.appleAuthClient) var appleAuthClient
     @Dependency(\.authAPIClient) var authAPIClient
     @Dependency(\.tokenManager) var tokenManager
 
@@ -41,22 +43,32 @@ struct LoginFeature: Reducer {
 
                 return .run { send in
                     do {
-                        let authorizationCode = try await kakaoAuthClient.login()
-                        await send(.kakaoLoginSuccess(authorizationCode: authorizationCode))
+                        let result = try await kakaoAuthClient.login()
+                        await send(.kakaoLoginSuccess(result: result))
                     } catch {
                         await send(.loginAPIFailure(error.localizedDescription))
                     }
                 }
 
             case .appleLoginTapped:
-                // TODO: 애플 로그인 구현
-                return .send(.isCompleted(isExistingUser: true))
+                state.isLoading = true
+                state.error = nil
+                tokenManager.clearTokens()
 
-            case .kakaoLoginSuccess(let authorizationCode):
+                return .run { send in
+                    do {
+                        let result = try await appleAuthClient.login()
+                        await send(.appleLoginSuccess(result: result))
+                    } catch {
+                        await send(.loginAPIFailure(error.localizedDescription))
+                    }
+                }
+
+            case .kakaoLoginSuccess(let result):
                 return .run { send in
                     do {
                         let loginRequest = LoginRequest(
-                            oauthAuthorizationCode: authorizationCode,
+                            oauthAuthorizationCode: result.authorizationCode,
                             oauthType: "kakao"
                         )
                         let response = try await authAPIClient.login(loginRequest)
@@ -68,7 +80,37 @@ struct LoginFeature: Reducer {
                     } catch {
                         if let apiError = error as? APIError,
                            case .userNotFound = apiError {
-                            await send(.userNotFound(authorizationCode: authorizationCode))
+                            await send(.userNotFound(
+                                authorizationCode: result.authorizationCode,
+                                oauthType: "kakao"
+                            ))
+                        } else {
+                            await send(.loginAPIFailure(error.localizedDescription))
+                        }
+                    }
+                }
+
+            case .appleLoginSuccess(let result):
+                return .run { send in
+                    do {
+                        let loginRequest = LoginRequest(
+                            oauthAuthorizationCode: result.identityToken,
+                            oauthType: "apple",
+                            nonce: nil
+                        )
+                        let response = try await authAPIClient.login(loginRequest)
+
+                        await send(.loginAPISuccess(
+                            accessToken: response.body.accessToken,
+                            refreshToken: response.body.refreshToken
+                        ))
+                    } catch {
+                        if let apiError = error as? APIError,
+                           case .userNotFound = apiError {
+                            await send(.userNotFound(
+                                authorizationCode: result.identityToken,
+                                oauthType: "apple"
+                            ))
                         } else {
                             await send(.loginAPIFailure(error.localizedDescription))
                         }
@@ -80,9 +122,13 @@ struct LoginFeature: Reducer {
                 tokenManager.saveTokens(accessToken, refreshToken)
                 return .send(.isCompleted(isExistingUser: true))
 
-            case .userNotFound(let authorizationCode):
+            case .userNotFound(let authorizationCode, let oauthType):
                 state.isLoading = false
-                return .send(.isCompleted(isExistingUser: false, authorizationCode: authorizationCode))
+                return .send(.isCompleted(
+                    isExistingUser: false,
+                    authorizationCode: authorizationCode,
+                    oauthType: oauthType
+                ))
 
             case .loginAPIFailure(let error):
                 state.isLoading = false
