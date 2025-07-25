@@ -13,10 +13,19 @@ struct LoadingFeature: Reducer {
         var currentIconIndex: Int = 0
         var nickname: String
         var authorizationCode: String
+        var oauthType: String = ""
+        var identityToken: String? // Apple 로그인용
         var isRegistering: Bool = false
 
         var currentIconName: String {
             return "loading-\(currentIconIndex + 1)"
+        }
+
+        init(nickname: String, authorizationCode: String, oauthType: String = "kakao", identityToken: String? = nil) {
+            self.nickname = nickname
+            self.authorizationCode = authorizationCode
+            self.oauthType = oauthType
+            self.identityToken = identityToken
         }
     }
 
@@ -52,7 +61,7 @@ struct LoadingFeature: Reducer {
                     .cancellable(id: "iconTimer"),
 
                     // 회원가입 API 호출
-                    .run { [nickname = state.nickname, authCode = state.authorizationCode] send in
+                    .run { [nickname = state.nickname, authCode = state.authorizationCode, oauthType = state.oauthType, identityToken = state.identityToken] send in
                         do {
                             guard !authCode.isEmpty else {
                                 throw APIError.invalidResponse
@@ -60,8 +69,8 @@ struct LoadingFeature: Reducer {
 
                             let joinRequest = JoinRequest(
                                 oauthAuthorizationCode: authCode,
-                                oauthType: "kakao",
-                                nonce: nil,
+                                oauthType: oauthType,
+                                nonce: identityToken,
                                 nickName: nickname
                             )
 
@@ -71,7 +80,8 @@ struct LoadingFeature: Reducer {
                             // 2. 회원가입 성공 후 바로 로그인
                             let loginRequest = LoginRequest(
                                 oauthAuthorizationCode: authCode,
-                                oauthType: "kakao"
+                                oauthType: oauthType,
+                                nonce: identityToken
                             )
                             let loginResponse = try await authAPIClient.login(loginRequest)
 

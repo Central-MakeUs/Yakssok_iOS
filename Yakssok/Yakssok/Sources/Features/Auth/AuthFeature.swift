@@ -25,20 +25,25 @@ struct AuthFeature: Reducer {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .login(.isCompleted(let isExistingUser, let authorizationCode)):
+            case .login(.isCompleted(let isExistingUser, let authorizationCode, let oauthType)):
                 state.login = nil
                 if isExistingUser {
                     return .send(.authenticationCompleted)
                 } else {
                     var onboardingState = OnboardingFeature.State()
                     onboardingState.authorizationCode = authorizationCode ?? ""
+                    onboardingState.oauthType = oauthType ?? "kakao"
                     state.onboarding = onboardingState
                     return .none
                 }
 
-            case .onboarding(.isCompleted(let nickname, let authorizationCode)):
+            case .onboarding(.isCompleted(let nickname, let authorizationCode, let oauthType)):
                 state.onboarding = nil
-                state.loading = LoadingFeature.State(nickname: nickname, authorizationCode: authorizationCode)
+                state.loading = LoadingFeature.State(
+                    nickname: nickname,
+                    authorizationCode: authorizationCode,
+                    oauthType: oauthType
+                )
                 return .none
 
             case .loading(.registrationCompleted):

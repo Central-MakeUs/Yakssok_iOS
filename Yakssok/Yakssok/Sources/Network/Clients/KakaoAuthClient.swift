@@ -12,9 +12,13 @@ import KakaoSDKUser
 import Foundation
 
 struct KakaoAuthClient {
-    var login: @Sendable () async throws -> String
+    var login: @Sendable () async throws -> KakaoLoginResult
     var logout: @Sendable () async throws -> Void
     var isLoggedIn: @Sendable () -> Bool
+}
+
+struct KakaoLoginResult: Equatable {
+    let authorizationCode: String
 }
 
 extension KakaoAuthClient: DependencyKey {
@@ -29,7 +33,8 @@ extension KakaoAuthClient: DependencyKey {
                             if let error = error {
                                 continuation.resume(throwing: error)
                             } else if let token = result {
-                                continuation.resume(returning: token.accessToken)
+                                let kakaoResult = KakaoLoginResult(authorizationCode: token.accessToken)
+                                continuation.resume(returning: kakaoResult)
                             } else {
                                 continuation.resume(throwing: NSError(domain: "KakaoLogin", code: -1, userInfo: [NSLocalizedDescriptionKey: "알 수 없는 오류"]))
                             }
@@ -40,7 +45,8 @@ extension KakaoAuthClient: DependencyKey {
                             if let error = error {
                                 continuation.resume(throwing: error)
                             } else if let token = result {
-                                continuation.resume(returning: token.accessToken)
+                                let kakaoResult = KakaoLoginResult(authorizationCode: token.accessToken)
+                                continuation.resume(returning: kakaoResult)
                             } else {
                                 continuation.resume(throwing: NSError(domain: "KakaoLogin", code: -1, userInfo: [NSLocalizedDescriptionKey: "알 수 없는 오류"]))
                             }
@@ -49,7 +55,7 @@ extension KakaoAuthClient: DependencyKey {
                 }
             }
         },
-        
+
         logout: {
             return try await withCheckedThrowingContinuation { continuation in
                 UserApi.shared.logout { error in
@@ -61,7 +67,7 @@ extension KakaoAuthClient: DependencyKey {
                 }
             }
         },
-        
+
         isLoggedIn: {
             return AuthApi.hasToken()
         }
