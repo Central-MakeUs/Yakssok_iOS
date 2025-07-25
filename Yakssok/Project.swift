@@ -33,6 +33,10 @@ let project = Project(
                         [
                             "CFBundleURLName": "kakao",
                             "CFBundleURLSchemes": ["kakao$(KAKAO_NATIVE_APP_KEY)"]
+                        ],
+                        [
+                            "CFBundleURLName": "apple",
+                            "CFBundleURLSchemes": ["$(PRODUCT_BUNDLE_IDENTIFIER)"]
                         ]
                     ],
                     "LSApplicationQueriesSchemes": [
@@ -43,6 +47,7 @@ let project = Project(
             ),
             sources: ["Yakssok/Sources/**"],
             resources: ["Yakssok/Resources/**"],
+            entitlements: "Yakssok/Yakssok.entitlements",
             dependencies: [
                 .external(name: "ComposableArchitecture"),
                 .external(name: "Dependencies"),
