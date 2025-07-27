@@ -46,6 +46,39 @@ struct MedicationCardResponse: Codable {
     let intakeTimes: [String]
 }
 
+// MARK: - GET /api/medication-schedules Response
+struct MedicationScheduleResponse: Codable {
+    let code: Int
+    let message: String
+    let body: MedicationScheduleBody
+}
+
+struct MedicationScheduleBody: Codable {
+    let groupedSchedules: [String: [DaySchedule]]
+}
+
+struct DaySchedule: Codable {
+    let date: String
+    let allTaken: Bool
+    let schedules: [MedicationSchedule]
+}
+
+struct MedicationSchedule: Codable {
+    let date: String
+    let scheduleId: Int?
+    let medicationType: String
+    let medicationName: String
+    let intakeTime: String
+    let isTaken: Bool
+}
+
+// MARK: - PUT /api/medication-schedules/{scheduleId}/take
+struct TakeMedicationResponse: Codable {
+    let code: Int
+    let message: String
+    let body: EmptyBody
+}
+
 // MARK: - Common Models
 struct EmptyBody: Codable {}
 
@@ -55,7 +88,6 @@ extension MedicineRegistrationData {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
 
-        // 요일 매핑
         let apiIntakeDays: [String]
         switch frequency.type {
         case .daily:
@@ -64,7 +96,6 @@ extension MedicineRegistrationData {
             apiIntakeDays = weekdays.map { $0.toAPIString() }
         }
 
-        // 시간 매핑 (HH:mm:ss 형식)
         let apiIntakeTimes = frequency.times.map { medicineTime in
             String(format: "%02d:%02d:00", medicineTime.hour, medicineTime.minute)
         }
@@ -122,15 +153,27 @@ extension Weekday {
         case .sunday: return "SUNDAY"
         }
     }
+
+    static func fromCalendarWeekday(_ weekday: Int) -> Weekday {
+        switch weekday {
+        case 1: return .sunday
+        case 2: return .monday
+        case 3: return .tuesday
+        case 4: return .wednesday
+        case 5: return .thursday
+        case 6: return .friday
+        case 7: return .saturday
+        default: return .monday
+        }
+    }
 }
 
-// MARK: - API Response을 UI Model로 변환
+// MARK: - API Response to UI Model Conversion
 extension MedicationCardResponse {
     func toMedicineDataResponse(for selectedDate: Date = Date()) -> (todayMedicines: [Medicine], completedMedicines: [Medicine]) {
         let calendar = Calendar.current
         let selectedWeekday = calendar.component(.weekday, from: selectedDate)
 
-        // 선택된 날짜의 요일이 복용 요일에 포함되는지 확인
         let selectedWeekdayString = Weekday.fromCalendarWeekday(selectedWeekday).toAPIString()
         let shouldTakeOnSelectedDate = intakeDays.contains(selectedWeekdayString)
 
@@ -138,7 +181,6 @@ extension MedicationCardResponse {
             return (todayMedicines: [], completedMedicines: [])
         }
 
-        // 시간별로 Medicine 객체 생성
         let medicines = intakeTimes.map { timeString in
             Medicine(
                 id: UUID().uuidString,
@@ -149,7 +191,6 @@ extension MedicationCardResponse {
             )
         }
 
-        // 복용 상태에 따라 분류 (임시로 모두 todayMedicines에 배치)
         return (todayMedicines: medicines, completedMedicines: [])
     }
 
@@ -168,17 +209,49 @@ extension MedicationCardResponse {
     }
 }
 
-extension Weekday {
-    static func fromCalendarWeekday(_ weekday: Int) -> Weekday {
-        switch weekday {
-        case 1: return .sunday
-        case 2: return .monday
-        case 3: return .tuesday
-        case 4: return .wednesday
-        case 5: return .thursday
-        case 6: return .friday
-        case 7: return .saturday
-        default: return .monday
+extension MedicationScheduleResponse {
+    func toMedicineDataResponse() -> MedicineDataResponse {
+        var allTodayMedicines: [Medicine] = []
+        var allCompletedMedicines: [Medicine] = []
+
+        for (_, daySchedules) in body.groupedSchedules {
+            for daySchedule in daySchedules {
+                for schedule in daySchedule.schedules {
+                    let medicine = Medicine(
+                        id: schedule.scheduleId?.description ?? "\(schedule.medicationName)-\(schedule.intakeTime)",
+                        name: schedule.medicationName,
+                        dosage: nil,
+                        time: convertTimeToDisplayFormat(schedule.intakeTime),
+                        color: .purple
+                    )
+
+                    if schedule.isTaken {
+                        allCompletedMedicines.append(medicine)
+                    } else {
+                        allTodayMedicines.append(medicine)
+                    }
+                }
+            }
         }
+
+        return MedicineDataResponse(
+            routines: [],
+            todayMedicines: allTodayMedicines,
+            completedMedicines: allCompletedMedicines
+        )
+    }
+
+    private func convertTimeToDisplayFormat(_ timeString: String) -> String {
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm:ss"
+
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateFormat = "a h:mm"
+        displayFormatter.locale = Locale(identifier: "ko_KR")
+
+        if let time = timeFormatter.date(from: timeString) {
+            return displayFormatter.string(from: time)
+        }
+        return timeString
     }
 }

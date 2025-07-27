@@ -12,6 +12,10 @@ import Foundation
 struct MedicineClient {
     var loadMedicineData: () async throws -> MedicineDataResponse
     var createMedicineRoutine: (MedicineRegistrationData) async throws -> Void
+    var loadTodaySchedules: () async throws -> MedicineDataResponse
+    var loadSchedulesForDateRange: (Date, Date) async throws -> MedicineDataResponse
+    var loadMonthlyStatus: (Date, Date) async throws -> [String: MedicineStatus]
+    var takeMedicine: (Int) async throws -> Void
 }
 
 extension MedicineClient: DependencyKey {
@@ -30,7 +34,6 @@ extension MedicineClient: DependencyKey {
 
                 return convertToMedicineDataResponse(response)
             } catch {
-                print("API 호출 실패: \(error)")
                 return MedicineDataResponse(
                     routines: [],
                     todayMedicines: [],
@@ -51,6 +54,86 @@ extension MedicineClient: DependencyKey {
             if response.code != 0 {
                 throw APIError.serverError(response.code)
             }
+        },
+
+        loadTodaySchedules: {
+            do {
+                let response: MedicationScheduleResponse = try await APIClient.shared.request(
+                    endpoint: .getMedicationSchedulesToday,
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                if response.code != 0 {
+                    throw APIError.serverError(response.code)
+                }
+
+                return response.toMedicineDataResponse()
+            } catch {
+                return MedicineDataResponse(routines: [], todayMedicines: [], completedMedicines: [])
+            }
+        },
+
+        loadSchedulesForDateRange: { startDate, endDate in
+            do {
+                let response: MedicationScheduleResponse = try await APIClient.shared.request(
+                    endpoint: .getMedicationSchedules(startDate, endDate),
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                if response.code != 0 {
+                    throw APIError.serverError(response.code)
+                }
+
+                return response.toMedicineDataResponse()
+            } catch {
+                return MedicineDataResponse(routines: [], todayMedicines: [], completedMedicines: [])
+            }
+        },
+
+        loadMonthlyStatus: { startDate, endDate in
+            do {
+                let response: MedicationScheduleResponse = try await APIClient.shared.request(
+                    endpoint: .getMedicationSchedules(startDate, endDate),
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                if response.code != 0 {
+                    throw APIError.serverError(response.code)
+                }
+
+                var monthlyStatus: [String: MedicineStatus] = [:]
+
+                for (dateKey, daySchedules) in response.body.groupedSchedules {
+                    for daySchedule in daySchedules {
+                        if daySchedule.schedules.isEmpty {
+                            monthlyStatus[dateKey] = .none
+                        } else if daySchedule.allTaken {
+                            monthlyStatus[dateKey] = .completed
+                        } else {
+                            monthlyStatus[dateKey] = .incomplete
+                        }
+                    }
+                }
+
+                return monthlyStatus
+            } catch {
+                return [:]
+            }
+        },
+
+        takeMedicine: { scheduleId in
+            let response: TakeMedicationResponse = try await APIClient.shared.request(
+                endpoint: .takeMedication(scheduleId),
+                method: .PUT,
+                body: EmptyBody()
+            )
+
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
+            }
         }
     )
 }
@@ -62,19 +145,17 @@ extension DependencyValues {
     }
 }
 
-// MARK: - Data 변환
+// MARK: - Helper Functions
 private func convertToMedicineDataResponse(_ apiResponse: MedicationListResponse, selectedDate: Date = Date()) -> MedicineDataResponse {
     var allTodayMedicines: [Medicine] = []
     var allCompletedMedicines: [Medicine] = []
     var routines: [MedicineRoutine] = []
 
     for medicationCard in apiResponse.body.medicationCardResponses {
-        // Medicine 객체 변환 (선택된 날짜 기준)
         let (todayMedicines, completedMedicines) = medicationCard.toMedicineDataResponse(for: selectedDate)
         allTodayMedicines.append(contentsOf: todayMedicines)
         allCompletedMedicines.append(contentsOf: completedMedicines)
 
-        // MedicineRoutine 객체 생성
         let routine = MedicineRoutine(
             id: UUID().uuidString,
             medicineName: medicationCard.medicineName,
@@ -99,7 +180,6 @@ private func convertToMedicineDataResponse(_ apiResponse: MedicationListResponse
     )
 }
 
-// MARK: - Helpers
 private func convertTimeToDisplayFormat(_ timeString: String) -> String {
     let timeFormatter = DateFormatter()
     timeFormatter.dateFormat = "HH:mm:ss"
