@@ -45,6 +45,10 @@ enum APIEndpoints {
     case getMedicationSchedules(Date, Date)
     case takeMedication(Int)
 
+    // MARK: - Friend Medicine Endpoints
+    case getFriendMedicationSchedulesToday(Int)
+    case getFriendMedicationSchedules(Int, Date, Date)
+
     // MARK: - Notification Endpoints
     case notifications
 
@@ -93,6 +97,16 @@ enum APIEndpoints {
             return "/api/medication-schedules?startDate=\(start)&endDate=\(end)"
         case .takeMedication(let scheduleId):
             return "/api/medication-schedules/\(scheduleId)/take"
+
+        // Friend Medicine
+        case .getFriendMedicationSchedulesToday(let friendId):
+            return "/api/medication-schedules/friends/\(friendId)/today"
+        case .getFriendMedicationSchedules(let friendId, let startDate, let endDate):
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            let start = formatter.string(from: startDate)
+            let end = formatter.string(from: endDate)
+            return "/api/medication-schedules/friends/\(friendId)?startDate=\(start)&endDate=\(end)"
 
         // Notification
         case .notifications:

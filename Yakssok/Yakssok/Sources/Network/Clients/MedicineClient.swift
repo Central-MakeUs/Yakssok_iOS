@@ -16,6 +16,9 @@ struct MedicineClient {
     var loadSchedulesForDateRange: (Date, Date) async throws -> MedicineDataResponse
     var loadMonthlyStatus: (Date, Date) async throws -> [String: MedicineStatus]
     var takeMedicine: (Int) async throws -> Void
+    var loadFriendTodaySchedules: (Int) async throws -> MedicineDataResponse
+    var loadFriendSchedulesForDateRange: (Int, Date, Date) async throws -> MedicineDataResponse
+    var loadFriendMonthlyStatus: (Int, Date, Date) async throws -> [String: MedicineStatus]
 }
 
 extension MedicineClient: DependencyKey {
@@ -134,6 +137,74 @@ extension MedicineClient: DependencyKey {
             if response.code != 0 {
                 throw APIError.serverError(response.code)
             }
+        },
+
+        loadFriendTodaySchedules: { friendId in
+            do {
+                let response: MedicationScheduleResponse = try await APIClient.shared.request(
+                    endpoint: .getFriendMedicationSchedulesToday(friendId),
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                if response.code != 0 {
+                    throw APIError.serverError(response.code)
+                }
+
+                return response.toMedicineDataResponse()
+            } catch {
+                return MedicineDataResponse(routines: [], todayMedicines: [], completedMedicines: [])
+            }
+        },
+
+        loadFriendSchedulesForDateRange: { friendId, startDate, endDate in
+            do {
+                let response: MedicationScheduleResponse = try await APIClient.shared.request(
+                    endpoint: .getFriendMedicationSchedules(friendId, startDate, endDate),
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                if response.code != 0 {
+                    throw APIError.serverError(response.code)
+                }
+
+                return response.toMedicineDataResponse()
+            } catch {
+                return MedicineDataResponse(routines: [], todayMedicines: [], completedMedicines: [])
+            }
+        },
+
+        loadFriendMonthlyStatus: { friendId, startDate, endDate in
+            do {
+                let response: MedicationScheduleResponse = try await APIClient.shared.request(
+                    endpoint: .getFriendMedicationSchedules(friendId, startDate, endDate),
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                if response.code != 0 {
+                    throw APIError.serverError(response.code)
+                }
+
+                var monthlyStatus: [String: MedicineStatus] = [:]
+
+                for (dateKey, daySchedules) in response.body.groupedSchedules {
+                    for daySchedule in daySchedules {
+                        if daySchedule.schedules.isEmpty {
+                            monthlyStatus[dateKey] = .none
+                        } else if daySchedule.allTaken {
+                            monthlyStatus[dateKey] = .completed
+                        } else {
+                            monthlyStatus[dateKey] = .incomplete
+                        }
+                    }
+                }
+
+                return monthlyStatus
+            } catch {
+                return [:]
+            }
         }
     )
 }
@@ -208,7 +279,7 @@ private func convertAPITypeToCategory(_ apiType: String) -> MedicineCategory {
     }
 
     return MedicineCategory.defaultCategories.first { $0.id == categoryId }
-        ?? MedicineCategory.defaultCategories.last!
+    ?? MedicineCategory.defaultCategories.last!
 }
 
 private func convertToMedicineFrequency(intakeDays: [String], intakeTimes: [String]) -> MedicineFrequency {

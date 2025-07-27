@@ -123,7 +123,7 @@ struct FullCalendarFeature: Reducer {
                 return .none
 
             case .loadMonthlyData:
-                return .run { [currentDate = state.currentDate] send in
+                return .run { [currentDate = state.currentDate, selectedUser = state.userSelection?.selectedUser, currentUser = state.userSelection?.currentUser] send in
                     do {
                         let calendar = Calendar.current
                         guard let monthInterval = calendar.dateInterval(of: .month, for: currentDate) else {
@@ -134,7 +134,19 @@ struct FullCalendarFeature: Reducer {
                         let startOfMonth = monthInterval.start
                         let endOfMonth = calendar.date(byAdding: .day, value: -1, to: monthInterval.end) ?? monthInterval.end
 
-                        let monthlyStatus = try await medicineClient.loadMonthlyStatus(startOfMonth, endOfMonth)
+                        let monthlyStatus: [String: MedicineStatus]
+
+                        // 선택된 사용자에 따라 다른 API 호출
+                        if let selectedUser = selectedUser,
+                           let friendId = Int(selectedUser.id),
+                           selectedUser.id != currentUser?.id {
+                            // 친구의 월간 데이터 로드
+                            monthlyStatus = try await medicineClient.loadFriendMonthlyStatus(friendId, startOfMonth, endOfMonth)
+                        } else {
+                            // 본인의 월간 데이터 로드
+                            monthlyStatus = try await medicineClient.loadMonthlyStatus(startOfMonth, endOfMonth)
+                        }
+
                         await send(.monthlyDataLoaded(monthlyStatus))
                     } catch {
                         await send(.monthlyDataLoaded([:]))
@@ -259,8 +271,7 @@ struct FullCalendarFeature: Reducer {
                 state.mateRegistration = nil
                 return .none
 
-            case .delegate, .userSelection, .medicineList, .addRoutine,
-                 .notificationList, .mateRegistration, .myPage:
+            case .delegate, .userSelection, .medicineList, .addRoutine, .notificationList, .mateRegistration, .myPage:
                 return .none
             }
         }
