@@ -81,31 +81,31 @@ struct MyMatesFeature: Reducer {
     // Mock 데이터 생성 함수들을 static으로 변경
     static func createMockUsers() -> [User] {
         return [
-            User(
-                id: "user1",
-                name: "나",
-                profileImage: "https://randomuser.me/api/portraits/med/women/1.jpg"
-            ),
-            User(
-                id: "user2",
-                name: "나",
-                profileImage: "https://randomuser.me/api/portraits/med/men/1.jpg"
-            )
+//            User(
+//                id: "user1",
+//                name: "나",
+//                profileImage: "https://randomuser.me/api/portraits/med/women/1.jpg"
+//            ),
+//            User(
+//                id: "user2",
+//                name: "나",
+//                profileImage: "https://randomuser.me/api/portraits/med/men/1.jpg"
+//            )
         ]
     }
 
     static func createMockFollowers() -> [User] {
         return [
-            User(
-                id: "follower1",
-                name: "나",
-                profileImage: "https://randomuser.me/api/portraits/med/women/2.jpg"
-            ),
-            User(
-                id: "follower2",
-                name: "나",
-                profileImage: "https://randomuser.me/api/portraits/med/men/2.jpg"
-            )
+//            User(
+//                id: "follower1",
+//                name: "나",
+//                profileImage: "https://randomuser.me/api/portraits/med/women/2.jpg"
+//            ),
+//            User(
+//                id: "follower2",
+//                name: "나",
+//                profileImage: "https://randomuser.me/api/portraits/med/men/2.jpg"
+//            )
         ]
     }
 }

@@ -124,26 +124,16 @@ struct HomeFeature: Reducer {
             }
 
         case .userProfileLoaded(let response):
-            let currentUser = User(
-                id: "current_user_id",
-                name: "나",
-                profileImage: response.body.profileImageUrl
-            )
+            let currentUser = response.toCurrentUser()
             state.currentUser = currentUser
-
             return .merge(
                 .send(.medicineList(.updateCurrentUser(currentUser))),
                 .send(.userSelection(.updateCurrentUser(currentUser)))
             )
 
         case .userProfileLoadFailed(let error):
-            let defaultUser = User(
-                id: "current_user_id",
-                name: "나",
-                profileImage: nil
-            )
+            let defaultUser = User.defaultCurrentUser()
             state.currentUser = defaultUser
-
             return .send(.medicineList(.updateCurrentUser(defaultUser)))
 
         case .notificationTapped:

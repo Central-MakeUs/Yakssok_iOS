@@ -35,7 +35,7 @@ struct MedicineListFeature {
             guard let selectedUser = selectedUser, let currentUser = currentUser else {
                 return true
             }
-            return selectedUser.name == currentUser.name && currentUser.name == "나"
+            return selectedUser.id == currentUser.id
         }
     }
 
@@ -51,6 +51,8 @@ struct MedicineListFeature {
         case updateSelectedUser(User?)
         case updateCurrentUser(User)
         case updateSelectedDate(Date)
+        case loadFriendMedicineData(friendId: Int)
+        case friendMedicineDataLoaded(MedicineDataResponse)
         case loadingFailed(String)
         case delegate(Delegate)
 
@@ -90,6 +92,56 @@ struct MedicineListFeature {
                         await send(.loadingFailed(error.localizedDescription))
                     }
                 }
+
+            case .updateSelectedUser(let user):
+                state.selectedUser = user
+
+                // 선택된 사용자가 바뀌면 해당 사용자의 데이터를 로드
+                if let user = user, let friendId = Int(user.id), user.id != state.currentUser?.id {
+                    return .send(.loadFriendMedicineData(friendId: friendId))
+                } else if user?.id == state.currentUser?.id {
+                    // 본인을 선택한 경우 본인 데이터 로드
+                    return .send(.loadMedicineData)
+                }
+                return .none
+
+            case .updateSelectedDate(let date):
+                state.selectedDate = date
+
+                if let selectedUser = state.selectedUser,
+                   let friendId = Int(selectedUser.id),
+                   selectedUser.id != state.currentUser?.id {
+                    return .send(.loadFriendMedicineData(friendId: friendId))
+                } else {
+                    return .send(.loadMedicineData)
+                }
+
+            case .loadFriendMedicineData(let friendId):
+                state.isLoading = true
+                state.error = nil
+                return .run { [selectedDate = state.selectedDate] send in
+                    do {
+                        let today = Date()
+                        let calendar = Calendar.current
+
+                        let response: MedicineDataResponse
+                        if calendar.isDate(selectedDate, inSameDayAs: today) {
+                            response = try await medicineClient.loadFriendTodaySchedules(friendId)
+                        } else {
+                            response = try await medicineClient.loadFriendSchedulesForDateRange(friendId, selectedDate, selectedDate)
+                        }
+
+                        await send(.friendMedicineDataLoaded(response))
+                    } catch {
+                        await send(.loadingFailed(error.localizedDescription))
+                    }
+                }
+
+            case .friendMedicineDataLoaded(let response):
+                state.todayMedicines = response.todayMedicines
+                state.completedMedicines = response.completedMedicines
+                state.isLoading = false
+                return .none
 
             case .routinesLoaded(let routines):
                 state.userMedicineRoutines = routines
@@ -246,7 +298,7 @@ private func convertAPITypeToCategory(_ apiType: String) -> MedicineCategory {
     }
 
     return MedicineCategory.defaultCategories.first { $0.id == categoryId }
-        ?? MedicineCategory.defaultCategories.last!
+    ?? MedicineCategory.defaultCategories.last!
 }
 
 private func convertToMedicineFrequency(intakeDays: [String], intakeTimes: [String]) -> MedicineFrequency {
