@@ -15,7 +15,22 @@ struct UserClient {
 extension UserClient: DependencyKey {
     static let liveValue = Self(
         loadUsers: {
-            return []
+            do {
+                let response: FollowingListResponse = try await APIClient.shared.request(
+                    endpoint: .getFollowingList,
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                if response.code != 0 {
+                    throw APIError.serverError(response.code)
+                }
+
+                return response.body.followingInfoResponses.map { $0.toUser() }
+            } catch {
+
+                return []
+            }
         },
 
         loadUserProfile: {

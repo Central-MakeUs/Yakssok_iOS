@@ -33,6 +33,9 @@ enum APIEndpoints {
     // MARK: - User Endpoints
     case getUserProfile
 
+    // MARK: - Friend Endpoints
+    case getFollowingList
+
     // MARK: - Medicine Endpoints
     case medicineData
     case medicineDataForDate(Date)
@@ -64,6 +67,10 @@ enum APIEndpoints {
         // User
         case .getUserProfile:
             return "/api/users/me"
+
+        // Friend
+        case .getFollowingList:
+            return "/api/friends/followings"
 
         // Medicine
         case .medicineData:
