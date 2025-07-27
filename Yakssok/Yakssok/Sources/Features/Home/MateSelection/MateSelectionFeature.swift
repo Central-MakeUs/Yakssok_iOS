@@ -11,6 +11,7 @@ struct MateSelectionFeature: Reducer {
     struct State: Equatable {
         var users: [User] = []
         var selectedUserId: String = ""
+        var currentUser: User?
         var isLoading: Bool = false
         var error: String?
 
@@ -26,6 +27,7 @@ struct MateSelectionFeature: Reducer {
         case addUserButtonTapped
         case loadUsers
         case usersLoaded([User])
+        case updateCurrentUser(User)
         case loadingFailed(String)
         case delegate(Delegate)
 
@@ -56,6 +58,22 @@ struct MateSelectionFeature: Reducer {
                     }
                 }
 
+            case .updateCurrentUser(let user):
+                state.currentUser = user
+
+                if let index = state.users.firstIndex(where: { $0.id == user.id }) {
+                    state.users[index] = user
+                } else {
+                    state.users.insert(user, at: 0)
+                }
+
+                if state.selectedUserId.isEmpty {
+                    state.selectedUserId = user.id
+                    return .send(.delegate(.userSelectionChanged(user)))
+                }
+
+                return .none
+
             case .userSelected(let userId):
                 state.selectedUserId = userId
                 let selectedUser = state.users.first { $0.id == userId }
@@ -68,14 +86,17 @@ struct MateSelectionFeature: Reducer {
                 state.users = users
                 state.isLoading = false
 
-                // 초기 사용자 선택 로직
-                if state.selectedUserId.isEmpty {
-                    let userToSelect = selectInitialUser(from: users)
-                    if let user = userToSelect {
-                        state.selectedUserId = user.id
-                        return .send(.delegate(.userSelectionChanged(user)))
+                if let currentUser = state.currentUser {
+                    if !state.users.contains(where: { $0.id == currentUser.id }) {
+                        state.users.insert(currentUser, at: 0)
+                    }
+
+                    if state.selectedUserId.isEmpty {
+                        state.selectedUserId = currentUser.id
+                        return .send(.delegate(.userSelectionChanged(currentUser)))
                     }
                 }
+
                 return .none
 
             case .loadingFailed(let error):
@@ -87,13 +108,5 @@ struct MateSelectionFeature: Reducer {
                 return .none
             }
         }
-    }
-
-    private func selectInitialUser(from users: [User]) -> User? {
-        // 현재 사용자 자신을 우선 선택
-        if let currentUser = users.first(where: { $0.name == "나" || $0.id == "current_user_id" }) {
-            return currentUser
-        }
-        return nil
     }
 }

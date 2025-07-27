@@ -31,8 +31,7 @@ enum APIEndpoints {
     case refreshToken
 
     // MARK: - User Endpoints
-    case userProfile
-    case updateUserProfile
+    case getUserProfile
 
     // MARK: - Medicine Endpoints
     case medicineData
@@ -63,10 +62,8 @@ enum APIEndpoints {
             return "/api/auth/reissue"
 
         // User
-        case .userProfile:
-            return "/api/user/profile"
-        case .updateUserProfile:
-            return "/api/user/profile"
+        case .getUserProfile:
+            return "/api/users/me"
 
         // Medicine
         case .medicineData:
