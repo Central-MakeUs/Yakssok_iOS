@@ -39,6 +39,9 @@ enum APIEndpoints {
     case medicineDataForDate(Date)
     case createMedication
     case getMedications
+    case getMedicationSchedulesToday
+    case getMedicationSchedules(Date, Date)
+    case takeMedication(Int)
 
     // MARK: - Notification Endpoints
     case notifications
@@ -49,7 +52,7 @@ enum APIEndpoints {
 
     var path: String {
         switch self {
-            // Auth
+        // Auth
         case .login:
             return "/api/auth/login"
         case .join:
@@ -59,13 +62,13 @@ enum APIEndpoints {
         case .refreshToken:
             return "/api/auth/reissue"
 
-            // User
+        // User
         case .userProfile:
             return "/api/user/profile"
         case .updateUserProfile:
             return "/api/user/profile"
 
-            // Medicine
+        // Medicine
         case .medicineData:
             return "/api/medicine/data"
         case .medicineDataForDate(let date):
@@ -76,12 +79,22 @@ enum APIEndpoints {
             return "/api/medications"
         case .getMedications:
             return "/api/medications"
+        case .getMedicationSchedulesToday:
+            return "/api/medication-schedules/today"
+        case .getMedicationSchedules(let startDate, let endDate):
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            let start = formatter.string(from: startDate)
+            let end = formatter.string(from: endDate)
+            return "/api/medication-schedules?startDate=\(start)&endDate=\(end)"
+        case .takeMedication(let scheduleId):
+            return "/api/medication-schedules/\(scheduleId)/take"
 
-            // Notification
+        // Notification
         case .notifications:
             return "/api/notifications"
 
-            // Mate
+        // Mate
         case .mateCards:
             return "/api/mate/cards"
         case .registerMate:

@@ -80,7 +80,7 @@ struct FullCalendarFeature: Reducer {
         }
     }
 
-    @Dependency(\.fullCalendarMedicineClient) var fullCalendarMedicineClient
+    @Dependency(\.medicineClient) var medicineClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -108,14 +108,7 @@ struct FullCalendarFeature: Reducer {
 
             case .dayTapped(let date):
                 state.selectedDate = date
-                return .run { send in
-                    do {
-                        let response = try await fullCalendarMedicineClient.loadMedicineDataForDate(date)
-                        await send(.medicineList(.medicineDataLoaded(response)))
-                    } catch {
-                        // 에러 처리
-                    }
-                }
+                return .send(.medicineList(.updateSelectedDate(date)))
 
             case .updateMedicines(let today, let completed):
                 state.medicineList?.todayMedicines = today
@@ -123,11 +116,27 @@ struct FullCalendarFeature: Reducer {
                 return .none
 
             case .medicineList(.medicineToggled):
-                updateMedicineStatus(&state)
+                updateCurrentDateStatus(&state)
                 return .none
 
             case .loadMonthlyData:
-                return .send(.monthlyDataLoaded(MockCalendarData.monthlyStatus))
+                return .run { [currentDate = state.currentDate] send in
+                    do {
+                        let calendar = Calendar.current
+                        guard let monthInterval = calendar.dateInterval(of: .month, for: currentDate) else {
+                            await send(.monthlyDataLoaded([:]))
+                            return
+                        }
+
+                        let startOfMonth = monthInterval.start
+                        let endOfMonth = calendar.date(byAdding: .day, value: -1, to: monthInterval.end) ?? monthInterval.end
+
+                        let monthlyStatus = try await medicineClient.loadMonthlyStatus(startOfMonth, endOfMonth)
+                        await send(.monthlyDataLoaded(monthlyStatus))
+                    } catch {
+                        await send(.monthlyDataLoaded([:]))
+                    }
+                }
 
             case .monthlyDataLoaded(let monthlyStatus):
                 state.monthlyMedicineStatus = monthlyStatus
@@ -178,12 +187,10 @@ struct FullCalendarFeature: Reducer {
                 state.myPage = nil
                 return .none
 
-                // MateSelection 사용자 변경 감지 및 MedicineList 업데이트
-                // MateSelection 사용자 변경 감지 수정
             case .userSelection(.delegate(.userSelectionChanged(let user))):
                 return .send(.medicineList(.updateSelectedUser(user)))
 
-            case .userSelection(.userSelected(let userId)):
+            case .userSelection(.userSelected):
                 return .none
 
             case .userSelection(.addUserButtonTapped):
@@ -215,25 +222,8 @@ struct FullCalendarFeature: Reducer {
                 state.mateRegistration = nil
                 return .none
 
-            case .delegate:
-                return .none
-
-            case .userSelection:
-                return .none
-
-            case .medicineList:
-                return .none
-
-            case .addRoutine:
-                return .none
-
-            case .notificationList:
-                return .none
-
-            case .mateRegistration:
-                return .none
-
-            case .myPage:
+            case .delegate, .userSelection, .medicineList, .addRoutine,
+                 .notificationList, .mateRegistration, .myPage:
                 return .none
             }
         }
@@ -257,7 +247,7 @@ struct FullCalendarFeature: Reducer {
         }
     }
 
-    private func updateMedicineStatus(_ state: inout State) {
+    private func updateCurrentDateStatus(_ state: inout State) {
         let dateKey = formatDate(state.selectedDate)
         guard let medicineList = state.medicineList else { return }
 
@@ -266,7 +256,7 @@ struct FullCalendarFeature: Reducer {
         } else if !medicineList.todayMedicines.isEmpty {
             state.monthlyMedicineStatus[dateKey] = .incomplete
         } else {
-            state.monthlyMedicineStatus[dateKey] = Optional.none
+            state.monthlyMedicineStatus[dateKey] = .none
         }
     }
 
