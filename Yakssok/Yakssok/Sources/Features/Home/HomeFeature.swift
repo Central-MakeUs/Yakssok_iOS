@@ -23,6 +23,7 @@ struct HomeFeature: Reducer {
         var mateRegistration: MateRegistrationFeature.State?
         var myPage: MyPageFeature.State?
         var fullCalendar: FullCalendarFeature.State?
+
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
         }
@@ -31,6 +32,7 @@ struct HomeFeature: Reducer {
     @CasePathable
     enum Action: Equatable {
         case onAppear
+        case onResume
         case notificationTapped
         case menuTapped
         case userSelection(MateSelectionFeature.Action)
@@ -55,6 +57,7 @@ struct HomeFeature: Reducer {
         case fullCalendar(FullCalendarFeature.Action)
         case showMyPage
         case dismissMyPage
+        case refreshMedicineList
     }
 
     var body: some ReducerOf<Self> {
@@ -97,102 +100,137 @@ struct HomeFeature: Reducer {
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
         switch action {
         case .onAppear:
-            return handleOnAppear()
+            return handleOnAppear(&state)
+
+        case .onResume:
+            return .send(.medicineList(.loadInitialData))
+
         case .notificationTapped:
             return .send(.showNotificationList)
+
         case .menuTapped:
             return .send(.showMyPage)
 
-        // 간단한 show/dismiss 케이스들
+        // MARK: - Show/Dismiss Actions
         case .showMyPage:
             state.myPage = .init()
             return .none
+
         case .dismissMyPage:
             state.myPage = nil
             return .none
+
         case .showReminderModal:
             return handleShowMissedMedicineModal(&state)
+
         case .showMessageModal(let targetUser, let messageType):
             return handleShowMessageModal(&state, targetUser: targetUser, messageType: messageType)
+
         case .dismissMessageModal:
             state.messageModal = nil
             return .none
+
         case .showAddRoutine:
             state.addRoutine = .init()
             return .none
+
         case .dismissAddRoutine:
             state.addRoutine = nil
-            return .none
+            return .send(.onResume)
+
         case .showNotificationList:
             state.notificationList = .init()
             return .none
+
         case .dismissNotificationList:
             state.notificationList = nil
             return .none
+
         case .showMateRegistration:
             state.mateRegistration = .init()
             return .none
+
         case .dismissMateRegistration:
             state.mateRegistration = nil
             return .none
 
-        // MateSelection 사용자 변경 감지 및 MedicineList 업데이트
+        // MARK: - User Selection & Calendar
         case .userSelection(.delegate(.userSelectionChanged(let user))):
             return .send(.medicineList(.updateSelectedUser(user)))
-        case .userSelection(.userSelected(let userId)):
+
+        case .userSelection(.userSelected):
             return .none
 
-        // Delegate 케이스들
+        case .weeklyCalendar(.dateSelected(let date)):
+            state.selectedDate = date
+            return .send(.medicineList(.updateSelectedDate(date)))
+
+        // MARK: - Delegate Actions
         case .myPage(.delegate(.backToHome)):
             state.myPage = nil
-            return .none
+            return .send(.onResume)
+
         case .weeklyCalendar(.delegate(.showFullCalendar)):
             state.fullCalendar = FullCalendarFeature.State()
             return .none
+
         case .fullCalendar(.delegate(.backToHome)):
             state.fullCalendar = nil
-            return .none
+            return .send(.onResume)
+
         case .userSelection(.addUserButtonTapped):
             return .send(.showMateRegistration)
+
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
             return .send(.userSelection(.loadUsers))
+
         case .userSelection(.delegate(.addUserRequested)):
             return .send(.showMateRegistration)
+
         case .mateCards(.delegate(.showMessageModal(let targetUser, let messageType))):
             return .send(.showMessageModal(targetUser: targetUser, messageType: messageType))
+
         case .medicineList(.delegate(.addMedicineRequested)):
             return .send(.showAddRoutine)
 
-        // Modal 종료 케이스들
+        // MARK: - Modal Close Actions
         case .reminderModal(.takeMedicineNowTapped), .reminderModal(.closeButtonTapped):
             state.reminderModal = nil
             return .none
+
         case .messageModal(.closeButtonTapped), .messageModal(.sendButtonTapped):
             state.messageModal = nil
             return .none
+
         case .addRoutine(.dismissRequested):
             state.addRoutine = nil
-            return .none
+            return .send(.refreshMedicineList)
+
         case .addRoutine(.routineCompleted):
             state.addRoutine = nil
-            return .send(.medicineList(.onAppear))
+            return .send(.refreshMedicineList)
+
         case .notificationList(.backButtonTapped):
             state.notificationList = nil
             return .none
+
         case .mateRegistration(.backButtonTapped):
             state.mateRegistration = nil
             return .none
 
+        case .refreshMedicineList:
+            return .send(.medicineList(.loadMedicineData))
+
+        // MARK: - Child Feature Actions
         case .userSelection, .mateCards, .weeklyCalendar, .medicineList,
-                .messageModal, .reminderModal, .addRoutine, .notificationList,
-                .mateRegistration, .myPage, .fullCalendar:
+             .messageModal, .reminderModal, .addRoutine, .notificationList,
+             .mateRegistration, .myPage, .fullCalendar:
             return .none
         }
     }
 
-    private func handleOnAppear() -> Effect<Action> {
-        // 임시
+    private func handleOnAppear(_ state: inout State) -> Effect<Action> {
         let currentUser = User(id: "current_user_id", name: "나", profileImage: nil)
 
         return .merge(
