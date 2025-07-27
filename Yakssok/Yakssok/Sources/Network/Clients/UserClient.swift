@@ -9,14 +9,42 @@ import ComposableArchitecture
 
 struct UserClient {
     var loadUsers: () async throws -> [User]
+    var loadUserProfile: () async throws -> UserProfileResponse
 }
 
 extension UserClient: DependencyKey {
     static let liveValue = Self(
         loadUsers: {
-            // TODO: 실제 API 구현
-            // 테스트: 3가지 상태 중 하나 선택해서 테스트: onlyMe, sample, many
-            return MockUserData.users(for: .sample)
+            do {
+                let response: FollowingListResponse = try await APIClient.shared.request(
+                    endpoint: .getFollowingList,
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                if response.code != 0 {
+                    throw APIError.serverError(response.code)
+                }
+
+                return response.body.followingInfoResponses.map { $0.toUser() }
+            } catch {
+
+                return []
+            }
+        },
+
+        loadUserProfile: {
+            let response: UserProfileResponse = try await APIClient.shared.request(
+                endpoint: .getUserProfile,
+                method: .GET,
+                body: Optional<String>.none
+            )
+
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
+            }
+
+            return response
         }
     )
 }

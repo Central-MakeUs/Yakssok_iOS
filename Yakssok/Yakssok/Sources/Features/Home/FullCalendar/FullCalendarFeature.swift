@@ -55,6 +55,9 @@ struct FullCalendarFeature: Reducer {
         case monthlyDataLoaded([String: MedicineStatus])
         case updateMedicines(todayMedicines: [Medicine], completedMedicines: [Medicine])
         case backButtonTapped
+        case loadUserProfile
+        case userProfileLoaded(UserProfileResponse)
+        case userProfileLoadFailed(String)
 
         case notificationTapped
         case menuTapped
@@ -81,17 +84,17 @@ struct FullCalendarFeature: Reducer {
     }
 
     @Dependency(\.medicineClient) var medicineClient
+    @Dependency(\.userClient) var userClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
                 state.calendarDays = generateCalendarDays(for: state.currentDate)
-                let currentUser = User(id: "current_user_id", name: "나", profileImage: nil)
 
                 return .merge(
+                    .send(.loadUserProfile),
                     .send(.loadMonthlyData),
-                    .send(.medicineList(.updateCurrentUser(currentUser))),
                     .send(.userSelection(.onAppear)),
                     .send(.medicineList(.onAppear))
                 )
@@ -144,6 +147,40 @@ struct FullCalendarFeature: Reducer {
 
             case .backButtonTapped:
                 return .send(.delegate(.backToHome))
+
+            case .loadUserProfile:
+                return .run { send in
+                    do {
+                        let response = try await userClient.loadUserProfile()
+                        await send(.userProfileLoaded(response))
+                    } catch {
+                        await send(.userProfileLoadFailed(error.localizedDescription))
+                    }
+                }
+
+            case .userProfileLoaded(let response):
+                let currentUser = User(
+                    id: "current_user_id",
+                    name: "나",
+                    profileImage: response.body.profileImageUrl
+                )
+
+                return .merge(
+                    .send(.medicineList(.updateCurrentUser(currentUser))),
+                    .send(.userSelection(.updateCurrentUser(currentUser)))
+                )
+
+            case .userProfileLoadFailed:
+                let defaultUser = User(
+                    id: "current_user_id",
+                    name: "나",
+                    profileImage: nil
+                )
+
+                return .merge(
+                    .send(.medicineList(.updateCurrentUser(defaultUser))),
+                    .send(.userSelection(.updateCurrentUser(defaultUser)))
+                )
 
             case .notificationTapped:
                 return .send(.showNotificationList)

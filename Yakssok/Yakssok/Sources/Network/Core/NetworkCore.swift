@@ -31,8 +31,10 @@ enum APIEndpoints {
     case refreshToken
 
     // MARK: - User Endpoints
-    case userProfile
-    case updateUserProfile
+    case getUserProfile
+
+    // MARK: - Friend Endpoints
+    case getFollowingList
 
     // MARK: - Medicine Endpoints
     case medicineData
@@ -63,10 +65,12 @@ enum APIEndpoints {
             return "/api/auth/reissue"
 
         // User
-        case .userProfile:
-            return "/api/user/profile"
-        case .updateUserProfile:
-            return "/api/user/profile"
+        case .getUserProfile:
+            return "/api/users/me"
+
+        // Friend
+        case .getFollowingList:
+            return "/api/friends/followings"
 
         // Medicine
         case .medicineData:

@@ -33,6 +33,9 @@ struct HomeFeature: Reducer {
     enum Action: Equatable {
         case onAppear
         case onResume
+        case loadUserProfile
+        case userProfileLoaded(UserProfileResponse)
+        case userProfileLoadFailed(String)
         case notificationTapped
         case menuTapped
         case userSelection(MateSelectionFeature.Action)
@@ -59,6 +62,8 @@ struct HomeFeature: Reducer {
         case dismissMyPage
         case refreshMedicineList
     }
+
+    @Dependency(\.userClient) var userClient
 
     var body: some ReducerOf<Self> {
         Reduce(handleAction)
@@ -103,7 +108,43 @@ struct HomeFeature: Reducer {
             return handleOnAppear(&state)
 
         case .onResume:
-            return .send(.medicineList(.loadInitialData))
+            return .merge(
+                .send(.loadUserProfile),
+                .send(.medicineList(.loadInitialData))
+            )
+
+        case .loadUserProfile:
+            return .run { send in
+                do {
+                    let response = try await userClient.loadUserProfile()
+                    await send(.userProfileLoaded(response))
+                } catch {
+                    await send(.userProfileLoadFailed(error.localizedDescription))
+                }
+            }
+
+        case .userProfileLoaded(let response):
+            let currentUser = User(
+                id: "current_user_id",
+                name: "나",
+                profileImage: response.body.profileImageUrl
+            )
+            state.currentUser = currentUser
+
+            return .merge(
+                .send(.medicineList(.updateCurrentUser(currentUser))),
+                .send(.userSelection(.updateCurrentUser(currentUser)))
+            )
+
+        case .userProfileLoadFailed(let error):
+            let defaultUser = User(
+                id: "current_user_id",
+                name: "나",
+                profileImage: nil
+            )
+            state.currentUser = defaultUser
+
+            return .send(.medicineList(.updateCurrentUser(defaultUser)))
 
         case .notificationTapped:
             return .send(.showNotificationList)
@@ -224,17 +265,15 @@ struct HomeFeature: Reducer {
 
         // MARK: - Child Feature Actions
         case .userSelection, .mateCards, .weeklyCalendar, .medicineList,
-             .messageModal, .reminderModal, .addRoutine, .notificationList,
-             .mateRegistration, .myPage, .fullCalendar:
+                .messageModal, .reminderModal, .addRoutine, .notificationList,
+                .mateRegistration, .myPage, .fullCalendar:
             return .none
         }
     }
 
     private func handleOnAppear(_ state: inout State) -> Effect<Action> {
-        let currentUser = User(id: "current_user_id", name: "나", profileImage: nil)
-
         return .merge(
-            .send(.medicineList(.updateCurrentUser(currentUser))),
+            .send(.loadUserProfile),
             .send(.mateCards(.onAppear)),
             .send(.weeklyCalendar(.onAppear)),
             .send(.showReminderModal)
