@@ -37,6 +37,8 @@ enum APIEndpoints {
     // MARK: - Medicine Endpoints
     case medicineData
     case medicineDataForDate(Date)
+    case createMedication
+    case getMedications
 
     // MARK: - Notification Endpoints
     case notifications
@@ -70,6 +72,10 @@ enum APIEndpoints {
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
             return "/api/medicine/data/\(formatter.string(from: date))"
+        case .createMedication:
+            return "/api/medications"
+        case .getMedications:
+            return "/api/medications"
 
             // Notification
         case .notifications:
@@ -206,4 +212,3 @@ class APIClient {
         }
     }
 }
-

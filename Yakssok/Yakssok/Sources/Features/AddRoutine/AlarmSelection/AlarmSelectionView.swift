@@ -148,6 +148,7 @@ struct AlarmOptionButton: View {
 
 struct FinalCompletionModal: View {
     let routineData: MedicineRegistrationData?
+    let isSubmitting: Bool
     let onDismiss: () -> Void
 
     var body: some View {
@@ -267,14 +268,14 @@ struct FinalCompletionModal: View {
 
                     // 완료 버튼
                     Button(action: {
-                        onDismiss()
+                       onDismiss()
                     }) {
-                        Text("완료")
-                            .font(YKFont.subtitle2)
-                            .foregroundColor(YKColor.Neutral.grey50)
-                            .frame(maxWidth: .infinity, minHeight: 56)
-                            .background(YKColor.Primary.primary400)
-                            .cornerRadius(16)
+                       Text("완료")
+                           .font(YKFont.subtitle2)
+                           .foregroundColor(YKColor.Neutral.grey50)
+                           .frame(maxWidth: .infinity, minHeight: 56)
+                           .background(YKColor.Primary.primary400)
+                           .cornerRadius(16)
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)

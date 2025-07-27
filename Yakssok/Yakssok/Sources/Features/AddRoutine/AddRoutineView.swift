@@ -86,7 +86,9 @@ struct AddRoutineView: View {
                 if viewStore.showFinalCompletionModal {
                     FinalCompletionModal(
                         routineData: viewStore.completedRoutineData,
-                        onDismiss: { viewStore.send(.dismissFinalCompletionModal) }
+                        isSubmitting: viewStore.isSubmitting,
+                        onDismiss: { viewStore.send(.dismissFinalCompletionModal)
+                        }
                     )
                 }
             }
