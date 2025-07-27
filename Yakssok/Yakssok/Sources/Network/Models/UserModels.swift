@@ -44,8 +44,20 @@ extension FollowingInfo {
     func toUser() -> User {
         return User(
             id: String(userId),
+            friendId: userId,
             name: relationName,
             profileImage: profileImageUrl
+        )
+    }
+}
+
+extension UserProfileResponse {
+    func toCurrentUser() -> User {
+        return User(
+            id: "current_user",
+            friendId: nil,
+            name: "나",
+            profileImage: body.profileImageUrl
         )
     }
 }

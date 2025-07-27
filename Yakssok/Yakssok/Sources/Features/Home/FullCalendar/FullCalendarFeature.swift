@@ -171,11 +171,7 @@ struct FullCalendarFeature: Reducer {
                 }
 
             case .userProfileLoaded(let response):
-                let currentUser = User(
-                    id: "current_user_id",
-                    name: "나",
-                    profileImage: response.body.profileImageUrl
-                )
+                let currentUser = response.toCurrentUser()
 
                 return .merge(
                     .send(.medicineList(.updateCurrentUser(currentUser))),
@@ -183,11 +179,7 @@ struct FullCalendarFeature: Reducer {
                 )
 
             case .userProfileLoadFailed:
-                let defaultUser = User(
-                    id: "current_user_id",
-                    name: "나",
-                    profileImage: nil
-                )
+                let defaultUser = User.defaultCurrentUser()
 
                 return .merge(
                     .send(.medicineList(.updateCurrentUser(defaultUser))),
@@ -237,7 +229,10 @@ struct FullCalendarFeature: Reducer {
                 return .none
 
             case .userSelection(.delegate(.userSelectionChanged(let user))):
-                return .send(.medicineList(.updateSelectedUser(user)))
+                return .merge(
+                    .send(.medicineList(.updateSelectedUser(user))),
+                    .send(.loadMonthlyData)
+                )
 
             case .userSelection(.userSelected):
                 return .none
