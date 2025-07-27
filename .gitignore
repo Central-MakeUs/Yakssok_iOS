@@ -104,3 +104,4 @@ Config.xcconfig
 *.xcconfig
 
 # End of https://www.toptal.com/developers/gitignore/api/swift,swiftpackagemanager
+Yakssok/Tuist/Package.resolved

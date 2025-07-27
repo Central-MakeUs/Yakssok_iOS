@@ -17,6 +17,10 @@ struct AddRoutineFeature: Reducer {
         var completedRoutineData: MedicineRegistrationData? = nil
         var completedCategoryData: CompletedCategoryData? = nil
         var completedScheduleData: CompletedScheduleData? = nil
+
+        // API 관련 상태
+        var isSubmitting: Bool = false
+        var submitError: String? = nil
     }
 
     struct CompletedCategoryData: Equatable {
@@ -38,7 +42,14 @@ struct AddRoutineFeature: Reducer {
         case routineCompleted
         case dismissRequested
         case dismissFinalCompletionModal
+
+        // API 관련 액션
+        case submitRoutine
+        case routineSubmissionSucceeded
+        case routineSubmissionFailed(String)
     }
+
+    @Dependency(\.medicineClient) var medicineClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -126,11 +137,39 @@ struct AddRoutineFeature: Reducer {
                     state.completedRoutineData = finalData
                     state.showFinalCompletionModal = true
                 } else {
+                    print("루틴 데이터 생성 실패")
                 }
                 return .none
 
             case .dismissFinalCompletionModal:
                 state.showFinalCompletionModal = false
+                return .send(.submitRoutine)
+
+            case .submitRoutine:
+                guard let routineData = state.completedRoutineData else {
+                    return .send(.routineSubmissionFailed("루틴 데이터가 없습니다."))
+                }
+
+                state.isSubmitting = true
+                state.submitError = nil
+
+                return .run { send in
+                    do {
+                        try await medicineClient.createMedicineRoutine(routineData)
+                        await send(.routineSubmissionSucceeded)
+                    } catch {
+                        await send(.routineSubmissionFailed(error.localizedDescription))
+                    }
+                }
+
+            case .routineSubmissionSucceeded:
+                state.isSubmitting = false
+                return .send(.dismissRequested)
+
+            case .routineSubmissionFailed(let error):
+                state.isSubmitting = false
+                state.submitError = error
+                print("루틴 등록 실패: \(error)")
                 return .send(.dismissRequested)
 
             case .routineCompleted:
