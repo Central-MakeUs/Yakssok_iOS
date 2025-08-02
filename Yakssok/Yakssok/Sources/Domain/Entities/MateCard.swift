@@ -13,6 +13,8 @@ struct MateCard: Identifiable, Equatable {
     let relationship: String
     let profileImage: String?
     let status: MateStatus
+    let todayMedicines: [Medicine]
+    let completedMedicines: [Medicine]
 }
 
 enum MateStatus: Equatable {

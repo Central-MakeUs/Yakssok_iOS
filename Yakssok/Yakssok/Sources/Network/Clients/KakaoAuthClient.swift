@@ -6,7 +6,6 @@
 //
 
 import ComposableArchitecture
-import Dependencies
 import KakaoSDKAuth
 import KakaoSDKUser
 import Foundation

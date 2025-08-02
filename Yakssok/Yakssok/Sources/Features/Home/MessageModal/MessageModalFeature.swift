@@ -14,11 +14,14 @@ struct MessageModalFeature: Reducer {
         var customMessage: String = ""
         var keyboardHeight: CGFloat = 0
         let targetUser: String
+        let targetUserId: Int
         let messageType: MessageType
         let medicineCount: Int
         let relationship: String
         let medicines: [Medicine]
         var isCustomMessageMode: Bool = false
+        var isSending: Bool = false
+
         var shouldScroll: Bool {
             medicines.count > 2
         }
@@ -41,6 +44,10 @@ struct MessageModalFeature: Reducer {
                 ]
             }
         }
+
+        var finalMessage: String {
+            customMessage.isEmpty ? selectedMessage : customMessage
+        }
     }
 
     @CasePathable
@@ -50,7 +57,11 @@ struct MessageModalFeature: Reducer {
         case keyboardHeightChanged(CGFloat)
         case sendButtonTapped
         case closeButtonTapped
+        case sendingCompleted
+        case sendingFailed(String)
     }
+
+    @Dependency(\.feedbackAPIClient) var feedbackAPIClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -59,18 +70,51 @@ struct MessageModalFeature: Reducer {
                 state.selectedMessage = message
                 state.customMessage = ""
                 return .none
+
             case .customMessageChanged(let message):
                 state.customMessage = message
                 if !message.isEmpty {
                     state.selectedMessage = ""
                 }
                 return .none
+
             case .keyboardHeightChanged(let height):
                 state.keyboardHeight = height
                 return .none
+
             case .sendButtonTapped:
-                // TODO: 메시지 전송 로직
+                let message = state.finalMessage
+                guard !message.isEmpty else { return .none }
+
+                state.isSending = true
+
+                return .run { [targetUserId = state.targetUserId, messageType = state.messageType] send in
+                    do {
+                        let request: FeedbackRequest
+                        switch messageType {
+                        case .nagging:
+                            request = .nag(receiverId: targetUserId, message: message)
+                        case .encouragement:
+                            request = .praise(receiverId: targetUserId, message: message)
+                        }
+
+                        try await feedbackAPIClient.sendFeedback(request)
+                        await send(.sendingCompleted)
+                    } catch {
+                        await send(.sendingFailed(error.localizedDescription))
+                    }
+                }
+
+            case .sendingCompleted:
+                state.isSending = false
+                print("피드백 전송 성공")
                 return .none
+
+            case .sendingFailed(let error):
+                state.isSending = false
+                print("피드백 전송 실패: \(error)")
+                return .none
+
             case .closeButtonTapped:
                 return .none
             }

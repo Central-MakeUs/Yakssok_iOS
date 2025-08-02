@@ -10,8 +10,6 @@ import ComposableArchitecture
 struct MateCardsFeature: Reducer {
     struct State: Equatable {
         var cards: [MateCard] = []
-        var isLoading: Bool = false
-        var error: String?
     }
 
     @CasePathable
@@ -20,12 +18,10 @@ struct MateCardsFeature: Reducer {
         case cardTapped(id: String)
         case loadCards
         case cardsLoaded([MateCard])
-        case loadingFailed(String)
         case delegate(Delegate)
 
-        @CasePathable
         enum Delegate: Equatable {
-            case showMessageModal(targetUser: String, messageType: MessageType)
+            case showMessageModal(targetUser: String, targetUserId: Int, messageType: MessageType)
         }
     }
 
@@ -36,21 +32,26 @@ struct MateCardsFeature: Reducer {
             switch action {
             case .onAppear:
                 return .send(.loadCards)
+
             case .loadCards:
-                state.isLoading = true
-                state.error = nil
                 return .run { send in
                     do {
                         let cards = try await mateCardsClient.loadCards()
                         await send(.cardsLoaded(cards))
                     } catch {
-                        await send(.loadingFailed(error.localizedDescription))
+                        await send(.cardsLoaded([]))
                     }
                 }
+
             case .cardTapped(let cardId):
                 guard let card = state.cards.first(where: { $0.id == cardId }) else {
                     return .none
                 }
+                
+                guard let userId = Int(cardId) else {
+                    return .none
+                }
+
                 let messageType: MessageType = {
                     switch card.status {
                     case .missedMedicine:
@@ -59,19 +60,18 @@ struct MateCardsFeature: Reducer {
                         return .encouragement
                     }
                 }()
+
                 return .send(.delegate(.showMessageModal(
                     targetUser: card.userName,
+                    targetUserId: userId,
                     messageType: messageType
                 )))
+
             case .cardsLoaded(let cards):
                 state.cards = cards
-                state.isLoading = false
                 return .none
-            case .loadingFailed(let error):
-                state.error = error
-                state.isLoading = false
-                return .none
-            case .delegate(_):
+
+            case .delegate:
                 return .none
             }
         }
