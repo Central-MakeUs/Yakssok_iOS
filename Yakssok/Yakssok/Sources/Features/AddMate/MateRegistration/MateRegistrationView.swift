@@ -53,8 +53,10 @@ struct MateRegistrationView: View {
                             .background(YKColor.Neutral.grey50)
                             .cornerRadius(Layout.myCodeCardCornerRadius, corners: [.topLeft, .topRight])
                             .ignoresSafeArea(.container, edges: .bottom)
+                            .ignoresSafeArea(.keyboard, edges: .bottom)
                         }
                     }
+                    .ignoresSafeArea(.keyboard, edges: .top)
                     .sheet(isPresented: viewStore.binding(
                         get: \.showShareSheet,
                         send: { _ in .dismissShareSheet }
@@ -65,8 +67,8 @@ struct MateRegistrationView: View {
                         .presentationDetents([.medium])
                     }
                     .onAppear {
-                            viewStore.send(.onAppear)
-                        }
+                        viewStore.send(.onAppear)
+                    }
                 }
 
                 // 성공/에러 메시지 오버레이
@@ -92,7 +94,15 @@ struct MateRegistrationView: View {
                     MateRelationshipView(store: relationshipStore)
                 }
             }
+            .onTapGesture {
+                // Swift 6에서 권장하는 키보드 내리기 방식
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let window = windowScene.windows.first {
+                    window.endEditing(true)
+                }
+            }
         }
+        .ignoresSafeArea(.keyboard, edges: .top) // NavigationView 전체 상단 고정
     }
 }
 

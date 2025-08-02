@@ -218,7 +218,10 @@ struct HomeFeature: Reducer {
 
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
-            return .send(.userSelection(.loadUsers))
+            return .merge(
+                .send(.userSelection(.loadUsers)),
+                .send(.mateCards(.loadCards))
+            )
 
         case .userSelection(.delegate(.addUserRequested)):
             return .send(.showMateRegistration)
