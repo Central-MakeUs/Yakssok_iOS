@@ -11,6 +11,7 @@ import ComposableArchitecture
 struct HomeFeature: Reducer {
     struct State: Equatable {
         var currentUser: User?
+        var currentUserNickname: String?
         var selectedDate: Date = Date()
         var userSelection: MateSelectionFeature.State? = .init()
         var mateCards: MateCardsFeature.State? = .init()
@@ -127,6 +128,7 @@ struct HomeFeature: Reducer {
         case .userProfileLoaded(let response):
             let currentUser = response.toCurrentUser()
             state.currentUser = currentUser
+            state.currentUserNickname = response.body.nickname
             return .merge(
                 .send(.medicineList(.updateCurrentUser(currentUser))),
                 .send(.userSelection(.updateCurrentUser(currentUser)))
@@ -179,7 +181,8 @@ struct HomeFeature: Reducer {
             return .none
 
         case .showMateRegistration:
-            state.mateRegistration = .init()
+            let userName = state.currentUserNickname ?? ""
+            state.mateRegistration = .init(currentUserName: userName)
             return .none
 
         case .dismissMateRegistration:
