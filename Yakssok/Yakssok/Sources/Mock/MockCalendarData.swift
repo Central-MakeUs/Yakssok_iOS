@@ -7,7 +7,6 @@
 
 import Foundation
 
-#if DEBUG
 struct MockCalendarData {
 
     struct APIResponse: Codable {
@@ -261,4 +260,3 @@ struct MockCalendarData {
         }
     }
 }
-#endif
