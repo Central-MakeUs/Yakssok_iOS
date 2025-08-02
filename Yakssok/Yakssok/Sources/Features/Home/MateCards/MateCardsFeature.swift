@@ -21,7 +21,7 @@ struct MateCardsFeature: Reducer {
         case delegate(Delegate)
 
         enum Delegate: Equatable {
-            case showMessageModal(targetUser: String, messageType: MessageType)
+            case showMessageModal(targetUser: String, targetUserId: Int, messageType: MessageType)
         }
     }
 
@@ -47,6 +47,10 @@ struct MateCardsFeature: Reducer {
                 guard let card = state.cards.first(where: { $0.id == cardId }) else {
                     return .none
                 }
+                
+                guard let userId = Int(cardId) else {
+                    return .none
+                }
 
                 let messageType: MessageType = {
                     switch card.status {
@@ -59,6 +63,7 @@ struct MateCardsFeature: Reducer {
 
                 return .send(.delegate(.showMessageModal(
                     targetUser: card.userName,
+                    targetUserId: userId,
                     messageType: messageType
                 )))
 

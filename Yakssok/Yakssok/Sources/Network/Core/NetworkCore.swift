@@ -49,6 +49,9 @@ enum APIEndpoints {
     case getFriendMedicationSchedulesToday(Int)
     case getFriendMedicationSchedules(Int, Date, Date)
 
+    // MARK: - Feedback Endpoint
+    case sendFeedback
+
     // MARK: - Notification Endpoints
     case notifications
 
@@ -107,6 +110,10 @@ enum APIEndpoints {
             let start = formatter.string(from: startDate)
             let end = formatter.string(from: endDate)
             return "/api/medication-schedules/friends/\(friendId)?startDate=\(start)&endDate=\(end)"
+
+        // Feedback
+        case .sendFeedback:
+            return "/api/feedbacks"
 
         // Notification
         case .notifications:

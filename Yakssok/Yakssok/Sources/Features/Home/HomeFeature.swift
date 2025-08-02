@@ -43,7 +43,7 @@ struct HomeFeature: Reducer {
         case weeklyCalendar(WeeklyCalendarFeature.Action)
         case medicineList(MedicineListFeature.Action)
         case messageModal(MessageModalFeature.Action)
-        case showMessageModal(targetUser: String, messageType: MessageType)
+        case showMessageModal(targetUser: String, targetUserId: Int, messageType: MessageType)
         case dismissMessageModal
         case reminderModal(ReminderModalFeature.Action)
         case showReminderModal
@@ -155,8 +155,8 @@ struct HomeFeature: Reducer {
         case .showReminderModal:
             return handleShowMissedMedicineModal(&state)
 
-        case .showMessageModal(let targetUser, let messageType):
-            return handleShowMessageModal(&state, targetUser: targetUser, messageType: messageType)
+        case .showMessageModal(let targetUser, let targetUserId, let messageType):
+            return handleShowMessageModal(&state, targetUser: targetUser, targetUserId: targetUserId, messageType: messageType)
 
         case .dismissMessageModal:
             state.messageModal = nil
@@ -220,8 +220,8 @@ struct HomeFeature: Reducer {
         case .userSelection(.delegate(.addUserRequested)):
             return .send(.showMateRegistration)
 
-        case .mateCards(.delegate(.showMessageModal(let targetUser, let messageType))):
-            return .send(.showMessageModal(targetUser: targetUser, messageType: messageType))
+        case .mateCards(.delegate(.showMessageModal(let targetUser, let targetUserId, let messageType))):
+            return .send(.showMessageModal(targetUser: targetUser, targetUserId: targetUserId, messageType: messageType))
 
         case .medicineList(.delegate(.addMedicineRequested)):
             return .send(.showAddRoutine)
@@ -231,7 +231,7 @@ struct HomeFeature: Reducer {
             state.reminderModal = nil
             return .none
 
-        case .messageModal(.closeButtonTapped), .messageModal(.sendButtonTapped):
+        case .messageModal(.closeButtonTapped), .messageModal(.sendingCompleted):
             state.messageModal = nil
             return .none
 
@@ -283,6 +283,7 @@ struct HomeFeature: Reducer {
     private func handleShowMessageModal(
         _ state: inout State,
         targetUser: String,
+        targetUserId: Int,
         messageType: MessageType
     ) -> Effect<Action> {
         guard let card = state.mateCards?.cards.first(where: { $0.userName == targetUser }) else {
@@ -297,6 +298,7 @@ struct HomeFeature: Reducer {
 
         state.messageModal = MessageModalFeature.State(
             targetUser: targetUser,
+            targetUserId: targetUserId,
             messageType: messageType,
             medicineCount: medicineCount,
             relationship: card.relationship,

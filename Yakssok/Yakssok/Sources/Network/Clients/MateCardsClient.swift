@@ -42,7 +42,7 @@ extension MateCardsClient: DependencyKey {
 
                     if let status = getMateStatus(medicineData: medicineData) {
                         let card = MateCard(
-                            id: "mate_\(friend.userId)",
+                            id: String(friend.userId),
                             userName: friend.nickName,
                             relationship: friend.relationName,
                             profileImage: friend.profileImageUrl,
