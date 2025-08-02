@@ -46,7 +46,9 @@ extension MateCardsClient: DependencyKey {
                             userName: friend.nickName,
                             relationship: friend.relationName,
                             profileImage: friend.profileImageUrl,
-                            status: status
+                            status: status,
+                            todayMedicines: medicineData.todayMedicines,
+                            completedMedicines: medicineData.completedMedicines
                         )
                         mateCards.append(card)
                     }

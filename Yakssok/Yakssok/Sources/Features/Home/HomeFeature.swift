@@ -290,11 +290,11 @@ struct HomeFeature: Reducer {
             return .none
         }
 
-        let medicineCount = getMedicineCount(for: card, messageType: messageType)
-        let mockData = MockMedicineData.medicineData(for: .hasMedicines)
         let medicines = messageType == .nagging ?
-        mockData.todayMedicines :
-        mockData.completedMedicines
+        card.todayMedicines :   // 못 먹은 약
+        card.completedMedicines // 먹은 약
+
+        let medicineCount = medicines.count
 
         state.messageModal = MessageModalFeature.State(
             targetUser: targetUser,
@@ -305,16 +305,5 @@ struct HomeFeature: Reducer {
             medicines: medicines
         )
         return .none
-    }
-
-    private func getMedicineCount(for card: MateCard, messageType: MessageType) -> Int {
-        switch (card.status, messageType) {
-        case (.missedMedicine(let count), .nagging):
-            return count
-        case (.completed, .encouragement):
-            return 2
-        default:
-            return 0
-        }
     }
 }
