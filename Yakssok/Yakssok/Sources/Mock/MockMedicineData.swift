@@ -7,7 +7,6 @@
 
 import Foundation
 
-#if DEBUG
 struct MockMedicineData {
     enum DataType: CaseIterable {
         case noRoutines
@@ -132,4 +131,3 @@ struct MockMedicineData {
         Medicine(id: "c3", name: "루테인", dosage: "1정", time: "1:00 pm", color: .yellow)
     ]
 }
-#endif

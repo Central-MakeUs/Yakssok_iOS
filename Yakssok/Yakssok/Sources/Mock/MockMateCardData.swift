@@ -7,7 +7,6 @@
 
 import Foundation
 
-#if DEBUG
 struct MockMateCardData {
     enum DataType: CaseIterable {
         case empty
@@ -104,4 +103,3 @@ struct MockMateCardData {
         )
     ]
 }
-#endif
