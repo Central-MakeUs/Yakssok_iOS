@@ -7,12 +7,15 @@
 
 import ComposableArchitecture
 import Foundation
+import UIKit
 
 struct MateRegistrationFeature: Reducer {
     struct State: Equatable {
         var mateCode: String = ""
-        var myCode: String = "abcdef1gh"
+        var myCode: String = ""
+        let currentUserName: String
         var isLoading: Bool = false
+        var isLoadingMyCode: Bool = false
         var error: String?
         var showSuccessMessage: Bool = false
         var showShareSheet: Bool = false
@@ -20,18 +23,21 @@ struct MateRegistrationFeature: Reducer {
 
         var isAddButtonEnabled: Bool {
             let trimmedCode = mateCode.trimmingCharacters(in: .whitespaces)
-            return trimmedCode.count >= 1 && trimmedCode.count <= 9
+            return trimmedCode.count >= 1 && trimmedCode.count <= 9 && !isLoading
         }
     }
 
     @CasePathable
     enum Action: Equatable {
+        case onAppear
         case backButtonTapped
         case mateCodeChanged(String)
         case addMateButtonTapped
         case copyMyCodeTapped
         case shareInviteTapped
         case dismissShareSheet
+        case myCodeLoaded(String)
+        case myCodeLoadFailed(String)
         case addMateSuccess(MateRelationshipFeature.State.MateInfo)
         case addMateFailed(String)
         case dismissSuccessMessage
@@ -45,9 +51,23 @@ struct MateRegistrationFeature: Reducer {
         }
     }
 
+    @Dependency(\.mateRegistrationClient) var mateRegistrationClient
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .onAppear:
+                // 앱 시작 시 내 초대 코드 로드
+                state.isLoadingMyCode = true
+                return .run { send in
+                    do {
+                        let myInviteCode = try await mateRegistrationClient.getMyInviteCode()
+                        await send(.myCodeLoaded(myInviteCode))
+                    } catch {
+                        await send(.myCodeLoadFailed(error.localizedDescription))
+                    }
+                }
+
             case .backButtonTapped:
                 return .none
 
@@ -61,40 +81,41 @@ struct MateRegistrationFeature: Reducer {
 
             case .addMateButtonTapped:
                 guard state.isAddButtonEnabled else { return .none }
+
+                let inviteCode = state.mateCode.trimmingCharacters(in: .whitespaces)
+                guard !inviteCode.isEmpty else { return .none }
+
+                // 자기 자신의 코드인지 체크
+                if inviteCode == state.myCode {
+                    state.error = "자신의 코드는 입력할 수 없어요!"
+                    return .none
+                }
+
                 state.isLoading = true
                 state.error = nil
 
-                return .run { [code = state.mateCode, myCode = state.myCode] send in
-                    if code == myCode {
-                        await send(.addMateFailed("코드를 다시 확인해주세요!"))
-                        return
-                    }
-                    // Mock: 유효한 코드별 사용자 정보 반환
-                    let validUsers: [String: MateRelationshipFeature.State.MateInfo] = [
-                        "test12345": MateRelationshipFeature.State.MateInfo(
-                            name: "김영희",
-                            profileImage: "https://randomuser.me/api/portraits/med/women/75.jpg",
-                            code: "test12345"
-                        ),
-                        "valid123a": MateRelationshipFeature.State.MateInfo(
-                            name: "이철수",
-                            profileImage: nil,
-                            code: "valid123a"
-                        ),
-                        "friend1gh": MateRelationshipFeature.State.MateInfo(
-                            name: "박민수",
-                            profileImage: "https://randomuser.me/api/portraits/med/men/11.jpg",
-                            code: "friend1gh"
+                return .run { send in
+                    do {
+                        let userInfo = try await mateRegistrationClient.getUserByInviteCode(inviteCode)
+
+                        let mateInfo = MateRelationshipFeature.State.MateInfo(
+                            name: userInfo.nickname,
+                            profileImage: userInfo.profileImageUrl,
+                            code: inviteCode
                         )
-                    ]
-                    if let mateInfo = validUsers[code] {
+
+
                         await send(.addMateSuccess(mateInfo))
-                    } else {
+                    } catch APIError.userNotFound {
+                        await send(.addMateFailed("존재하지 않는 코드예요!"))
+                    } catch {
                         await send(.addMateFailed("코드를 다시 확인해주세요!"))
                     }
                 }
 
             case .copyMyCodeTapped:
+                // 클립보드에 복사
+                UIPasteboard.general.string = state.myCode
                 state.showSuccessMessage = true
                 return .none
 
@@ -104,6 +125,17 @@ struct MateRegistrationFeature: Reducer {
 
             case .dismissShareSheet:
                 state.showShareSheet = false
+                return .none
+
+            case .myCodeLoaded(let code):
+                state.myCode = code
+                state.isLoadingMyCode = false
+                return .none
+
+            case .myCodeLoadFailed(let error):
+                state.isLoadingMyCode = false
+                state.myCode = "로드 실패"
+                print("내 초대 코드 로드 실패: \(error)")
                 return .none
 
             case .addMateSuccess(let mateInfo):

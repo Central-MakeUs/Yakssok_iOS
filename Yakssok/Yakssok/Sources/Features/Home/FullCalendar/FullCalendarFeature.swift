@@ -209,7 +209,8 @@ struct FullCalendarFeature: Reducer {
                 return .none
 
             case .showMateRegistration:
-                state.mateRegistration = .init()
+                let userName = state.userSelection?.currentUser?.name ?? ""
+                state.mateRegistration = MateRegistrationFeature.State(currentUserName: userName)
                 return .none
 
             case .dismissMateRegistration:

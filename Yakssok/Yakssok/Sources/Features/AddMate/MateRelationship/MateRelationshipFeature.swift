@@ -14,9 +14,10 @@ struct MateRelationshipFeature: Reducer {
         var relationship: String = ""
         var isLoading: Bool = false
         var showCompletionModal: Bool = false
+        var error: String?
 
         var isAddButtonEnabled: Bool {
-            !relationship.trimmingCharacters(in: .whitespaces).isEmpty
+            !relationship.trimmingCharacters(in: .whitespaces).isEmpty && !isLoading
         }
 
         struct MateInfo: Equatable {
@@ -36,6 +37,7 @@ struct MateRelationshipFeature: Reducer {
         case showCompletionModal
         case dismissCompletionModal
         case confirmButtonTapped
+        case dismissError
         case delegate(Delegate)
 
         @CasePathable
@@ -44,41 +46,66 @@ struct MateRelationshipFeature: Reducer {
         }
     }
 
+    @Dependency(\.mateRegistrationClient) var mateRegistrationClient
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .backButtonTapped:
                 return .none
+
             case .relationshipChanged(let relationship):
                 // 한글 기준 5자 제한
                 if relationship.count <= 5 {
                     state.relationship = relationship
                 }
+                state.error = nil
                 return .none
+
             case .addMateButtonTapped:
                 guard state.isAddButtonEnabled else { return .none }
+
+                let relationName = state.relationship.trimmingCharacters(in: .whitespaces)
+                let inviteCode = state.mateInfo.code
+
                 state.isLoading = true
+                state.error = nil
+
                 return .run { send in
-                    // TODO: 실제 API 호출 - 메이트 등록
-                    await send(.addMateSuccess)
+                    do {
+                        try await mateRegistrationClient.followFriend(inviteCode, relationName)
+                        await send(.addMateSuccess)
+                    } catch {
+                        await send(.addMateFailed("메이트 추가에 실패했어요. 다시 시도해주세요."))
+                    }
                 }
+
             case .addMateSuccess:
                 state.isLoading = false
                 state.showCompletionModal = true
                 return .none
+
             case .addMateFailed(let error):
                 state.isLoading = false
-                // TODO: 에러 처리
+                state.error = error
                 return .none
+
             case .showCompletionModal:
                 state.showCompletionModal = true
                 return .none
+
             case .dismissCompletionModal:
                 state.showCompletionModal = false
                 return .none
+
             case .confirmButtonTapped:
                 state.showCompletionModal = false
                 return .send(.delegate(.mateAddingCompleted))
+
+            case .dismissError:
+                state.error = nil
+                return .none
+
             case .delegate:
                 return .none
             }

@@ -55,9 +55,10 @@ enum APIEndpoints {
     // MARK: - Notification Endpoints
     case notifications
 
-    // MARK: - Mate Endpoints
-    case mateCards
-    case registerMate
+    // MARK: - Mate Registration Endpoints
+    case getMyInviteCode
+    case getUserByInviteCode(String)
+    case followFriend
 
     var path: String {
         switch self {
@@ -119,11 +120,13 @@ enum APIEndpoints {
         case .notifications:
             return "/api/notifications"
 
-        // Mate
-        case .mateCards:
-            return "/api/mate/cards"
-        case .registerMate:
-            return "/api/mate/register"
+        // Mate Registration
+        case .getMyInviteCode:
+            return "/api/users/invite-code"
+        case .getUserByInviteCode(let inviteCode):
+            return "/api/users?inviteCode=\(inviteCode)"
+        case .followFriend:
+            return "/api/friends"
         }
     }
 
