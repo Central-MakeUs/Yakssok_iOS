@@ -110,7 +110,8 @@ struct HomeFeature: Reducer {
         case .onResume:
             return .merge(
                 .send(.loadUserProfile),
-                .send(.medicineList(.loadInitialData))
+                .send(.medicineList(.loadInitialData)),
+                .send(.mateCards(.loadCards))
             )
 
         case .loadUserProfile:
