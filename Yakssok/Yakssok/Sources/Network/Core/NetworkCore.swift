@@ -53,7 +53,7 @@ enum APIEndpoints {
     case sendFeedback
 
     // MARK: - Notification Endpoints
-    case notifications
+    case getNotifications
 
     // MARK: - Mate Registration Endpoints
     case getMyInviteCode
@@ -117,7 +117,7 @@ enum APIEndpoints {
             return "/api/feedbacks"
 
         // Notification
-        case .notifications:
+        case .getNotifications:
             return "/api/notifications"
 
         // Mate Registration

@@ -194,25 +194,9 @@ private struct TimeText: View {
     let timestamp: Date
 
     var body: some View {
-        Text(timeString(from: timestamp))
+        Text(TimeUtil.timeString(from: timestamp))
             .font(YKFont.caption1)
             .foregroundColor(YKColor.Neutral.grey400)
-    }
-
-    private func timeString(from date: Date) -> String {
-        let now = Date()
-        let timeInterval = now.timeIntervalSince(date)
-
-        if timeInterval < 3600 {
-            let minutes = Int(timeInterval / 60)
-            return "\(minutes)분전"
-        } else if timeInterval < 86400 {
-            let hours = Int(timeInterval / 3600)
-            return "\(hours)시간전"
-        } else {
-            let days = Int(timeInterval / 86400)
-            return "\(days)일전"
-        }
     }
 }
 
