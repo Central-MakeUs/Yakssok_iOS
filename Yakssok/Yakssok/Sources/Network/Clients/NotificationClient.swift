@@ -14,8 +14,22 @@ struct NotificationClient {
 extension NotificationClient: DependencyKey {
     static let liveValue = Self(
         loadNotifications: {
-            // TODO: 실제 API 구현 - GET /notifications
-            return MockNotificationData.notifications(for: .sample)
+            do {
+                let response: NotificationListResponse = try await APIClient.shared.request(
+                    endpoint: .getNotifications,
+                    method: .GET,
+                    body: Optional<String>.none
+                )
+
+                guard response.code == 0 else {
+                    throw APIError.serverError(response.code)
+                }
+
+                return response.body.content.map { $0.toNotificationItem() }
+            } catch {
+                // API 실패 시 빈 배열 반환
+                return []
+            }
         }
     )
 }
