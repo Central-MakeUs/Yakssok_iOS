@@ -32,6 +32,11 @@ struct AppFeature: Reducer {
                 state.auth = nil
                 state.home = .init()
                 return .none
+            case .home(.delegate(.logoutCompleted)),
+                 .home(.delegate(.withdrawalCompleted)):
+                state.home = nil
+                state.auth = .init()
+                return .none
             default:
                 return .none
             }

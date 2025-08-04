@@ -13,6 +13,7 @@ struct AuthAPIClient {
     var join: @Sendable (JoinRequest) async throws -> Void
     var logout: @Sendable () async throws -> Void
     var refreshToken: @Sendable (String) async throws -> String
+    var withdrawal: @Sendable () async throws -> Void
 }
 
 extension AuthAPIClient: DependencyKey {
@@ -54,6 +55,18 @@ extension AuthAPIClient: DependencyKey {
                 body: request
             )
             return response.body.accessToken
+        },
+
+        withdrawal: {
+            let response: JoinResponse = try await APIClient.shared.request(
+                endpoint: .deleteUser,
+                method: .DELETE,
+                body: Optional<String>.none
+            )
+
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
+            }
         }
     )
 }

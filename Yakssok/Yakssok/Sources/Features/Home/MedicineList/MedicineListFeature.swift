@@ -198,18 +198,10 @@ struct MedicineListFeature {
                 state.todayMedicines = todayMedicines
                 state.completedMedicines = completedMedicines
                 return .none
-
-            case .updateSelectedUser(let user):
-                state.selectedUser = user
-                return .none
-
+                
             case .updateCurrentUser(let user):
                 state.currentUser = user
                 return .none
-
-            case .updateSelectedDate(let date):
-                state.selectedDate = date
-                return .send(.loadMedicineData)
 
             case .loadingFailed(let error):
                 state.error = error

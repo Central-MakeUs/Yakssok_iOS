@@ -79,6 +79,13 @@ struct TakeMedicationResponse: Codable {
     let body: EmptyBody
 }
 
+// MARK: - PUT /api/medications/{medicationId}/end Response
+struct StopMedicineResponse: Codable {
+    let code: Int
+    let message: String
+    let body: EmptyBody
+}
+
 // MARK: - Common Models
 struct EmptyBody: Codable {}
 

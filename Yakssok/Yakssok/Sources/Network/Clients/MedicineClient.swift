@@ -18,6 +18,7 @@ struct MedicineClient {
     var loadFriendTodaySchedules: (Int) async throws -> MedicineDataResponse
     var loadFriendSchedulesForDateRange: (Int, Date, Date) async throws -> MedicineDataResponse
     var loadFriendMonthlyStatus: (Int, Date, Date) async throws -> [String: MedicineStatus]
+    var stopMedicine: (String) async throws -> Void
 }
 
 extension MedicineClient: DependencyKey {
@@ -203,6 +204,18 @@ extension MedicineClient: DependencyKey {
                 return monthlyStatus
             } catch {
                 return [:]
+            }
+        },
+
+        stopMedicine: { medicationId in
+            let response: StopMedicineResponse = try await APIClient.shared.request(
+                endpoint: .stopMedication(medicationId),
+                method: .PUT,
+                body: EmptyBody()
+            )
+
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
         }
     )

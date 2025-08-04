@@ -55,10 +55,13 @@ struct MyMatesFeature: Reducer {
                 state.isLoading = true
                 state.error = nil
                 return .run { send in
-                    // Mock 데이터 로드
-                    let mockFollowing = MyMatesFeature.createMockUsers()
-                    let mockFollowers = MyMatesFeature.createMockFollowers()
-                    await send(.matesLoaded(following: mockFollowing, followers: mockFollowers))
+                    do {
+                        let followingUsers = try await userClient.loadFollowingsForMyPage()
+                        let followerUsers = try await userClient.loadFollowers()
+                        await send(.matesLoaded(following: followingUsers, followers: followerUsers))
+                    } catch {
+                        await send(.loadingFailed(error.localizedDescription))
+                    }
                 }
 
             case .matesLoaded(let following, let followers):
@@ -76,36 +79,5 @@ struct MyMatesFeature: Reducer {
                 return .none
             }
         }
-    }
-
-    // Mock 데이터 생성 함수들을 static으로 변경
-    static func createMockUsers() -> [User] {
-        return [
-//            User(
-//                id: "user1",
-//                name: "나",
-//                profileImage: "https://randomuser.me/api/portraits/med/women/1.jpg"
-//            ),
-//            User(
-//                id: "user2",
-//                name: "나",
-//                profileImage: "https://randomuser.me/api/portraits/med/men/1.jpg"
-//            )
-        ]
-    }
-
-    static func createMockFollowers() -> [User] {
-        return [
-//            User(
-//                id: "follower1",
-//                name: "나",
-//                profileImage: "https://randomuser.me/api/portraits/med/women/2.jpg"
-//            ),
-//            User(
-//                id: "follower2",
-//                name: "나",
-//                profileImage: "https://randomuser.me/api/portraits/med/men/2.jpg"
-//            )
-        ]
     }
 }
