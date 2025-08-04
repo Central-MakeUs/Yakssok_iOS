@@ -11,10 +11,11 @@ import Foundation
 struct MyPageFeature: Reducer {
     struct State: Equatable {
         var userProfile: UserProfile?
-        var medicineCount: Int = 3
-        var mateCount: Int = 3
-        var appVersion: String = "1.1.10"
+        var medicineCount: Int = 0
+        var mateCount: Int = 0
+        var appVersion: String = "1.0"
         var isLoading: Bool = false
+        var error: String? = nil
         var myMedicines: MyMedicinesFeature.State?
         var myMates: MyMatesFeature.State?
         var profileEdit: ProfileEditFeature.State?
@@ -27,6 +28,9 @@ struct MyPageFeature: Reducer {
     @CasePathable
     enum Action: Equatable {
         case onAppear
+        case loadUserProfile
+        case userProfileLoaded(UserProfileResponse)
+        case userProfileLoadFailed(String)
         case backButtonTapped
         case profileEditTapped
         case myMedicinesTapped
@@ -47,18 +51,45 @@ struct MyPageFeature: Reducer {
         @CasePathable
         enum Delegate: Equatable {
             case backToHome
+            case logoutCompleted
+            case withdrawalCompleted
         }
     }
+
+    @Dependency(\.userClient) var userClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
+                return .send(.loadUserProfile)
+
+            case .loadUserProfile:
+                state.isLoading = true
+                state.error = nil
+                return .run { send in
+                    do {
+                        let response = try await userClient.loadUserProfile()
+                        await send(.userProfileLoaded(response))
+                    } catch {
+                        await send(.userProfileLoadFailed(error.localizedDescription))
+                    }
+                }
+
+            case .userProfileLoaded(let response):
+                state.isLoading = false
                 state.userProfile = UserProfile(
-                    name: "1234",
-                    profileImage: "https://randomuser.me/api/portraits/med/women/1.jpg",
+                    name: response.body.nickname,
+                    profileImage: response.body.profileImageUrl,
                     relationship: nil
                 )
+                state.medicineCount = response.body.medicationCount
+                state.mateCount = response.body.followingCount
+                return .none
+
+            case .userProfileLoadFailed(let error):
+                state.isLoading = false
+                state.error = error
                 return .none
 
             case .backButtonTapped:
@@ -74,7 +105,7 @@ struct MyPageFeature: Reducer {
 
             case .profileEdit(.delegate(.profileUpdated)):
                 state.profileEdit = nil
-                return .send(.onAppear)
+                return .send(.loadUserProfile)
 
             case .myMedicinesTapped:
                 state.myMedicines = .init()
@@ -125,8 +156,7 @@ struct MyPageFeature: Reducer {
 
             case .logoutModal(.delegate(.logoutCompleted)):
                 state.logoutModal = nil
-                // TODO: 로그인 화면으로 이동
-                return .none
+                return .send(.delegate(.logoutCompleted))
 
             case .withdrawalModal(.delegate(.dismissed)):
                 state.withdrawalModal = nil
@@ -134,8 +164,7 @@ struct MyPageFeature: Reducer {
 
             case .withdrawalModal(.delegate(.withdrawalCompleted)):
                 state.withdrawalModal = nil
-                // TODO: 로그인 화면으로 이동
-                return .none
+                return .send(.delegate(.withdrawalCompleted))
 
             case .logoutModal:
                 return .none

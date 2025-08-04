@@ -62,6 +62,13 @@ struct HomeFeature: Reducer {
         case showMyPage
         case dismissMyPage
         case refreshMedicineList
+        case delegate(Delegate)
+
+        @CasePathable
+        enum Delegate: Equatable {
+            case logoutCompleted
+            case withdrawalCompleted
+        }
     }
 
     @Dependency(\.userClient) var userClient
@@ -232,6 +239,14 @@ struct HomeFeature: Reducer {
         case .medicineList(.delegate(.addMedicineRequested)):
             return .send(.showAddRoutine)
 
+        case .myPage(.delegate(.logoutCompleted)):
+            state.myPage = nil
+            return .send(.delegate(.logoutCompleted))
+
+        case .myPage(.delegate(.withdrawalCompleted)):
+            state.myPage = nil
+            return .send(.delegate(.withdrawalCompleted))
+
         // MARK: - Modal Close Actions
         case .reminderModal(.takeMedicineNowTapped), .reminderModal(.closeButtonTapped):
             state.reminderModal = nil
@@ -263,7 +278,7 @@ struct HomeFeature: Reducer {
         // MARK: - Child Feature Actions
         case .userSelection, .mateCards, .weeklyCalendar, .medicineList,
                 .messageModal, .reminderModal, .addRoutine, .notificationList,
-                .mateRegistration, .myPage, .fullCalendar:
+                .mateRegistration, .myPage, .fullCalendar, .delegate:
             return .none
         }
     }
