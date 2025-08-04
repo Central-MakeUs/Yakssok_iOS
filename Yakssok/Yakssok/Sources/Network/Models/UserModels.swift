@@ -51,6 +51,46 @@ extension FollowingInfo {
     }
 }
 
+extension FollowingInfo {
+    func toUserForMyPage() -> User {
+        return User(
+            id: String(userId),
+            friendId: userId,
+            name: nickName,
+            profileImage: profileImageUrl
+        )
+    }
+}
+
+// MARK: - GET /api/friends/followers Response
+struct FollowerListResponse: Codable, Equatable {
+    let code: Int
+    let message: String
+    let body: FollowerListBody
+}
+
+struct FollowerListBody: Codable, Equatable {
+    let followerInfoResponses: [FollowerInfo]
+}
+
+struct FollowerInfo: Codable, Equatable {
+    let userId: Int
+    let profileImageUrl: String?
+    let nickName: String
+}
+
+// MARK: - API Response to UI Model Conversion
+extension FollowerInfo {
+    func toUser() -> User {
+        return User(
+            id: String(userId),
+            friendId: userId,
+            name: nickName,
+            profileImage: profileImageUrl
+        )
+    }
+}
+
 extension UserProfileResponse {
     func toCurrentUser() -> User {
         return User(
