@@ -21,6 +21,37 @@ struct UserProfileBody: Codable, Equatable {
     let followingCount: Int
 }
 
+// MARK: - PUT /api/users/me Request
+struct UpdateProfileRequest: Codable {
+    let nickname: String
+    let profileImageUrl: String?
+}
+
+// MARK: - PUT /api/users/me Response
+struct UpdateProfileResponse: Codable {
+    let code: Int
+    let message: String
+    let body: EmptyBody
+}
+
+// MARK: - POST/PUT /api/images Response
+struct ImageUploadResponse: Codable {
+    let code: Int
+    let message: String
+    let body: ImageUploadBody
+}
+
+struct ImageUploadBody: Codable {
+    let imageUrl: String
+}
+
+// MARK: - DELETE /api/images Response
+struct ImageDeleteResponse: Codable {
+    let code: Int
+    let message: String
+    let body: EmptyBody
+}
+
 // MARK: - GET /api/friends/followings Response
 struct FollowingListResponse: Codable, Equatable {
     let code: Int

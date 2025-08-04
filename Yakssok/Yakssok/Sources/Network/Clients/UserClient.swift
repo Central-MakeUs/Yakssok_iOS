@@ -12,6 +12,7 @@ struct UserClient {
     var loadUserProfile: () async throws -> UserProfileResponse
     var loadFollowers: () async throws -> [User]
     var loadFollowingsForMyPage: () async throws -> [User]
+    var updateProfile: @Sendable (UpdateProfileRequest) async throws -> Void
 }
 
 extension UserClient: DependencyKey {
@@ -82,6 +83,14 @@ extension UserClient: DependencyKey {
             } catch {
                 return []
             }
+        },
+
+        updateProfile: { request in
+            let _: UpdateProfileResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .updateUserProfile,
+                method: .PUT,
+                body: request
+            )
         }
     )
 }

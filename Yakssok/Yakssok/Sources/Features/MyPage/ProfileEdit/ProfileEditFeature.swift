@@ -18,6 +18,7 @@ struct ProfileEditFeature: Reducer {
         var selectedImage: UIImage? = nil
         var showActionSheet: Bool = false
         var error: String? = nil
+        var shouldDeleteImage: Bool = false
 
         var isChangeButtonEnabled: Bool {
             let trimmedNickname = nickname.trimmingCharacters(in: .whitespaces)
@@ -41,6 +42,7 @@ struct ProfileEditFeature: Reducer {
         case dismissImagePicker
         case imageSelected(UIImage?)
         case changeButtonTapped
+        case profileLoaded(UserProfileResponse)
         case profileUpdateSuccess
         case profileUpdateFailed(String)
         case dismissError
@@ -53,14 +55,21 @@ struct ProfileEditFeature: Reducer {
         }
     }
 
+    @Dependency(\.userClient) var userClient
+    @Dependency(\.imageClient) var imageClient
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                // 기존 사용자 정보 로드
-                state.nickname = "1234"
-                state.profileImage = "https://randomuser.me/api/portraits/med/women/1.jpg"
-                return .none
+                return .run { send in
+                    do {
+                        let response = try await userClient.loadUserProfile()
+                        await send(.profileLoaded(response))
+                    } catch {
+                        await send(.profileUpdateFailed("프로필 정보를 불러올 수 없습니다."))
+                    }
+                }
 
             case .backButtonTapped:
                 return .send(.delegate(.backToMyPage))
@@ -88,7 +97,7 @@ struct ProfileEditFeature: Reducer {
             case .removeProfileImage:
                 state.showActionSheet = false
                 state.selectedImage = nil
-                state.profileImage = nil
+                state.shouldDeleteImage = true
                 return .none
 
             case .dismissImagePicker:
@@ -97,18 +106,48 @@ struct ProfileEditFeature: Reducer {
 
             case .imageSelected(let image):
                 state.selectedImage = image
+                state.shouldDeleteImage = false
                 state.showImagePicker = false
                 return .none
 
-            case .changeButtonTapped:
-                guard state.isChangeButtonEnabled else { return .none }
-                state.isLoading = true
-                state.error = nil
+            case .profileLoaded(let response):
+                state.nickname = response.body.nickname
+                state.profileImage = response.body.profileImageUrl
+                return .none
 
-                return .run { [nickname = state.nickname, image = state.selectedImage] send in
-                    // Mock API 호출
-                    try await Task.sleep(nanoseconds: 1_000_000_000)
-                    await send(.profileUpdateSuccess)
+            case .changeButtonTapped:
+                return .run { [nickname = state.nickname, selectedImage = state.selectedImage, currentProfileImage = state.profileImage, shouldDeleteImage = state.shouldDeleteImage] send in
+                    do {
+                        var newProfileImageUrl: String? = currentProfileImage
+                        // 이미지 처리
+                        if shouldDeleteImage {
+                            // 이미지 삭제
+                            if let oldImageUrl = currentProfileImage {
+                                try await imageClient.deleteImage(oldImageUrl)
+                            }
+                            newProfileImageUrl = nil
+                        } else if let image = selectedImage {
+                            // 새 이미지 처리
+                            if currentProfileImage == nil {
+                                // 기존 이미지가 없으면 → 새로 업로드 (POST)
+                                newProfileImageUrl = try await imageClient.uploadImage(image, "profile")
+                            } else {
+                                // 기존 이미지가 있으면 → 수정 (PUT)
+                                newProfileImageUrl = try await imageClient.updateImage(image, "profile", currentProfileImage!)
+                            }
+                        }
+                        // 프로필 업데이트
+                        let request = UpdateProfileRequest(
+                            nickname: nickname,
+                            profileImageUrl: newProfileImageUrl
+                        )
+
+                        try await userClient.updateProfile(request)
+                        await send(.profileUpdateSuccess)
+
+                    } catch {
+                        await send(.profileUpdateFailed(error.localizedDescription))
+                    }
                 }
 
             case .profileUpdateSuccess:

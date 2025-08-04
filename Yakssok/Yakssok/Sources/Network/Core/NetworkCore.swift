@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 
 enum APIConfig {
     static let baseURL: String = {
@@ -32,6 +33,13 @@ enum APIEndpoints {
 
     // MARK: - User Endpoints
     case getUserProfile
+    case updateUserProfile
+    case deleteUser
+
+    // MARK: - Image Endpoints
+    case uploadUserImage(type: String)
+    case updateUserImage(type: String, oldImageUrl: String)
+    case deleteUserImage(imageUrl: String)
 
     // MARK: - Friend Endpoints
     case getFollowingList
@@ -77,6 +85,20 @@ enum APIEndpoints {
         // User
         case .getUserProfile:
             return "/api/users/me"
+        case .updateUserProfile:
+            return "/api/users/me"
+        case .deleteUser:
+            return "/api/users"
+
+        // Image
+        case .uploadUserImage(let type):
+            return "/api/v1/users/image?type=\(type)"
+        case .updateUserImage(let type, let oldImageUrl):
+            let encodedUrl = oldImageUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            return "/api/v1/users/image?type=\(type)&oldImageUrl=\(encodedUrl)"
+        case .deleteUserImage(let imageUrl):
+            let encodedUrl = imageUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+            return "/api/v1/users/image?imageUrl=\(encodedUrl)"
 
         // Friend
         case .getFollowingList:
@@ -200,6 +222,21 @@ class APIClient {
         return try await performRequest(request)
     }
 
+    // MARK: - 자동 토큰 갱신이 포함된 요청
+    func requestWithTokenRefresh<T: Codable, U: Codable>(
+        endpoint: APIEndpoints,
+        method: HTTPMethod,
+        body: T?
+    ) async throws -> U {
+        do {
+            return try await request(endpoint: endpoint, method: method, body: body)
+        } catch APIError.serverError(401) {
+            // 401 에러 시 토큰 갱신 후 재시도
+            try await refreshTokenAndRetry()
+            return try await request(endpoint: endpoint, method: method, body: body)
+        }
+    }
+
     // MARK: - 토큰이 필요 없는 인증 API 요청 (로그인, 회원가입)
     func authRequest<T: Codable, U: Codable>(
         endpoint: APIEndpoints,
@@ -219,6 +256,156 @@ class APIClient {
         }
 
         return try await performRequest(request)
+    }
+
+    // MARK: - 이미지 업로드 (multipart/form-data)
+    func uploadImage<U: Codable>(
+        endpoint: APIEndpoints,
+        image: UIImage
+    ) async throws -> U {
+        var request = URLRequest(url: endpoint.url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 60
+
+        guard let accessToken = TokenManager.shared.accessToken else {
+            throw APIError.serverError(401)
+        }
+
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        let imageInfo = getImageInfo(for: image)
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(imageInfo.fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(imageInfo.contentType)\r\n\r\n".data(using: .utf8)!)
+        body.append(imageInfo.data)
+        body.append("\r\n".data(using: .utf8)!)
+
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+
+        return try await performRequest(request)
+    }
+
+    // MARK: - 이미지 수정 (multipart/form-data)
+    func updateImage<U: Codable>(
+        endpoint: APIEndpoints,
+        image: UIImage
+    ) async throws -> U {
+        var request = URLRequest(url: endpoint.url)
+        request.httpMethod = "PUT"
+        request.timeoutInterval = 60
+
+        guard let accessToken = TokenManager.shared.accessToken else {
+            throw APIError.serverError(401)
+        }
+
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+
+        // 이미지 타입과 데이터 결정
+        let imageInfo = getImageInfo(for: image)
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+
+        // 파일 파트 추가
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(imageInfo.fileName)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(imageInfo.contentType)\r\n\r\n".data(using: .utf8)!)
+        body.append(imageInfo.data)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // 끝 boundary
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        request.httpBody = body
+        
+        return try await performRequest(request)
+    }
+
+    // MARK: - 이미지 업로드 (자동 토큰 갱신 포함)
+    func uploadImageWithTokenRefresh<U: Codable>(
+        endpoint: APIEndpoints,
+        image: UIImage
+    ) async throws -> U {
+        do {
+            return try await uploadImage(endpoint: endpoint, image: image)
+        } catch APIError.serverError(401) {
+            // 401 에러 시 토큰 갱신 후 재시도
+            try await refreshTokenAndRetry()
+            return try await uploadImage(endpoint: endpoint, image: image)
+        }
+    }
+
+    func updateImageWithTokenRefresh<U: Codable>(
+        endpoint: APIEndpoints,
+        image: UIImage
+    ) async throws -> U {
+        do {
+            return try await updateImage(endpoint: endpoint, image: image)
+        } catch APIError.serverError(401) {
+            // 401 에러 시 토큰 갱신 후 재시도
+            try await refreshTokenAndRetry()
+            return try await updateImage(endpoint: endpoint, image: image)
+        }
+    }
+
+    // MARK: - 토큰 갱신 헬퍼
+    private func refreshTokenAndRetry() async throws {
+        guard let refreshToken = TokenManager.shared.refreshToken else {
+            throw APIError.serverError(401)
+        }
+        let request = RefreshTokenRequest(refreshToken: refreshToken)
+        let response: RefreshTokenResponse = try await authRequest(
+            endpoint: .refreshToken,
+            method: .POST,
+            body: request
+        )
+        TokenManager.shared.accessToken = response.body.accessToken
+    }
+
+    // MARK: - 이미지 처리 헬퍼
+    private func getImageInfo(for image: UIImage) -> (fileName: String, contentType: String, data: Data) {
+        let uuid = UUID().uuidString.prefix(8)
+
+        // 이미지 크기 조정 (최대 1024x1024)
+        let resizedImage = resizeImage(image, maxSize: 1024)
+
+        // JPEG로 압축
+        let jpegData = resizedImage.jpegData(compressionQuality: 0.6) ?? Data()
+
+        return (
+            fileName: "profile_\(uuid).jpg",
+            contentType: "image/jpeg",
+            data: jpegData
+        )
+    }
+
+    private func resizeImage(_ image: UIImage, maxSize: CGFloat) -> UIImage {
+        let size = image.size
+        let ratio = min(maxSize / size.width, maxSize / size.height)
+
+        // 이미 크기가 작다면 그대로 반환
+        if ratio >= 1.0 {
+            return image
+        }
+
+        let newSize = CGSize(width: size.width * ratio, height: size.height * ratio)
+
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 0.0)
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let resizedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+        UIGraphicsEndImageContext()
+
+        return resizedImage
     }
 
     // MARK: - 네트워크 요청 수행

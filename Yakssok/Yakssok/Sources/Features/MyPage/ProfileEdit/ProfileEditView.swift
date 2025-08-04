@@ -60,7 +60,9 @@ struct ProfileEditView: View {
            }
            .onAppear {
                store.send(.onAppear)
-               localNickname = viewStore.nickname
+           }
+           .onChange(of: viewStore.nickname) { oldValue, newValue in
+               localNickname = newValue
            }
            .sheet(isPresented: viewStore.binding(
                get: \.showImagePicker,
@@ -170,26 +172,12 @@ private struct NicknameTextField: View {
 
     var body: some View {
         ZStack {
-            placeholderView
             inputFieldView
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
         .background(YKColor.Neutral.grey50)
         .cornerRadius(16)
-    }
-
-    private var placeholderView: some View {
-        Group {
-            if text.isEmpty {
-                HStack {
-                    Text("닉네임을 입력해주세요")
-                        .font(YKFont.body1)
-                        .foregroundColor(YKColor.Neutral.grey400)
-                    Spacer()
-                }
-            }
-        }
     }
 
     private var inputFieldView: some View {
@@ -200,7 +188,7 @@ private struct NicknameTextField: View {
     }
 
     private var textField: some View {
-        TextField("", text: $text)
+        TextField("닉네임을 입력해주세요", text: $text)
             .onChange(of: text) { oldValue, newValue in
                 if newValue.count > 5 {
                     text = String(newValue.prefix(5))
