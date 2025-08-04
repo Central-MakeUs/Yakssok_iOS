@@ -17,43 +17,19 @@ struct MyMedicinesFeature: Reducer {
         var selectedRoutineForDeletion: MedicineRoutine?
         var showMoreMenu: Bool = false
         var selectedRoutineForMenu: MedicineRoutine?
+        var error: String?
 
         var filteredRoutines: [MedicineRoutine] {
-            let routinesWithStatus = routines.map { routine in
-                var updatedRoutine = routine
-                updatedRoutine.status = determineStatus(for: routine)
-                return updatedRoutine
-            }
-
             switch selectedTab {
             case .all:
-                return routinesWithStatus.sorted { $0.createdAt > $1.createdAt }
+                return routines.sorted { $0.createdAt > $1.createdAt }
             case .beforeTaking:
-                return routinesWithStatus.filter { $0.status == .beforeTaking }.sorted { $0.createdAt > $1.createdAt }
+                return routines.filter { $0.status == .beforeTaking }.sorted { $0.createdAt > $1.createdAt }
             case .taking:
-                return routinesWithStatus.filter { $0.status == .taking }.sorted { $0.createdAt > $1.createdAt }
+                return routines.filter { $0.status == .taking }.sorted { $0.createdAt > $1.createdAt }
             case .completed:
-                return routinesWithStatus.filter { $0.status == .completed }.sorted { $0.createdAt > $1.createdAt }
+                return routines.filter { $0.status == .completed }.sorted { $0.createdAt > $1.createdAt }
             }
-        }
-
-        private func determineStatus(for routine: MedicineRoutine) -> MedicineRoutine.MedicineStatus {
-            let today = Date()
-            let calendar = Calendar.current
-
-            if let startDate = routine.startDate {
-                if calendar.compare(startDate, to: today, toGranularity: .day) == .orderedDescending {
-                    return .beforeTaking
-                }
-            }
-
-            if let endDate = routine.endDate {
-                if calendar.compare(endDate, to: today, toGranularity: .day) == .orderedAscending {
-                    return .completed
-                }
-            }
-
-            return .taking
         }
     }
 
@@ -82,7 +58,12 @@ struct MyMedicinesFeature: Reducer {
         case showDeleteConfirmation(MedicineRoutine)
         case dismissDeleteConfirmation
         case confirmStopMedicine
+        case loadRoutines
         case routinesLoaded([MedicineRoutine])
+        case routinesLoadFailed(String)
+        case stopMedicine(String)
+        case stopMedicineCompleted
+        case stopMedicineFailed(String)
         case delegate(Delegate)
 
         @CasePathable
@@ -92,15 +73,13 @@ struct MyMedicinesFeature: Reducer {
         }
     }
 
+    @Dependency(\.medicineClient) var medicineClient
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                state.isLoading = true
-                return .run { send in
-                    let mockRoutines = MyMedicinesFeature.createMockRoutines()
-                    await send(.routinesLoaded(mockRoutines))
-                }
+                return .send(.loadRoutines)
 
             case .backButtonTapped:
                 return .send(.delegate(.backToMyPage))
@@ -139,23 +118,51 @@ struct MyMedicinesFeature: Reducer {
                 return .none
 
             case .confirmStopMedicine:
-                if let routineToStop = state.selectedRoutineForDeletion {
-                    state.routines = state.routines.map { routine in
-                        if routine.id == routineToStop.id {
-                            var updatedRoutine = routine
-                            updatedRoutine.endDate = Date()
-                            updatedRoutine.status = .completed
-                            return updatedRoutine
-                        }
-                        return routine
-                    }
-                }
+                guard let routineToStop = state.selectedRoutineForDeletion else { return .none }
                 state.showDeleteConfirmation = false
                 state.selectedRoutineForDeletion = nil
-                return .none
+                return .send(.stopMedicine(routineToStop.id))
+
+            case .loadRoutines:
+                state.isLoading = true
+                state.error = nil
+                return .run { send in
+                    do {
+                        let medicineData = try await medicineClient.loadMedicineData()
+                        let routines = medicineData.routines
+                        await send(.routinesLoaded(routines))
+                    } catch {
+                        await send(.routinesLoadFailed(error.localizedDescription))
+                    }
+                }
 
             case .routinesLoaded(let routines):
                 state.routines = routines
+                state.isLoading = false
+                return .none
+
+            case .routinesLoadFailed(let error):
+                state.error = error
+                state.isLoading = false
+                return .none
+
+            case .stopMedicine(let medicationId):
+                state.isLoading = true
+                return .run { send in
+                    do {
+                        try await medicineClient.stopMedicine(medicationId)
+                        await send(.stopMedicineCompleted)
+                    } catch {
+                        await send(.stopMedicineFailed(error.localizedDescription))
+                    }
+                }
+
+            case .stopMedicineCompleted:
+                state.isLoading = false
+                return .send(.loadRoutines)
+
+            case .stopMedicineFailed(let error):
+                state.error = error
                 state.isLoading = false
                 return .none
 
@@ -163,49 +170,5 @@ struct MyMedicinesFeature: Reducer {
                 return .none
             }
         }
-    }
-
-    static func createMockRoutines() -> [MedicineRoutine] {
-        let calendar = Calendar.current
-        let today = Date()
-
-        return [
-            MedicineRoutine(
-                id: "routine1",
-                medicineName: "아세트아미노펜",
-                schedule: ["오전 8:00", "오전 8:00", "오전 8:00"],
-                category: MedicineCategory.defaultCategories[2],
-                frequency: MedicineFrequency(
-                    type: .weekly([.monday, .tuesday, .wednesday, .thursday, .friday, .saturday]),
-                    times: [
-                        MedicineTime(hour: 8, minute: 0),
-                        MedicineTime(hour: 8, minute: 0),
-                        MedicineTime(hour: 8, minute: 0)
-                    ]
-                ),
-                startDate: calendar.date(byAdding: .day, value: 1, to: today),
-                endDate: calendar.date(byAdding: .day, value: 30, to: today),
-                createdAt: calendar.date(byAdding: .hour, value: -2, to: today) ?? today,
-                status: .beforeTaking
-            ),
-            MedicineRoutine(
-                id: "routine2",
-                medicineName: "아세트아미노펜",
-                schedule: ["오전 8:00", "오전 8:00", "오전 8:00"],
-                category: MedicineCategory.defaultCategories[2],
-                frequency: MedicineFrequency(
-                    type: .weekly([.monday, .tuesday, .wednesday, .thursday, .friday, .saturday]),
-                    times: [
-                        MedicineTime(hour: 8, minute: 0),
-                        MedicineTime(hour: 8, minute: 0),
-                        MedicineTime(hour: 8, minute: 0)
-                    ]
-                ),
-                startDate: calendar.date(byAdding: .day, value: -5, to: today),
-                endDate: calendar.date(byAdding: .day, value: 25, to: today),
-                createdAt: calendar.date(byAdding: .hour, value: -5, to: today) ?? today,
-                status: .taking
-            )
-        ]
     }
 }

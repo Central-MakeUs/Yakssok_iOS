@@ -45,6 +45,7 @@ enum APIEndpoints {
     case getMedicationSchedulesToday
     case getMedicationSchedules(Date, Date)
     case takeMedication(Int)
+    case stopMedication(String)
 
     // MARK: - Friend Medicine Endpoints
     case getFriendMedicationSchedulesToday(Int)
@@ -104,6 +105,8 @@ enum APIEndpoints {
             return "/api/medication-schedules?startDate=\(start)&endDate=\(end)"
         case .takeMedication(let scheduleId):
             return "/api/medication-schedules/\(scheduleId)/take"
+        case .stopMedication(let medicationId):
+            return "/api/medications/\(medicationId)/end"
 
         // Friend Medicine
         case .getFriendMedicationSchedulesToday(let friendId):
