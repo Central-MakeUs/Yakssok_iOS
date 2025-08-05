@@ -74,14 +74,14 @@ private struct MateProfileSection: View {
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                             } placeholder: {
-                                Image("default-profile-small")
+                                Image("default-profile-1")
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                             }
                             .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
                             .clipShape(Circle())
                         } else {
-                            Image("default-profile-small")
+                            Image("default-profile-1")
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
@@ -312,14 +312,14 @@ private struct MateInfoCard: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     } placeholder: {
-                        Image("default-profile-small")
+                        Image("default-profile-1")
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     }
                     .frame(width: Layout.modalProfileImageSize, height: Layout.modalProfileImageSize)
                     .clipShape(Circle())
                 } else {
-                    Image("default-profile-small")
+                    Image("default-profile-1")
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: Layout.modalProfileImageSize, height: Layout.modalProfileImageSize)

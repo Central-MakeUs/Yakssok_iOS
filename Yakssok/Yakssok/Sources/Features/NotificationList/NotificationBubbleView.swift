@@ -52,7 +52,7 @@ private struct SenderInfoView: View {
 
     var body: some View {
         HStack(spacing: Constants.profileSpacing) {
-            ProfileImageView(notification: notification)
+            NotificationProfileImageView(notification: notification)
             SenderNameText(notification: notification)
         }
     }
@@ -71,18 +71,12 @@ private struct ReceiverInfoView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     } placeholder: {
-                        Image("default-profile-small")
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
+                        ProfileImageView(size: Constants.smallProfileSize)
                     }
                     .frame(width: Constants.smallProfileSize, height: Constants.smallProfileSize)
                     .clipShape(Circle())
                 } else {
-                    Image("default-profile-small")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: Constants.smallProfileSize, height: Constants.smallProfileSize)
-                        .clipShape(Circle())
+                    ProfileImageView(size: Constants.smallProfileSize)
                 }
             }
 
@@ -138,7 +132,7 @@ private struct MessageBubble: View {
     }
 }
 
-private struct ProfileImageView: View {
+private struct NotificationProfileImageView: View {
     let notification: NotificationItem
 
     var body: some View {
@@ -154,18 +148,12 @@ private struct ProfileImageView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                     } placeholder: {
-                        Image("default-profile-small")
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
+                        ProfileImageView(size: Constants.profileSize)
                     }
                     .frame(width: Constants.profileSize, height: Constants.profileSize)
                     .clipShape(Circle())
                 } else {
-                    Image("default-profile-small")
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: Constants.profileSize, height: Constants.profileSize)
-                        .clipShape(Circle())
+                    ProfileImageView(size: Constants.profileSize)
                 }
             }
         }

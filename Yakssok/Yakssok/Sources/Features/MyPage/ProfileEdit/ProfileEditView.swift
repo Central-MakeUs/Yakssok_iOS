@@ -117,12 +117,12 @@ private struct ProfileImageSection: View {
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
                                 } placeholder: {
-                                    Image("default-profile-small")
+                                    Image("default-profile-1")
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
                                 }
                             } else {
-                                Image("default-profile-small")
+                                Image("default-profile-1")
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                             }

@@ -34,13 +34,13 @@ private struct ProfileSection: View {
 
     var body: some View {
         HStack(spacing: Layout.profileImageSpacing) {
-            ProfileImageView(card: card)
+            CardProfileImageView(card: card)
             UserInfoView(card: card)
         }
     }
 }
 
-private struct ProfileImageView: View {
+private struct CardProfileImageView: View {
     let card: MateCard
 
     var body: some View {
@@ -55,14 +55,14 @@ private struct ProfileImageView: View {
                             .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
                             .clipShape(Circle())
                     } placeholder: {
-                        Image("default-profile-small")
+                        Image(ProfileImageManager.getImageName(for: card.id))
                             .resizable()
                             .scaledToFill()
                             .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
                             .clipShape(Circle())
                     }
                 } else {
-                    Image("default-profile-small")
+                    Image(ProfileImageManager.getImageName(for: card.id))
                         .resizable()
                         .scaledToFill()
                         .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
