@@ -194,7 +194,7 @@ extension MedicationCardResponse {
                 name: medicineName,
                 dosage: nil,
                 time: convertTimeToDisplayFormat(timeString),
-                color: .purple
+                color: colorFromMedicationType(medicationType)
             )
         }
 
@@ -216,6 +216,19 @@ extension MedicationCardResponse {
     }
 }
 
+
+func colorFromMedicationCategory(_ colorType: MedicineCategory.CategoryColorType) -> MedicineColor {
+    switch colorType {
+    case .mental: return .purple
+    case .beauty: return .green
+    case .chronic: return .blue
+    case .diet: return .pink
+    case .pain: return .yellow
+    case .supplement: return .orange
+    case .other: return .red
+    }
+}
+
 extension MedicationScheduleResponse {
     func toMedicineDataResponse() -> MedicineDataResponse {
         var allTodayMedicines: [Medicine] = []
@@ -229,7 +242,7 @@ extension MedicationScheduleResponse {
                         name: schedule.medicationName,
                         dosage: nil,
                         time: convertTimeToDisplayFormat(schedule.intakeTime),
-                        color: .purple
+                        color: colorFromMedicationType(schedule.medicationType)
                     )
 
                     if schedule.isTaken {
@@ -261,4 +274,9 @@ extension MedicationScheduleResponse {
         }
         return timeString
     }
+}
+
+func colorFromMedicationType(_ medicationType: String) -> MedicineColor {
+    let type = MedicineCategory.CategoryColorType(rawValue: medicationType.lowercased()) ?? .other
+    return colorFromMedicationCategory(type)
 }

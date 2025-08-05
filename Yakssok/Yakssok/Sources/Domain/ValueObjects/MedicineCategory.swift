@@ -30,9 +30,9 @@ struct MedicineCategory: Equatable, Identifiable {
             case .beauty: return YKColor.Sub.green
             case .chronic: return YKColor.Sub.blue
             case .diet: return YKColor.Sub.pink
-            case .pain: return Color(red: 0.910, green: 0.624, blue: 0.094)
-            case .supplement: return Color(red: 0.859, green: 0.486, blue: 0.141)
-            case .other: return Color(red: 0.859, green: 0.141, blue: 0.153)
+            case .pain: return Color(red: 0.91, green: 0.62, blue: 0.09)
+            case .supplement: return Color(red: 0.86, green: 0.49, blue: 0.14)
+            case .other: return Color(red: 0.86, green: 0.14, blue: 0.15)
             }
         }
 

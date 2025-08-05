@@ -90,7 +90,7 @@ private struct HasMedicinesView: View {
                         title: "먹을 약",
                         medicines: viewStore.todayMedicines,
                         isCompleted: false,
-                        canToggle: viewStore.isViewingOwnMedicines, // canToggle로 변경
+                        canToggle: viewStore.isViewingOwnMedicines,
                         onMedicineToggle: { medicineId in
                             viewStore.send(.medicineToggled(id: medicineId))
                         },
