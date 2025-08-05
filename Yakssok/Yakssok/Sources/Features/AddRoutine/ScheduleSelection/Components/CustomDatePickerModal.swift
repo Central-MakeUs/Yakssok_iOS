@@ -150,25 +150,71 @@ struct CustomDatePicker: UIViewRepresentable {
     @Binding var selectedMonth: Int
     @Binding var selectedDay: Int
 
-    func makeUIView(context: Context) -> UIPickerView {
+    func makeUIView(context: Context) -> UIView {
+        let containerView = UIView()
+
         let picker = UIPickerView()
         picker.delegate = context.coordinator
         picker.dataSource = context.coordinator
+        picker.translatesAutoresizingMaskIntoConstraints = false
 
-        // 완전히 투명하게 만들기
         makePickerTransparent(picker)
 
-        return picker
+        containerView.addSubview(picker)
+
+        let monthLabel = UILabel()
+        monthLabel.text = "월"
+        monthLabel.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        monthLabel.textColor = UIColor(YKColor.Neutral.grey500)
+        monthLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let dayLabel = UILabel()
+        dayLabel.text = "일"
+        dayLabel.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        dayLabel.textColor = UIColor(YKColor.Neutral.grey500)
+        dayLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        containerView.addSubview(monthLabel)
+        containerView.addSubview(dayLabel)
+
+        NSLayoutConstraint.activate([
+            picker.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            picker.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            picker.topAnchor.constraint(equalTo: containerView.topAnchor),
+            picker.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+            monthLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            monthLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: containerView.frame.width * 0.45 + 16),
+
+            dayLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            dayLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: containerView.frame.width * 0.80 + 4),
+        ])
+
+        return containerView
     }
 
-    func updateUIView(_ uiView: UIPickerView, context: Context) {
-        // 업데이트 시에도 투명 배경 유지
-        makePickerTransparent(uiView)
+    func updateUIView(_ uiView: UIView, context: Context) {
+        guard let picker = uiView.subviews.first(where: { $0 is UIPickerView }) as? UIPickerView else { return }
+
+        makePickerTransparent(picker)
 
         let yearIndex = selectedYear - 2025
-        uiView.selectRow(yearIndex, inComponent: 0, animated: false)
-        uiView.selectRow(selectedMonth - 1, inComponent: 1, animated: false)
-        uiView.selectRow(selectedDay - 1, inComponent: 2, animated: false)
+        picker.selectRow(yearIndex, inComponent: 0, animated: false)
+        picker.selectRow(selectedMonth - 1, inComponent: 1, animated: false)
+        picker.selectRow(selectedDay - 1, inComponent: 2, animated: false)
+
+        updateLabelPositions(uiView)
+    }
+
+    private func updateLabelPositions(_ containerView: UIView) {
+        let monthLabel = containerView.subviews.first { ($0 as? UILabel)?.text == "월" }
+        let dayLabel = containerView.subviews.first { ($0 as? UILabel)?.text == "일" }
+
+        DispatchQueue.main.async {
+            let width = containerView.frame.width
+            monthLabel?.frame.origin.x = width * 0.45 + 16
+            dayLabel?.frame.origin.x = width * 0.80 + 4
+        }
     }
 
     private func makePickerTransparent(_ picker: UIPickerView) {
@@ -186,7 +232,6 @@ struct CustomDatePicker: UIViewRepresentable {
 
         clearBackgroundOnly(view: picker)
 
-        // 선택 영역의 회색 배경만 제거
         picker.subviews.forEach { subview in
             if !(subview is UILabel) {
                 subview.backgroundColor = UIColor.clear
@@ -230,6 +275,20 @@ struct CustomDatePicker: UIViewRepresentable {
             }
         }
 
+        func pickerView(_ pickerView: UIPickerView, widthForComponent component: Int) -> CGFloat {
+            let totalWidth = pickerView.frame.width
+            switch component {
+            case 0: return totalWidth * 0.40
+            case 1: return totalWidth * 0.30
+            case 2: return totalWidth * 0.30
+            default: return 0
+            }
+        }
+
+        func pickerView(_ pickerView: UIPickerView, rowHeightForComponent component: Int) -> CGFloat {
+            return 44.0
+        }
+
         func pickerView(_ pickerView: UIPickerView, viewForRow row: Int, forComponent component: Int, reusing view: UIView?) -> UIView {
             let label = UILabel()
             label.textAlignment = .center
@@ -242,60 +301,16 @@ struct CustomDatePicker: UIViewRepresentable {
                 label.textColor = UIColor(YKColor.Neutral.grey950)
 
             case 1: // 월
-                let monthText = "\(row + 1)"
-                let unitText = "월"
-
-                // 현재 피커에서 선택된 월과 비교
-                let isSelected = row == pickerView.selectedRow(inComponent: 1)
-
-                let attributedString = NSMutableAttributedString()
-                attributedString.append(NSAttributedString(
-                    string: monthText,
-                    attributes: [
-                        .font: UIFont.systemFont(ofSize: 22, weight: .bold),
-                        .foregroundColor: UIColor(YKColor.Neutral.grey950)
-                    ]
-                ))
-
-                if isSelected {
-                    attributedString.append(NSAttributedString(
-                        string: "   " + unitText,
-                        attributes: [
-                            .font: UIFont.systemFont(ofSize: 18, weight: .medium),
-                            .foregroundColor: UIColor(YKColor.Neutral.grey500)
-                        ]
-                    ))
-                }
-
-                label.attributedText = attributedString
+                label.text = "\(row + 1)"
+                label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
+                label.textColor = UIColor(YKColor.Neutral.grey950)
+                label.textAlignment = .left
 
             case 2: // 일
-                let dayText = "\(row + 1)"
-                let unitText = "일"
-
-                // 현재 피커에서 선택된 일과 비교
-                let isSelected = row == pickerView.selectedRow(inComponent: 2)
-
-                let attributedString = NSMutableAttributedString()
-                attributedString.append(NSAttributedString(
-                    string: dayText,
-                    attributes: [
-                        .font: UIFont.systemFont(ofSize: 22, weight: .bold),
-                        .foregroundColor: UIColor(YKColor.Neutral.grey950)
-                    ]
-                ))
-
-                if isSelected {
-                    attributedString.append(NSAttributedString(
-                        string: "   " + unitText,
-                        attributes: [
-                            .font: UIFont.systemFont(ofSize: 18, weight: .medium),
-                            .foregroundColor: UIColor(YKColor.Neutral.grey500)
-                        ]
-                    ))
-                }
-
-                label.attributedText = attributedString
+                label.text = "\(row + 1)"
+                label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
+                label.textColor = UIColor(YKColor.Neutral.grey950)
+                label.textAlignment = .left
 
             default:
                 break
@@ -305,7 +320,6 @@ struct CustomDatePicker: UIViewRepresentable {
         }
 
         func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-            // 선택 시에도 투명 배경 유지
             DispatchQueue.main.async {
                 self.parent.makePickerTransparent(pickerView)
             }
@@ -316,11 +330,9 @@ struct CustomDatePicker: UIViewRepresentable {
                 pickerView.reloadComponent(2)
             case 1:
                 parent.selectedMonth = row + 1
-                pickerView.reloadComponent(1) // 월 컴포넌트 리로드 추가
                 pickerView.reloadComponent(2)
             case 2:
                 parent.selectedDay = row + 1
-                pickerView.reloadComponent(2) // 일 컴포넌트 리로드 추가
             default:
                 break
             }
