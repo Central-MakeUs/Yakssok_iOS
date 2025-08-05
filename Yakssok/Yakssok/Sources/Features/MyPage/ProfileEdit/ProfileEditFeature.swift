@@ -97,6 +97,7 @@ struct ProfileEditFeature: Reducer {
             case .removeProfileImage:
                 state.showActionSheet = false
                 state.selectedImage = nil
+                state.profileImage = nil
                 state.shouldDeleteImage = true
                 return .none
 
