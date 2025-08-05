@@ -52,6 +52,7 @@ struct FullCalendarView: View {
                             ) { medicineStore in
                                 MedicineListView(store: medicineStore)
                             }
+                            .padding(.bottom, 50)
                         }
                     }
                 }
