@@ -107,11 +107,20 @@ extension MedicineRegistrationData {
             String(format: "%02d:%02d:00", medicineTime.hour, medicineTime.minute)
         }
 
+        let endDateString: String?
+        if dateRange.startDate == dateRange.endDate {
+            // 시작일과 종료일이 같으면 종료일 없음으로 처리
+            endDateString = nil
+        } else {
+            // 시작일과 종료일이 다르면 종료일 전송
+            endDateString = dateFormatter.string(from: dateRange.endDate)
+        }
+
         return MedicationCreateRequest(
             name: medicineInfo.name,
             medicineType: category.toAPIString(),
             startDate: dateFormatter.string(from: dateRange.startDate),
-            endDate: dateRange.startDate == dateRange.endDate ? nil : dateFormatter.string(from: dateRange.endDate),
+            endDate: endDateString,
             intakeDays: apiIntakeDays,
             intakeCount: frequency.times.count,
             alarmSound: alarmSound.toAPIString(),
