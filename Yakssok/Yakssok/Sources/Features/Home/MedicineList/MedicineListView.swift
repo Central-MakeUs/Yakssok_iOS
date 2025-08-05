@@ -151,12 +151,16 @@ private struct MedicineListContainerView: View {
     var body: some View {
         VStack(spacing: Layout.medicineItemSpacing) {
             ForEach(medicines) { medicine in
+                let isToggleable = canToggle && Int(medicine.id) != nil
+
                 MedicineItemView(
                     medicine: medicine,
                     isCompleted: isCompleted,
-                    canToggle: canToggle,
+                    canToggle: isToggleable,
                     onToggle: {
-                        onMedicineToggle(medicine.id)
+                        if isToggleable {
+                            onMedicineToggle(medicine.id)
+                        }
                     }
                 )
             }

@@ -38,6 +38,7 @@ struct MedicationListBody: Codable {
 }
 
 struct MedicationCardResponse: Codable {
+    let medicationId: Int
     let medicationType: String
     let medicineName: String
     let medicationStatus: String
@@ -197,9 +198,9 @@ extension MedicationCardResponse {
             return (todayMedicines: [], completedMedicines: [])
         }
 
-        let medicines = intakeTimes.map { timeString in
+        let medicines = intakeTimes.enumerated().map { (index, timeString) in
             Medicine(
-                id: UUID().uuidString,
+                id: "\(medicationId)-\(index)",
                 name: medicineName,
                 dosage: nil,
                 time: convertTimeToDisplayFormat(timeString),

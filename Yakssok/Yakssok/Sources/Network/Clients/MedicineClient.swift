@@ -131,7 +131,7 @@ extension MedicineClient: DependencyKey {
             let response: TakeMedicationResponse = try await APIClient.shared.request(
                 endpoint: .takeMedication(scheduleId),
                 method: .PUT,
-                body: EmptyBody()
+                body: Optional<String>.none
             )
 
             if response.code != 0 {
@@ -211,7 +211,7 @@ extension MedicineClient: DependencyKey {
             let response: StopMedicineResponse = try await APIClient.shared.request(
                 endpoint: .stopMedication(medicationId),
                 method: .PUT,
-                body: EmptyBody()
+                body: Optional<String>.none
             )
 
             if response.code != 0 {
@@ -240,7 +240,7 @@ private func convertToMedicineDataResponse(_ apiResponse: MedicationListResponse
         allCompletedMedicines.append(contentsOf: completedMedicines)
 
         let routine = MedicineRoutine(
-            id: UUID().uuidString,
+            id: String(medicationCard.medicationId),
             medicineName: medicationCard.medicineName,
             schedule: medicationCard.intakeTimes.map { convertTimeToDisplayFormat($0) },
             category: convertAPITypeToCategory(medicationCard.medicationType),
