@@ -29,7 +29,6 @@ struct CustomDatePickerModal: View {
                     Spacer()
 
                     VStack(spacing: 0) {
-
                         Rectangle()
                             .foregroundColor(.clear)
                             .frame(width: 37.44, height: 4)
@@ -48,7 +47,9 @@ struct CustomDatePickerModal: View {
                         CustomDatePicker(
                             selectedYear: $selectedYear,
                             selectedMonth: $selectedMonth,
-                            selectedDay: $selectedDay
+                            selectedDay: $selectedDay,
+                            isSelectingStartDate: viewStore.isSelectingStartDate,
+                            startDate: viewStore.startDate
                         )
                         .frame(height: 175)
                         .background(Color.clear)
@@ -120,7 +121,6 @@ struct CustomDatePickerModal: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
-
                     }
                     .background(YKColor.Neutral.grey50)
                     .cornerRadius(24)
@@ -136,19 +136,14 @@ struct CustomDatePickerModal: View {
             }
         }
     }
-
-    private func daysInMonth(year: Int, month: Int) -> Int {
-        let dateComponents = DateComponents(year: year, month: month)
-        let date = Calendar.current.date(from: dateComponents)!
-        let range = Calendar.current.range(of: .day, in: .month, for: date)!
-        return range.count
-    }
 }
 
 struct CustomDatePicker: UIViewRepresentable {
     @Binding var selectedYear: Int
     @Binding var selectedMonth: Int
     @Binding var selectedDay: Int
+    let isSelectingStartDate: Bool
+    let startDate: Date
 
     func makeUIView(context: Context) -> UIView {
         let containerView = UIView()
@@ -159,7 +154,6 @@ struct CustomDatePicker: UIViewRepresentable {
         picker.translatesAutoresizingMaskIntoConstraints = false
 
         makePickerTransparent(picker)
-
         containerView.addSubview(picker)
 
         let monthLabel = UILabel()
@@ -198,10 +192,24 @@ struct CustomDatePicker: UIViewRepresentable {
 
         makePickerTransparent(picker)
 
-        let yearIndex = selectedYear - 2025
-        picker.selectRow(yearIndex, inComponent: 0, animated: false)
+        let today = Date()
+        let calendar = Calendar.current
+        let todayComponents = calendar.dateComponents([.year, .month, .day], from: today)
+
+        let minYear = todayComponents.year ?? 2025
+        let yearOffset = selectedYear - minYear
+
+        picker.selectRow(yearOffset, inComponent: 0, animated: false)
         picker.selectRow(selectedMonth - 1, inComponent: 1, animated: false)
-        picker.selectRow(selectedDay - 1, inComponent: 2, animated: false)
+
+        let availableDays = getAvailableDays(year: selectedYear, month: selectedMonth)
+        if !availableDays.isEmpty {
+            let firstAvailableDay = availableDays.first!
+            let dayIndex = max(0, min(selectedDay - firstAvailableDay, availableDays.count - 1))
+            picker.selectRow(dayIndex, inComponent: 2, animated: false)
+        } else {
+            picker.selectRow(0, inComponent: 2, animated: false)
+        }
 
         updateLabelPositions(uiView)
     }
@@ -220,33 +228,77 @@ struct CustomDatePicker: UIViewRepresentable {
     private func makePickerTransparent(_ picker: UIPickerView) {
         picker.backgroundColor = UIColor.clear
 
-        func clearBackgroundOnly(view: UIView) {
-            view.backgroundColor = UIColor.clear
-
-            if !(view is UILabel) {
-                for subview in view.subviews {
-                    clearBackgroundOnly(view: subview)
-                }
+        for subview in picker.subviews {
+            if String(describing: type(of: subview)).contains("PickerTable") {
+                continue
             }
+
+            if subview is UILabel {
+                continue
+            }
+
+            if subview.frame.height <= 3 {
+                continue
+            }
+
+            subview.backgroundColor = UIColor.clear
+            makeSubviewsTransparent(subview)
         }
+    }
 
-        clearBackgroundOnly(view: picker)
+    private func makeSubviewsTransparent(_ view: UIView) {
+        for subview in view.subviews {
+            if subview is UILabel || String(describing: type(of: subview)).contains("PickerTable") {
+                continue
+            }
 
-        picker.subviews.forEach { subview in
-            if !(subview is UILabel) {
-                subview.backgroundColor = UIColor.clear
-                if subview.frame.height < 50 && subview.subviews.isEmpty {
-                    subview.isHidden = true
-                }
+            if subview.frame.height <= 3 {
+                continue
+            }
 
-                subview.subviews.forEach { subSubview in
-                    if !(subSubview is UILabel) {
-                        subSubview.backgroundColor = UIColor.clear
-                        if subSubview.frame.height < 50 && subSubview.subviews.isEmpty {
-                            subSubview.isHidden = true
-                        }
-                    }
-                }
+            subview.backgroundColor = UIColor.clear
+            makeSubviewsTransparent(subview)
+        }
+    }
+
+    private func getAvailableDays(year: Int, month: Int) -> [Int] {
+        let today = Date()
+        let calendar = Calendar.current
+        let todayComponents = calendar.dateComponents([.year, .month, .day], from: today)
+
+        let totalDaysInMonth = {
+            let dateComponents = DateComponents(year: year, month: month)
+            guard let date = calendar.date(from: dateComponents),
+                  let range = calendar.range(of: .day, in: .month, for: date) else {
+                return 30
+            }
+            return range.count
+        }()
+
+        let currentYear = todayComponents.year ?? Calendar.current.component(.year, from: Date())
+        let currentMonth = todayComponents.month ?? Calendar.current.component(.month, from: Date())
+        let currentDay = todayComponents.day ?? Calendar.current.component(.day, from: Date())
+
+        if isSelectingStartDate {
+            if year == currentYear && month == currentMonth {
+                return Array(currentDay...totalDaysInMonth)
+            } else if year > currentYear || (year == currentYear && month > currentMonth) {
+                return Array(1...totalDaysInMonth)
+            } else {
+                return []
+            }
+        } else {
+            let startComponents = calendar.dateComponents([.year, .month, .day], from: startDate)
+            let startYear = startComponents.year ?? currentYear
+            let startMonth = startComponents.month ?? currentMonth
+            let startDay = startComponents.day ?? currentDay
+
+            if year == startYear && month == startMonth {
+                return Array(startDay...totalDaysInMonth)
+            } else if year > startYear || (year == startYear && month > startMonth) {
+                return Array(1...totalDaysInMonth)
+            } else {
+                return []
             }
         }
     }
@@ -267,11 +319,32 @@ struct CustomDatePicker: UIViewRepresentable {
         }
 
         func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+            let today = Date()
+            let calendar = Calendar.current
+            let todayComponents = calendar.dateComponents([.year, .month, .day], from: today)
+            let currentYear = todayComponents.year ?? Calendar.current.component(.year, from: Date())
+            let currentMonth = todayComponents.month ?? Calendar.current.component(.month, from: Date())
+
             switch component {
-            case 0: return 2 // 2025, 2026
-            case 1: return 12 // 1-12월
-            case 2: return daysInMonth(year: parent.selectedYear, month: parent.selectedMonth)
-            default: return 0
+            case 0:
+                return 2
+            case 1:
+                if parent.selectedYear == currentYear && parent.isSelectingStartDate {
+                    return 12 - currentMonth + 1
+                } else if !parent.isSelectingStartDate {
+                    let startComponents = calendar.dateComponents([.year, .month, .day], from: parent.startDate)
+                    let startYear = startComponents.year ?? currentYear
+                    let startMonth = startComponents.month ?? currentMonth
+                    if parent.selectedYear == startYear {
+                        return 12 - startMonth + 1
+                    }
+                }
+                return 12
+            case 2:
+                let availableDays = parent.getAvailableDays(year: parent.selectedYear, month: parent.selectedMonth)
+                return availableDays.count
+            default:
+                return 0
             }
         }
 
@@ -294,20 +367,44 @@ struct CustomDatePicker: UIViewRepresentable {
             label.textAlignment = .center
             label.backgroundColor = UIColor.clear
 
+            let today = Date()
+            let calendar = Calendar.current
+            let todayComponents = calendar.dateComponents([.year, .month, .day], from: today)
+            let currentYear = todayComponents.year ?? Calendar.current.component(.year, from: Date())
+            let currentMonth = todayComponents.month ?? Calendar.current.component(.month, from: Date())
+
             switch component {
-            case 0: // 년도
-                label.text = "\(2025 + row)"
+            case 0:
+                label.text = "\(currentYear + row)"
                 label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
                 label.textColor = UIColor(YKColor.Neutral.grey950)
 
-            case 1: // 월
-                label.text = "\(row + 1)"
+            case 1:
+                if parent.selectedYear == currentYear && parent.isSelectingStartDate {
+                    label.text = "\(currentMonth + row)"
+                } else if !parent.isSelectingStartDate {
+                    let startComponents = calendar.dateComponents([.year, .month, .day], from: parent.startDate)
+                    let startYear = startComponents.year ?? currentYear
+                    let startMonth = startComponents.month ?? currentMonth
+                    if parent.selectedYear == startYear {
+                        label.text = "\(startMonth + row)"
+                    } else {
+                        label.text = "\(row + 1)"
+                    }
+                } else {
+                    label.text = "\(row + 1)"
+                }
                 label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
                 label.textColor = UIColor(YKColor.Neutral.grey950)
                 label.textAlignment = .left
 
-            case 2: // 일
-                label.text = "\(row + 1)"
+            case 2:
+                let availableDays = parent.getAvailableDays(year: parent.selectedYear, month: parent.selectedMonth)
+                if row < availableDays.count {
+                    label.text = "\(availableDays[row])"
+                } else {
+                    label.text = ""
+                }
                 label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
                 label.textColor = UIColor(YKColor.Neutral.grey950)
                 label.textAlignment = .left
@@ -320,29 +417,106 @@ struct CustomDatePicker: UIViewRepresentable {
         }
 
         func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-            DispatchQueue.main.async {
-                self.parent.makePickerTransparent(pickerView)
-            }
+            let today = Date()
+            let calendar = Calendar.current
+            let todayComponents = calendar.dateComponents([.year, .month, .day], from: today)
+            let currentYear = todayComponents.year ?? Calendar.current.component(.year, from: Date())
+            let currentMonth = todayComponents.month ?? Calendar.current.component(.month, from: Date())
 
             switch component {
             case 0:
-                parent.selectedYear = 2025 + row
-                pickerView.reloadComponent(2)
+                parent.selectedYear = currentYear + row
+
+                if parent.selectedYear == currentYear && parent.isSelectingStartDate {
+                    if parent.selectedMonth < currentMonth {
+                        parent.selectedMonth = currentMonth
+                    }
+                } else if !parent.isSelectingStartDate {
+                    let startComponents = calendar.dateComponents([.year, .month, .day], from: parent.startDate)
+                    let startYear = startComponents.year ?? currentYear
+                    let startMonth = startComponents.month ?? currentMonth
+                    if parent.selectedYear == startYear && parent.selectedMonth < startMonth {
+                        parent.selectedMonth = startMonth
+                    }
+                }
+
+                DispatchQueue.main.async {
+                    pickerView.reloadComponent(1)
+                    pickerView.reloadComponent(2)
+
+                    let monthIndex: Int
+                    if self.parent.selectedYear == currentYear && self.parent.isSelectingStartDate {
+                        monthIndex = self.parent.selectedMonth - currentMonth
+                    } else if !self.parent.isSelectingStartDate {
+                        let startComponents = calendar.dateComponents([.year, .month, .day], from: self.parent.startDate)
+                        let startYear = startComponents.year ?? currentYear
+                        let startMonth = startComponents.month ?? currentMonth
+                        if self.parent.selectedYear == startYear {
+                            monthIndex = self.parent.selectedMonth - startMonth
+                        } else {
+                            monthIndex = self.parent.selectedMonth - 1
+                        }
+                    } else {
+                        monthIndex = self.parent.selectedMonth - 1
+                    }
+                    pickerView.selectRow(max(0, monthIndex), inComponent: 1, animated: false)
+
+                    let availableDays = self.parent.getAvailableDays(year: self.parent.selectedYear, month: self.parent.selectedMonth)
+                    if !availableDays.isEmpty {
+                        if availableDays.contains(self.parent.selectedDay) {
+                            let dayIndex = availableDays.firstIndex(of: self.parent.selectedDay) ?? 0
+                            pickerView.selectRow(dayIndex, inComponent: 2, animated: false)
+                        } else {
+                            self.parent.selectedDay = availableDays.first!
+                            pickerView.selectRow(0, inComponent: 2, animated: false)
+                        }
+                    } else {
+                        pickerView.selectRow(0, inComponent: 2, animated: false)
+                    }
+                }
+
             case 1:
-                parent.selectedMonth = row + 1
-                pickerView.reloadComponent(2)
+                if parent.selectedYear == currentYear && parent.isSelectingStartDate {
+                    parent.selectedMonth = currentMonth + row
+                } else if !parent.isSelectingStartDate {
+                    let startComponents = calendar.dateComponents([.year, .month, .day], from: parent.startDate)
+                    let startYear = startComponents.year ?? currentYear
+                    let startMonth = startComponents.month ?? currentMonth
+                    if parent.selectedYear == startYear {
+                        parent.selectedMonth = startMonth + row
+                    } else {
+                        parent.selectedMonth = row + 1
+                    }
+                } else {
+                    parent.selectedMonth = row + 1
+                }
+
+                DispatchQueue.main.async {
+                    pickerView.reloadComponent(2)
+
+                    let availableDays = self.parent.getAvailableDays(year: self.parent.selectedYear, month: self.parent.selectedMonth)
+                    if !availableDays.isEmpty {
+                        if availableDays.contains(self.parent.selectedDay) {
+                            let dayIndex = availableDays.firstIndex(of: self.parent.selectedDay) ?? 0
+                            pickerView.selectRow(dayIndex, inComponent: 2, animated: false)
+                        } else {
+                            self.parent.selectedDay = availableDays.first!
+                            pickerView.selectRow(0, inComponent: 2, animated: false)
+                        }
+                    } else {
+                        pickerView.selectRow(0, inComponent: 2, animated: false)
+                    }
+                }
+
             case 2:
-                parent.selectedDay = row + 1
+                let availableDays = parent.getAvailableDays(year: parent.selectedYear, month: parent.selectedMonth)
+                if row < availableDays.count {
+                    parent.selectedDay = availableDays[row]
+                }
+
             default:
                 break
             }
-        }
-
-        private func daysInMonth(year: Int, month: Int) -> Int {
-            let dateComponents = DateComponents(year: year, month: month)
-            let date = Calendar.current.date(from: dateComponents)!
-            let range = Calendar.current.range(of: .day, in: .month, for: date)!
-            return range.count
         }
     }
 }
