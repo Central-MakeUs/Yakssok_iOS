@@ -83,6 +83,16 @@ struct MyMedicinesView: View {
                             onConfirm: { viewStore.send(.confirmStopMedicine) }
                         )
                     }
+
+                    // 에러 메시지 토스트
+                    WithViewStore(store, observe: \.error) { errorViewStore in
+                        if let error = errorViewStore.state {
+                            MessageOverlay(
+                                message: error,
+                                onDismiss: { store.send(.dismissError) }
+                            )
+                        }
+                    }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
                 .navigationBarHidden(true)
@@ -401,6 +411,37 @@ private struct StopMedicineConfirmationModal: View {
                 .cornerRadius(24)
                 .padding(.horizontal, 13.5)
                 .padding(.bottom, 50)
+            }
+        }
+    }
+}
+
+private struct MessageOverlay: View {
+    let message: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.clear
+                .ignoresSafeArea()
+                .onTapGesture {
+                    onDismiss()
+                }
+
+            VStack(spacing: 16) {
+                Text(message)
+                    .font(YKFont.subtitle2)
+                    .foregroundColor(Color.white)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(YKColor.Neutral.grey900)
+            .cornerRadius(12)
+            .padding(.bottom, 50)
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                onDismiss()
             }
         }
     }

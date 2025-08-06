@@ -64,6 +64,7 @@ struct MyMedicinesFeature: Reducer {
         case stopMedicine(String)
         case stopMedicineCompleted
         case stopMedicineFailed(String)
+        case dismissError
         case delegate(Delegate)
 
         @CasePathable
@@ -103,6 +104,12 @@ struct MyMedicinesFeature: Reducer {
 
             case .stopMedicineConfirmationRequested(let routine):
                 state.showMoreMenu = false
+
+                if routine.status != .taking {
+                    state.error = "복약 중인 경우에만 종료할 수 있어요"
+                    return .none
+                }
+
                 state.selectedRoutineForDeletion = routine
                 state.showDeleteConfirmation = true
                 return .none
@@ -164,6 +171,10 @@ struct MyMedicinesFeature: Reducer {
             case .stopMedicineFailed(let error):
                 state.error = error
                 state.isLoading = false
+                return .none
+
+            case .dismissError:
+                state.error = nil
                 return .none
 
             case .delegate:
