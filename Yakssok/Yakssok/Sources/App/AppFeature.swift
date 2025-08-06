@@ -19,7 +19,10 @@ struct AppFeature: Reducer {
         case splash(SplashFeature.Action)
         case auth(AuthFeature.Action)
         case home(HomeFeature.Action)
+        case tokenExpired
     }
+
+    @Dependency(\.tokenManager) var tokenManager
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -37,6 +40,12 @@ struct AppFeature: Reducer {
                 state.home = nil
                 state.auth = .init()
                 return .none
+            case .tokenExpired:
+                tokenManager.clearTokens()
+                state.home = nil
+                state.auth = .init()
+                return .none
+
             default:
                 return .none
             }

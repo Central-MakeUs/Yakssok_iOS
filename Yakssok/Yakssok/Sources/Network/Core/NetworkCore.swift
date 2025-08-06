@@ -92,13 +92,13 @@ enum APIEndpoints {
 
         // Image
         case .uploadUserImage(let type):
-            return "/api/v1/users/image?type=\(type)"
+            return "/api/images?type=\(type)"
         case .updateUserImage(let type, let oldImageUrl):
             let encodedUrl = oldImageUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            return "/api/v1/users/image?type=\(type)&oldImageUrl=\(encodedUrl)"
+            return "/api/images?type=\(type)&oldImageUrl=\(encodedUrl)"
         case .deleteUserImage(let imageUrl):
             let encodedUrl = imageUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-            return "/api/v1/users/image?imageUrl=\(encodedUrl)"
+            return "/api/images?imageUrl=\(encodedUrl)"
 
         // Friend
         case .getFollowingList:
@@ -191,6 +191,7 @@ enum APIError: Error, LocalizedError {
 
 class APIClient {
     static let shared = APIClient()
+    static let tokenExpiredNotification = Notification.Name("TokenExpired")
 
     private init() {}
 
@@ -231,9 +232,13 @@ class APIClient {
         do {
             return try await request(endpoint: endpoint, method: method, body: body)
         } catch APIError.serverError(401) {
-            // 401 에러 시 토큰 갱신 후 재시도
-            try await refreshTokenAndRetry()
-            return try await request(endpoint: endpoint, method: method, body: body)
+            do {
+                try await refreshTokenAndRetry()
+                return try await request(endpoint: endpoint, method: method, body: body)
+            } catch {
+                await handleTokenExpiry()
+                throw error
+            }
         }
     }
 
@@ -274,18 +279,15 @@ class APIClient {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let imageInfo = getImageInfo(for: image)
-
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
         var body = Data()
-
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(imageInfo.fileName)\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: \(imageInfo.contentType)\r\n\r\n".data(using: .utf8)!)
         body.append(imageInfo.data)
         body.append("\r\n".data(using: .utf8)!)
-
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body
@@ -293,7 +295,6 @@ class APIClient {
         return try await performRequest(request)
     }
 
-    // MARK: - 이미지 수정 (multipart/form-data)
     func updateImage<U: Codable>(
         endpoint: APIEndpoints,
         image: UIImage
@@ -308,40 +309,53 @@ class APIClient {
 
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
-        // 이미지 타입과 데이터 결정
         let imageInfo = getImageInfo(for: image)
-
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
         var body = Data()
-
-        // 파일 파트 추가
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(imageInfo.fileName)\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: \(imageInfo.contentType)\r\n\r\n".data(using: .utf8)!)
         body.append(imageInfo.data)
         body.append("\r\n".data(using: .utf8)!)
-
-        // 끝 boundary
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body
-        
+
         return try await performRequest(request)
     }
 
-    // MARK: - 이미지 업로드 (자동 토큰 갱신 포함)
     func uploadImageWithTokenRefresh<U: Codable>(
         endpoint: APIEndpoints,
         image: UIImage
     ) async throws -> U {
+        guard let initialToken = TokenManager.shared.accessToken else {
+            await handleTokenExpiry()
+            throw APIError.serverError(401)
+        }
+
         do {
             return try await uploadImage(endpoint: endpoint, image: image)
         } catch APIError.serverError(401) {
-            // 401 에러 시 토큰 갱신 후 재시도
-            try await refreshTokenAndRetry()
-            return try await uploadImage(endpoint: endpoint, image: image)
+            do {
+                try await refreshTokenAndRetry()
+                let refreshedToken = TokenManager.shared.accessToken
+
+                if refreshedToken == initialToken {
+                    await handleTokenExpiry()
+                    throw APIError.serverError(401)
+                }
+
+                return try await uploadImage(endpoint: endpoint, image: image)
+            } catch {
+                if case APIError.serverError(let code) = error, code == 401 {
+                    throw error
+                }
+
+                await handleTokenExpiry()
+                throw error
+            }
         }
     }
 
@@ -349,37 +363,104 @@ class APIClient {
         endpoint: APIEndpoints,
         image: UIImage
     ) async throws -> U {
+        guard let initialToken = TokenManager.shared.accessToken else {
+            await handleTokenExpiry()
+            throw APIError.serverError(401)
+        }
+
         do {
             return try await updateImage(endpoint: endpoint, image: image)
         } catch APIError.serverError(401) {
-            // 401 에러 시 토큰 갱신 후 재시도
-            try await refreshTokenAndRetry()
-            return try await updateImage(endpoint: endpoint, image: image)
+            do {
+                try await refreshTokenAndRetry()
+                let refreshedToken = TokenManager.shared.accessToken
+
+                if refreshedToken == initialToken {
+                    await handleTokenExpiry()
+                    throw APIError.serverError(401)
+                }
+
+                return try await updateImage(endpoint: endpoint, image: image)
+            } catch {
+                if case APIError.serverError(let code) = error, code == 401 {
+                    throw error
+                }
+
+                await handleTokenExpiry()
+                throw error
+            }
         }
     }
 
-    // MARK: - 토큰 갱신 헬퍼
     private func refreshTokenAndRetry() async throws {
         guard let refreshToken = TokenManager.shared.refreshToken else {
             throw APIError.serverError(401)
         }
+
+        let oldToken = TokenManager.shared.accessToken
+
         let request = RefreshTokenRequest(refreshToken: refreshToken)
         let response: RefreshTokenResponse = try await authRequest(
             endpoint: .refreshToken,
             method: .POST,
             body: request
         )
-        TokenManager.shared.accessToken = response.body.accessToken
+
+        let newToken = response.body.accessToken
+        TokenManager.shared.accessToken = newToken
+
+        let savedToken = TokenManager.shared.accessToken
+
+        if savedToken == nil || savedToken == oldToken {
+            throw APIError.serverError(401)
+        }
+
+        try await Task.sleep(nanoseconds: 100_000_000)
     }
 
-    // MARK: - 이미지 처리 헬퍼
+    @MainActor
+    private func handleTokenExpiry() {
+        let hasAccessToken = TokenManager.shared.accessToken != nil
+        let hasRefreshToken = TokenManager.shared.refreshToken != nil
+
+        if !hasAccessToken && !hasRefreshToken {
+            return
+        }
+
+        NotificationCenter.default.post(name: Self.tokenExpiredNotification, object: nil)
+    }
+
+    func testTokenValidity() async {
+        guard let _ = TokenManager.shared.accessToken else {
+            return
+        }
+
+        do {
+            let _: UserProfileResponse = try await request(
+                endpoint: .getUserProfile,
+                method: .GET,
+                body: Optional<String>.none
+            )
+        } catch {}
+    }
+
+    func debugTokenCompatibility() async {
+        guard let _ = TokenManager.shared.accessToken else {
+            return
+        }
+
+        do {
+            let _: UserProfileResponse = try await request(
+                endpoint: .getUserProfile,
+                method: .GET,
+                body: Optional<String>.none
+            )
+        } catch {}
+    }
+
     private func getImageInfo(for image: UIImage) -> (fileName: String, contentType: String, data: Data) {
         let uuid = UUID().uuidString.prefix(8)
-
-        // 이미지 크기 조정 (최대 1024x1024)
         let resizedImage = resizeImage(image, maxSize: 1024)
-
-        // JPEG로 압축
         let jpegData = resizedImage.jpegData(compressionQuality: 0.6) ?? Data()
 
         return (
@@ -393,7 +474,6 @@ class APIClient {
         let size = image.size
         let ratio = min(maxSize / size.width, maxSize / size.height)
 
-        // 이미 크기가 작다면 그대로 반환
         if ratio >= 1.0 {
             return image
         }
@@ -408,26 +488,15 @@ class APIClient {
         return resizedImage
     }
 
-    // MARK: - 네트워크 요청 수행
     private func performRequest<U: Codable>(_ request: URLRequest) async throws -> U {
-        print("API 호출: \(request.url?.absoluteString ?? "Unknown URL")")
-
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-
-            // 응답 데이터 로그 출력
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("Response Data: \(responseString)")
-            }
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw APIError.invalidResponse
             }
 
-            print("HTTP Status Code: \(httpResponse.statusCode)")
-
             guard 200...299 ~= httpResponse.statusCode else {
-                // 404 에러는 존재하지 않는 회원 (회원가입 필요)
                 if httpResponse.statusCode == 404 {
                     throw APIError.userNotFound
                 }
@@ -436,12 +505,10 @@ class APIClient {
 
             return try JSONDecoder().decode(U.self, from: data)
         } catch let error as DecodingError {
-            print("JSON 디코딩 에러: \(error)")
             throw APIError.decodingError
         } catch let error as APIError {
             throw error
         } catch {
-            print("네트워크 에러: \(error)")
             throw APIError.networkError(error)
         }
     }

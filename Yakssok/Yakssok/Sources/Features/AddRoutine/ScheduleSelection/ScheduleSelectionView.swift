@@ -138,6 +138,8 @@ struct DateRangeSelector: View {
                 DateButton(
                     title: "시작일",
                     date: viewStore.startDate,
+                    isEndDateButton: false,
+                    hasEndDate: true,
                     onTap: { viewStore.send(.startDateButtonTapped) }
                 )
 
@@ -148,7 +150,8 @@ struct DateRangeSelector: View {
                 DateButton(
                     title: "종료일",
                     date: viewStore.endDate,
-                    isEnabled: viewStore.hasEndDate,
+                    isEndDateButton: true,
+                    hasEndDate: viewStore.hasEndDate,
                     onTap: { viewStore.send(.endDateButtonTapped) }
                 )
             }
@@ -159,20 +162,18 @@ struct DateRangeSelector: View {
 private struct DateButton: View {
     let title: String
     let date: Date
-    let isEnabled: Bool
+    let isEndDateButton: Bool
+    let hasEndDate: Bool
     let onTap: () -> Void
 
-    init(title: String, date: Date, isEnabled: Bool = true, onTap: @escaping () -> Void) {
-        self.title = title
-        self.date = date
-        self.isEnabled = isEnabled
-        self.onTap = onTap
-    }
-
     private var dateString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy.MM.dd"
-        return formatter.string(from: date)
+        if isEndDateButton && !hasEndDate {
+            return "종료일 없음"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy.MM.dd"
+            return formatter.string(from: date)
+        }
     }
 
     var body: some View {
@@ -184,7 +185,7 @@ private struct DateButton: View {
 
                 Text(dateString)
                     .font(YKFont.body1)
-                    .foregroundColor(isEnabled ? YKColor.Neutral.grey950 : YKColor.Neutral.grey50)
+                    .foregroundColor(YKColor.Neutral.grey950)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 12)
@@ -194,6 +195,5 @@ private struct DateButton: View {
                     .fill(YKColor.Neutral.grey50)
             )
         }
-        .disabled(!isEnabled)
     }
 }

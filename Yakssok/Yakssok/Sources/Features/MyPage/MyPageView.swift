@@ -101,7 +101,7 @@ private struct ProfileSection: View {
                                 .aspectRatio(contentMode: .fill)
                         } placeholder: {
                             // 카카오 계정 기본 프로필 또는 기본 이미지
-                            Image("default-profile-small")
+                            Image("default-profile-1")
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                         }
@@ -109,7 +109,7 @@ private struct ProfileSection: View {
                         .clipShape(Circle())
                     } else {
                         // 가입 시 카카오 계정 프로필 사진이 디폴트 값
-                        Image("default-profile-small")
+                        Image("default-profile-1")
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)

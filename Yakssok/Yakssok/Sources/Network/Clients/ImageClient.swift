@@ -5,11 +5,6 @@
 //  Created by 김사랑 on 8/5/25.
 //
 
-//
-//  ImageClient.swift
-//  Yakssok
-//
-
 import ComposableArchitecture
 import Foundation
 import UIKit

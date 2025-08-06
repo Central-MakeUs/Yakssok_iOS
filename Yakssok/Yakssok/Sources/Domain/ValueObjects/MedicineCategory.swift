@@ -30,9 +30,9 @@ struct MedicineCategory: Equatable, Identifiable {
             case .beauty: return YKColor.Sub.green
             case .chronic: return YKColor.Sub.blue
             case .diet: return YKColor.Sub.pink
-            case .pain: return Color(red: 0.910, green: 0.624, blue: 0.094)
-            case .supplement: return Color(red: 0.859, green: 0.486, blue: 0.141)
-            case .other: return Color(red: 0.859, green: 0.141, blue: 0.153)
+            case .pain: return Color(red: 0.91, green: 0.62, blue: 0.09)
+            case .supplement: return Color(red: 0.86, green: 0.49, blue: 0.14)
+            case .other: return Color(red: 0.86, green: 0.14, blue: 0.15)
             }
         }
 
@@ -50,12 +50,12 @@ struct MedicineCategory: Equatable, Identifiable {
     }
 
     static let defaultCategories: [MedicineCategory] = [
-        MedicineCategory(id: "mental", name: "정신 건강 관리", iconName: "", colorType: .mental),
-        MedicineCategory(id: "beauty", name: "미용 관련 관리", iconName: "", colorType: .beauty),
+        MedicineCategory(id: "supplement", name: "건강기능식품/영양보충", iconName: "", colorType: .supplement),
         MedicineCategory(id: "chronic", name: "만성 질환 관리", iconName: "", colorType: .chronic),
+        MedicineCategory(id: "beauty", name: "미용 관련 관리", iconName: "", colorType: .beauty),
         MedicineCategory(id: "diet", name: "다이어트/대사 관련", iconName: "", colorType: .diet),
         MedicineCategory(id: "pain", name: "통증/간기 등 일시적 치료", iconName: "", colorType: .pain),
-        MedicineCategory(id: "supplement", name: "건강기능식품/영양보충", iconName: "", colorType: .supplement),
+        MedicineCategory(id: "mental", name: "정신 건강 관리", iconName: "", colorType: .mental),
         MedicineCategory(id: "other", name: "기타 설정", iconName: "", colorType: .other)
     ]
 }

@@ -201,8 +201,9 @@ struct AddRoutineFeature: Reducer {
         let medicineInfo = MedicineInfo(
             name: categoryData.medicineName,
             dosage: nil,
-            color: .purple
+            color: colorFromMedicationCategory(categoryData.category.colorType)
         )
+
 
         let data = MedicineRegistrationData(
             category: categoryData.category,

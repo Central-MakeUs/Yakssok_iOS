@@ -85,33 +85,29 @@ private struct HasMedicinesView: View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             VStack(spacing: Layout.sectionSpacing) {
                 // 먹을 약 섹션
-                if !viewStore.todayMedicines.isEmpty {
-                    MedicineSectionView(
-                        title: "먹을 약",
-                        medicines: viewStore.todayMedicines,
-                        isCompleted: false,
-                        canToggle: viewStore.isViewingOwnMedicines, // canToggle로 변경
-                        onMedicineToggle: { medicineId in
-                            viewStore.send(.medicineToggled(id: medicineId))
-                        },
-                        onAddMedicine: viewStore.isViewingOwnMedicines ? {
-                            viewStore.send(.addMedicineButtonTapped)
-                        } : nil
-                    )
-                }
+                MedicineSectionView(
+                    title: "먹을 약",
+                    medicines: viewStore.todayMedicines,
+                    isCompleted: false,
+                    canToggle: viewStore.isViewingOwnMedicines,
+                    onMedicineToggle: { medicineId in
+                        viewStore.send(.medicineToggled(id: medicineId))
+                    },
+                    onAddMedicine: viewStore.isViewingOwnMedicines ? {
+                        viewStore.send(.addMedicineButtonTapped)
+                    } : nil
+                )
                 // 복용 완료 섹션
-                if !viewStore.completedMedicines.isEmpty {
-                    MedicineSectionView(
-                        title: "복용 완료",
-                        medicines: viewStore.completedMedicines,
-                        isCompleted: true,
-                        canToggle: viewStore.isViewingOwnMedicines,
-                        onMedicineToggle: { medicineId in
-                            viewStore.send(.medicineToggled(id: medicineId))
-                        },
-                        onAddMedicine: nil
-                    )
-                }
+                MedicineSectionView(
+                    title: "복용 완료",
+                    medicines: viewStore.completedMedicines,
+                    isCompleted: true,
+                    canToggle: viewStore.isViewingOwnMedicines,
+                    onMedicineToggle: { medicineId in
+                        viewStore.send(.medicineToggled(id: medicineId))
+                    },
+                    onAddMedicine: nil
+                )
             }
         }
     }
@@ -151,12 +147,16 @@ private struct MedicineListContainerView: View {
     var body: some View {
         VStack(spacing: Layout.medicineItemSpacing) {
             ForEach(medicines) { medicine in
+                let isToggleable = canToggle && Int(medicine.id) != nil
+
                 MedicineItemView(
                     medicine: medicine,
                     isCompleted: isCompleted,
-                    canToggle: canToggle,
+                    canToggle: isToggleable,
                     onToggle: {
-                        onMedicineToggle(medicine.id)
+                        if isToggleable {
+                            onMedicineToggle(medicine.id)
+                        }
                     }
                 )
             }

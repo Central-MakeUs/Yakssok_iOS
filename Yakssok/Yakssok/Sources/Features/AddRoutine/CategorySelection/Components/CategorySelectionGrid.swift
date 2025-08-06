@@ -17,8 +17,8 @@ struct CategorySelectionGrid: View {
         VStack(spacing: AddRoutineConstants.Layout.categoryButtonSpacing) {
             categoryRow(indices: 0..<2)
             categoryRow(indices: 2..<4)
-            categoryRow(indices: 4..<5)
-            categoryRow(indices: 5..<7)
+            categoryRow(indices: 4..<6)
+            categoryRow(indices: 6..<7)
         }
     }
 

@@ -38,6 +38,7 @@ struct MedicationListBody: Codable {
 }
 
 struct MedicationCardResponse: Codable {
+    let medicationId: Int
     let medicationType: String
     let medicineName: String
     let medicationStatus: String
@@ -107,11 +108,20 @@ extension MedicineRegistrationData {
             String(format: "%02d:%02d:00", medicineTime.hour, medicineTime.minute)
         }
 
+        let endDateString: String?
+        if dateRange.startDate == dateRange.endDate {
+            // 시작일과 종료일이 같으면 종료일 없음으로 처리
+            endDateString = nil
+        } else {
+            // 시작일과 종료일이 다르면 종료일 전송
+            endDateString = dateFormatter.string(from: dateRange.endDate)
+        }
+
         return MedicationCreateRequest(
             name: medicineInfo.name,
             medicineType: category.toAPIString(),
             startDate: dateFormatter.string(from: dateRange.startDate),
-            endDate: dateRange.startDate == dateRange.endDate ? nil : dateFormatter.string(from: dateRange.endDate),
+            endDate: endDateString,
             intakeDays: apiIntakeDays,
             intakeCount: frequency.times.count,
             alarmSound: alarmSound.toAPIString(),
@@ -188,13 +198,13 @@ extension MedicationCardResponse {
             return (todayMedicines: [], completedMedicines: [])
         }
 
-        let medicines = intakeTimes.map { timeString in
+        let medicines = intakeTimes.enumerated().map { (index, timeString) in
             Medicine(
-                id: UUID().uuidString,
+                id: "\(medicationId)-\(index)",
                 name: medicineName,
                 dosage: nil,
                 time: convertTimeToDisplayFormat(timeString),
-                color: .purple
+                color: colorFromMedicationType(medicationType)
             )
         }
 
@@ -216,6 +226,19 @@ extension MedicationCardResponse {
     }
 }
 
+
+func colorFromMedicationCategory(_ colorType: MedicineCategory.CategoryColorType) -> MedicineColor {
+    switch colorType {
+    case .mental: return .purple
+    case .beauty: return .green
+    case .chronic: return .blue
+    case .diet: return .pink
+    case .pain: return .yellow
+    case .supplement: return .orange
+    case .other: return .red
+    }
+}
+
 extension MedicationScheduleResponse {
     func toMedicineDataResponse() -> MedicineDataResponse {
         var allTodayMedicines: [Medicine] = []
@@ -229,7 +252,7 @@ extension MedicationScheduleResponse {
                         name: schedule.medicationName,
                         dosage: nil,
                         time: convertTimeToDisplayFormat(schedule.intakeTime),
-                        color: .purple
+                        color: colorFromMedicationType(schedule.medicationType)
                     )
 
                     if schedule.isTaken {
@@ -261,4 +284,9 @@ extension MedicationScheduleResponse {
         }
         return timeString
     }
+}
+
+func colorFromMedicationType(_ medicationType: String) -> MedicineColor {
+    let type = MedicineCategory.CategoryColorType(rawValue: medicationType.lowercased()) ?? .other
+    return colorFromMedicationCategory(type)
 }

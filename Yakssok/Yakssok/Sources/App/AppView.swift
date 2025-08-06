@@ -10,7 +10,7 @@ import ComposableArchitecture
 
 struct AppView: View {
     let store: StoreOf<AppFeature>
-    
+
     var body: some View {
         WithViewStore(self.store, observe: { $0 }) { viewStore in
             Group {
@@ -21,6 +21,9 @@ struct AppView: View {
                 } else {
                     IfLetStore(store.scope(state: \.home, action: \.home), then: HomeView.init)
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: APIClient.tokenExpiredNotification)) { _ in
+                viewStore.send(.tokenExpired)
             }
         }
     }

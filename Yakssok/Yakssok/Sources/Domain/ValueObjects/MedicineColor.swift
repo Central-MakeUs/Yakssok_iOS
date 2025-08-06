@@ -11,4 +11,6 @@ enum MedicineColor: Equatable {
     case blue
     case green
     case pink
+    case orange
+    case red
 }

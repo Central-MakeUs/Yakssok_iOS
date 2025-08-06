@@ -76,7 +76,7 @@ private struct ModalHeaderView: View {
             VStack(spacing: Layout.headerSpacing) {
                 HStack(alignment: .bottom) {
                     HStack(spacing: 8) {
-                        ProfileImageView(targetUser: targetUser)
+                        ModalProfileImageView(targetUserId: viewStore.targetUserId)
                         UserInfoView(
                             targetUser: targetUser,
                             relationship: viewStore.relationship
@@ -114,15 +114,15 @@ private struct ModalHeaderView: View {
     }
 }
 
-private struct ProfileImageView: View {
-    let targetUser: String
+private struct ModalProfileImageView: View {
+    let targetUserId: Int
 
     var body: some View {
         Circle()
             .fill(YKColor.Neutral.grey200)
             .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
             .overlay {
-                Image("default-profile-small")
+                Image(ProfileImageManager.getImageName(for: String(targetUserId)))
                     .resizable()
                     .scaledToFill()
                     .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)

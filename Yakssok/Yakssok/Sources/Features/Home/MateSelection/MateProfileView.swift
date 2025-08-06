@@ -73,7 +73,7 @@ private extension MateProfileView {
     }
 
     var defaultProfileIcon: some View {
-        Image("default-profile-small")
+        Image(ProfileImageManager.getImageName(for: user.id))
             .resizable()
             .aspectRatio(contentMode: .fill)
             .frame(width: profileSize, height: profileSize)

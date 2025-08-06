@@ -58,10 +58,12 @@ private struct MedicineColorDot: View {
     private var colorValue: Color {
         switch color {
         case .purple: return YKColor.Sub.purple
-        case .yellow: return YKColor.Sub.yellow
         case .blue: return YKColor.Sub.blue
         case .green: return YKColor.Sub.green
         case .pink: return YKColor.Sub.pink
+        case .yellow: return Color(red: 0.91, green: 0.62, blue: 0.09)
+        case .orange: return Color(red: 0.86, green: 0.49, blue: 0.14)
+        case .red: return Color(red: 0.86, green: 0.14, blue: 0.15)
         }
     }
 }

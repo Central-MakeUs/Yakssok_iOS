@@ -87,10 +87,8 @@ struct ScheduleSelectionFeature: Reducer {
                 return .none
 
             case .endDateButtonTapped:
-                if state.hasEndDate {
-                    state.isSelectingStartDate = false
-                    state.showDatePicker = true
-                }
+                state.isSelectingStartDate = false
+                state.showDatePicker = true
                 return .none
 
             case .datePickerDismissed:

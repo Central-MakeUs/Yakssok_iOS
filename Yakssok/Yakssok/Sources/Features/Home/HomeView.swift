@@ -104,9 +104,14 @@ private struct MainContentView: View {
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            ZStack {
-                BackgroundColor(shouldShowMateCards: viewStore.shouldShowMateCards)
-                    .ignoresSafeArea()
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    Spacer()
+                    YKColor.Neutral.grey50
+                        .frame(height: 500)
+                }
+                .ignoresSafeArea()
+
                 ScrollView {
                     LazyVStack(spacing: Layout.contentSpacing) {
                         if viewStore.shouldShowMateCards {
@@ -116,6 +121,11 @@ private struct MainContentView: View {
                             BottomContentSection(store: store, hasBackground: false)
                         }
                     }
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        BackgroundColor(shouldShowMateCards: viewStore.shouldShowMateCards)
+                            .ignoresSafeArea(edges: .all)
+                    )
                     .onAppear {
                         viewStore.send(.onAppear)
                     }
