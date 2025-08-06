@@ -348,10 +348,7 @@ private struct CustomMessageView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
         .background(YKColor.Neutral.grey100)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(lineWidth: 1)
-        )
+        .cornerRadius(16)
     }
 
     private func placeholderView(placeholderText: String) -> some View {
