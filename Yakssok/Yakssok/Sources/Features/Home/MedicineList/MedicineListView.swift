@@ -33,7 +33,7 @@ struct MedicineListView: View {
                     VStack(spacing: Layout.sectionSpacing) {
                         MedicineSectionHeaderView(
                             title: "먹을 약",
-                            showAddButton: viewStore.isViewingOwnMedicines, // 본인 것만 볼 때만 추가 버튼 표시
+                            showAddButton: viewStore.isViewingOwnMedicines,
                             onAddTapped: {
                                 viewStore.send(.addMedicineButtonTapped)
                             }
@@ -90,6 +90,8 @@ private struct HasMedicinesView: View {
                     medicines: viewStore.todayMedicines,
                     isCompleted: false,
                     canToggle: viewStore.isViewingOwnMedicines,
+                    animatingMedicineId: viewStore.animatingMedicineId,
+                    animationDirection: viewStore.animationDirection,
                     onMedicineToggle: { medicineId in
                         viewStore.send(.medicineToggled(id: medicineId))
                     },
@@ -103,6 +105,8 @@ private struct HasMedicinesView: View {
                     medicines: viewStore.completedMedicines,
                     isCompleted: true,
                     canToggle: viewStore.isViewingOwnMedicines,
+                    animatingMedicineId: viewStore.animatingMedicineId,
+                    animationDirection: viewStore.animationDirection,
                     onMedicineToggle: { medicineId in
                         viewStore.send(.medicineToggled(id: medicineId))
                     },
@@ -118,6 +122,8 @@ private struct MedicineSectionView: View {
     let medicines: [Medicine]
     let isCompleted: Bool
     let canToggle: Bool
+    let animatingMedicineId: String?
+    let animationDirection: MedicineListFeature.AnimationDirection?
     let onMedicineToggle: (String) -> Void
     let onAddMedicine: (() -> Void)?
 
@@ -132,6 +138,8 @@ private struct MedicineSectionView: View {
                 medicines: medicines,
                 isCompleted: isCompleted,
                 canToggle: canToggle,
+                animatingMedicineId: animatingMedicineId,
+                animationDirection: animationDirection,
                 onMedicineToggle: onMedicineToggle
             )
         }
@@ -142,17 +150,22 @@ private struct MedicineListContainerView: View {
     let medicines: [Medicine]
     let isCompleted: Bool
     let canToggle: Bool
+    let animatingMedicineId: String?
+    let animationDirection: MedicineListFeature.AnimationDirection?
     let onMedicineToggle: (String) -> Void
 
     var body: some View {
         VStack(spacing: Layout.medicineItemSpacing) {
             ForEach(medicines) { medicine in
                 let isToggleable = canToggle && Int(medicine.id) != nil
+                let isAnimating = animatingMedicineId == medicine.id
 
-                MedicineItemView(
+                AnimatedMedicineItemView(
                     medicine: medicine,
                     isCompleted: isCompleted,
                     canToggle: isToggleable,
+                    isAnimating: isAnimating,
+                    animationDirection: animationDirection,
                     onToggle: {
                         if isToggleable {
                             onMedicineToggle(medicine.id)
@@ -160,6 +173,84 @@ private struct MedicineListContainerView: View {
                     }
                 )
             }
+        }
+    }
+}
+
+private struct AnimatedMedicineItemView: View {
+    let medicine: Medicine
+    let isCompleted: Bool
+    let canToggle: Bool
+    let isAnimating: Bool
+    let animationDirection: MedicineListFeature.AnimationDirection?
+    let onToggle: () -> Void
+
+    @State private var yOffset: CGFloat = 0
+    @State private var opacity: Double = 1
+    @State private var scale: CGFloat = 1
+
+    var body: some View {
+        MedicineItemView(
+            medicine: medicine,
+            isCompleted: isCompleted,
+            canToggle: canToggle,
+            onToggle: onToggle
+        )
+        .offset(y: yOffset)
+        .opacity(opacity)
+        .scaleEffect(scale)
+        .onChange(of: isAnimating) { _, newValue in
+            if newValue {
+                startAnimation()
+            } else {
+                resetAnimation()
+            }
+        }
+    }
+
+    private func startAnimation() {
+        guard let direction = animationDirection else { return }
+
+        withAnimation(.easeInOut(duration: 0.15)) {
+            scale = 1.05
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                scale = 1.0
+                opacity = 0.3
+
+                switch direction {
+                case .toCompleted:
+                    // 아래로 이동
+                    yOffset = 50
+                case .toTodo:
+                    // 위로 이동
+                    yOffset = -50
+                }
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            withAnimation(.easeIn(duration: 0.25)) {
+                opacity = 0
+
+                switch direction {
+                case .toCompleted:
+                    yOffset = 100
+                case .toTodo:
+                    yOffset = -100
+                }
+            }
+        }
+    }
+
+    private func resetAnimation() {
+        // 애니메이션 상태 초기화
+        withAnimation(.easeOut(duration: 0.2)) {
+            yOffset = 0
+            opacity = 1
+            scale = 1
         }
     }
 }

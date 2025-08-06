@@ -18,25 +18,21 @@ struct UserClient {
 extension UserClient: DependencyKey {
     static let liveValue = Self(
         loadUsers: {
-            do {
-                let response: FollowingListResponse = try await APIClient.shared.request(
-                    endpoint: .getFollowingList,
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: FollowingListResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getFollowingList,
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
-
-                return response.body.followingInfoResponses.map { $0.toUser() }
-            } catch {
-                return []
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
+
+            return response.body.followingInfoResponses.map { $0.toUser() }
         },
 
         loadUserProfile: {
-            let response: UserProfileResponse = try await APIClient.shared.request(
+            let response: UserProfileResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .getUserProfile,
                 method: .GET,
                 body: Optional<String>.none
@@ -50,39 +46,31 @@ extension UserClient: DependencyKey {
         },
 
         loadFollowers: {
-            do {
-                let response: FollowerListResponse = try await APIClient.shared.request(
-                    endpoint: .getFollowerList,
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: FollowerListResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getFollowerList,
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
-
-                return response.body.followerInfoResponses.map { $0.toUser() }
-            } catch {
-                return []
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
+
+            return response.body.followerInfoResponses.map { $0.toUser() }
         },
 
         loadFollowingsForMyPage: {
-            do {
-                let response: FollowingListResponse = try await APIClient.shared.request(
-                    endpoint: .getFollowingList,
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: FollowingListResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getFollowingList,
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
-
-                return response.body.followingInfoResponses.map { $0.toUserForMyPage() }
-            } catch {
-                return []
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
+
+            return response.body.followingInfoResponses.map { $0.toUserForMyPage() }
         },
 
         updateProfile: { request in

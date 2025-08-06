@@ -10,6 +10,7 @@ import Foundation
 
 struct FullCalendarFeature: Reducer {
     struct State: Equatable {
+        var currentUserNickname: String?
         var currentDate: Date
         var selectedDate: Date
         var monthlyMedicineStatus: [String: MedicineStatus]
@@ -87,207 +88,212 @@ struct FullCalendarFeature: Reducer {
     @Dependency(\.userClient) var userClient
 
     var body: some ReducerOf<Self> {
-        Reduce { state, action in
-            switch action {
-            case .onAppear:
-                state.calendarDays = generateCalendarDays(for: state.currentDate)
-
-                return .merge(
-                    .send(.loadUserProfile),
-                    .send(.loadMonthlyData),
-                    .send(.userSelection(.onAppear)),
-                    .send(.medicineList(.onAppear))
-                )
-
-            case .previousMonthTapped:
-                state.currentDate = Calendar.current.date(byAdding: .month, value: -1, to: state.currentDate) ?? state.currentDate
-                state.calendarDays = generateCalendarDays(for: state.currentDate)
-                return .send(.loadMonthlyData)
-
-            case .nextMonthTapped:
-                state.currentDate = Calendar.current.date(byAdding: .month, value: 1, to: state.currentDate) ?? state.currentDate
-                state.calendarDays = generateCalendarDays(for: state.currentDate)
-                return .send(.loadMonthlyData)
-
-            case .dayTapped(let date):
-                state.selectedDate = date
-                return .send(.medicineList(.updateSelectedDate(date)))
-
-            case .updateMedicines(let today, let completed):
-                state.medicineList?.todayMedicines = today
-                state.medicineList?.completedMedicines = completed
-                return .none
-
-            case .medicineList(.medicineToggled):
-                updateCurrentDateStatus(&state)
-                return .none
-
-            case .loadMonthlyData:
-                return .run { [currentDate = state.currentDate, selectedUser = state.userSelection?.selectedUser, currentUser = state.userSelection?.currentUser] send in
-                    do {
-                        let calendar = Calendar.current
-                        guard let monthInterval = calendar.dateInterval(of: .month, for: currentDate) else {
-                            await send(.monthlyDataLoaded([:]))
-                            return
-                        }
-
-                        let startOfMonth = monthInterval.start
-                        let endOfMonth = calendar.date(byAdding: .day, value: -1, to: monthInterval.end) ?? monthInterval.end
-
-                        let monthlyStatus: [String: MedicineStatus]
-
-                        // 선택된 사용자에 따라 다른 API 호출
-                        if let selectedUser = selectedUser,
-                           let friendId = Int(selectedUser.id),
-                           selectedUser.id != currentUser?.id {
-                            // 친구의 월간 데이터 로드
-                            monthlyStatus = try await medicineClient.loadFriendMonthlyStatus(friendId, startOfMonth, endOfMonth)
-                        } else {
-                            // 본인의 월간 데이터 로드
-                            monthlyStatus = try await medicineClient.loadMonthlyStatus(startOfMonth, endOfMonth)
-                        }
-
-                        await send(.monthlyDataLoaded(monthlyStatus))
-                    } catch {
-                        await send(.monthlyDataLoaded([:]))
-                    }
-                }
-
-            case .monthlyDataLoaded(let monthlyStatus):
-                state.monthlyMedicineStatus = monthlyStatus
-                return .none
-
-            case .backButtonTapped:
-                return .send(.delegate(.backToHome))
-
-            case .loadUserProfile:
-                return .run { send in
-                    do {
-                        let response = try await userClient.loadUserProfile()
-                        await send(.userProfileLoaded(response))
-                    } catch {
-                        await send(.userProfileLoadFailed(error.localizedDescription))
-                    }
-                }
-
-            case .userProfileLoaded(let response):
-                let currentUser = response.toCurrentUser()
-
-                return .merge(
-                    .send(.medicineList(.updateCurrentUser(currentUser))),
-                    .send(.userSelection(.updateCurrentUser(currentUser)))
-                )
-
-            case .userProfileLoadFailed:
-                let defaultUser = User.defaultCurrentUser()
-
-                return .merge(
-                    .send(.medicineList(.updateCurrentUser(defaultUser))),
-                    .send(.userSelection(.updateCurrentUser(defaultUser)))
-                )
-
-            case .notificationTapped:
-                return .send(.showNotificationList)
-
-            case .menuTapped:
-                return .send(.showMyPage)
-
-            case .showAddRoutine:
-                state.addRoutine = .init()
-                return .none
-
-            case .dismissAddRoutine:
-                state.addRoutine = nil
-                return .none
-
-            case .showNotificationList:
-                state.notificationList = .init()
-                return .none
-
-            case .dismissNotificationList:
-                state.notificationList = nil
-                return .none
-
-            case .showMateRegistration:
-                let userName = state.userSelection?.currentUser?.name ?? ""
-                state.mateRegistration = MateRegistrationFeature.State(currentUserName: userName)
-                return .none
-
-            case .dismissMateRegistration:
-                state.mateRegistration = nil
-                return .none
-
-            case .showMyPage:
-                state.myPage = .init()
-                return .none
-
-            case .dismissMyPage:
-                state.myPage = nil
-                return .none
-
-            case .myPage(.delegate(.backToHome)):
-                state.myPage = nil
-                return .none
-
-            case .userSelection(.delegate(.userSelectionChanged(let user))):
-                return .merge(
-                    .send(.medicineList(.updateSelectedUser(user))),
-                    .send(.loadMonthlyData)
-                )
-
-            case .userSelection(.userSelected):
-                return .none
-
-            case .userSelection(.addUserButtonTapped):
-                return .send(.showMateRegistration)
-
-            case .mateRegistration(.delegate(.mateAddingCompleted)):
-                state.mateRegistration = nil
-                return .send(.userSelection(.loadUsers))
-
-            case .userSelection(.delegate(.addUserRequested)):
-                return .send(.showMateRegistration)
-
-            case .medicineList(.delegate(.addMedicineRequested)):
-                return .send(.showAddRoutine)
-
-            case .addRoutine(.dismissRequested):
-                state.addRoutine = nil
-                return .none
-
-            case .addRoutine(.routineCompleted):
-                state.addRoutine = nil
-                return .send(.medicineList(.onAppear))
-
-            case .notificationList(.backButtonTapped):
-                state.notificationList = nil
-                return .none
-
-            case .mateRegistration(.backButtonTapped):
-                state.mateRegistration = nil
-                return .none
-
-            case .delegate, .userSelection, .medicineList, .addRoutine, .notificationList, .mateRegistration, .myPage:
-                return .none
+        Reduce(handleAction)
+            .ifLet(\.userSelection, action: \.userSelection) {
+                MateSelectionFeature()
             }
-        }
-        .ifLet(\.userSelection, action: \.userSelection) {
-            MateSelectionFeature()
-        }
-        .ifLet(\.medicineList, action: \.medicineList) {
-            MedicineListFeature()
-        }
-        .ifLet(\.addRoutine, action: \.addRoutine) {
-            AddRoutineFeature()
-        }
-        .ifLet(\.notificationList, action: \.notificationList) {
-            NotificationListFeature()
-        }
-        .ifLet(\.mateRegistration, action: \.mateRegistration) {
-            MateRegistrationFeature()
-        }
-        .ifLet(\.myPage, action: \.myPage) {
-            MyPageFeature()
+            .ifLet(\.medicineList, action: \.medicineList) {
+                MedicineListFeature()
+            }
+            .ifLet(\.addRoutine, action: \.addRoutine) {
+                AddRoutineFeature()
+            }
+            .ifLet(\.notificationList, action: \.notificationList) {
+                NotificationListFeature()
+            }
+            .ifLet(\.mateRegistration, action: \.mateRegistration) {
+                MateRegistrationFeature()
+            }
+            .ifLet(\.myPage, action: \.myPage) {
+                MyPageFeature()
+            }
+    }
+
+    private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
+        switch action {
+        case .onAppear:
+            state.calendarDays = generateCalendarDays(for: state.currentDate)
+
+            return .merge(
+                .send(.loadUserProfile),
+                .send(.loadMonthlyData),
+                .send(.userSelection(.onAppear)),
+                .send(.medicineList(.onAppear))
+            )
+
+        case .previousMonthTapped:
+            state.currentDate = Calendar.current.date(byAdding: .month, value: -1, to: state.currentDate) ?? state.currentDate
+            state.calendarDays = generateCalendarDays(for: state.currentDate)
+            return .send(.loadMonthlyData)
+
+        case .nextMonthTapped:
+            state.currentDate = Calendar.current.date(byAdding: .month, value: 1, to: state.currentDate) ?? state.currentDate
+            state.calendarDays = generateCalendarDays(for: state.currentDate)
+            return .send(.loadMonthlyData)
+
+        case .dayTapped(let date):
+            state.selectedDate = date
+            return .send(.medicineList(.updateSelectedDate(date)))
+
+        case .updateMedicines(let today, let completed):
+            state.medicineList?.todayMedicines = today
+            state.medicineList?.completedMedicines = completed
+            return .none
+
+        case .medicineList(.medicineToggled):
+            updateCurrentDateStatus(&state)
+            return .none
+
+        case .loadMonthlyData:
+            return .run { [currentDate = state.currentDate, selectedUser = state.userSelection?.selectedUser, currentUser = state.userSelection?.currentUser] send in
+                do {
+                    let calendar = Calendar.current
+                    guard let monthInterval = calendar.dateInterval(of: .month, for: currentDate) else {
+                        await send(.monthlyDataLoaded([:]))
+                        return
+                    }
+
+                    let startOfMonth = monthInterval.start
+                    let endOfMonth = calendar.date(byAdding: .day, value: -1, to: monthInterval.end) ?? monthInterval.end
+
+                    let monthlyStatus: [String: MedicineStatus]
+
+                    // 선택된 사용자에 따라 다른 API 호출
+                    if let selectedUser = selectedUser,
+                       let friendId = Int(selectedUser.id),
+                       selectedUser.id != currentUser?.id {
+                        // 친구의 월간 데이터 로드
+                        monthlyStatus = try await medicineClient.loadFriendMonthlyStatus(friendId, startOfMonth, endOfMonth)
+                    } else {
+                        // 본인의 월간 데이터 로드
+                        monthlyStatus = try await medicineClient.loadMonthlyStatus(startOfMonth, endOfMonth)
+                    }
+
+                    await send(.monthlyDataLoaded(monthlyStatus))
+                } catch {
+                    await send(.monthlyDataLoaded([:]))
+                }
+            }
+
+        case .monthlyDataLoaded(let monthlyStatus):
+            state.monthlyMedicineStatus = monthlyStatus
+            return .none
+
+        case .backButtonTapped:
+            return .send(.delegate(.backToHome))
+
+        case .loadUserProfile:
+            return .run { send in
+                do {
+                    let response = try await userClient.loadUserProfile()
+                    await send(.userProfileLoaded(response))
+                } catch {
+                    await send(.userProfileLoadFailed(error.localizedDescription))
+                }
+            }
+
+        case .userProfileLoaded(let response):
+            let currentUser = response.toCurrentUser()
+            state.currentUserNickname = response.body.nickname
+            return .merge(
+                .send(.medicineList(.updateCurrentUser(currentUser))),
+                .send(.userSelection(.updateCurrentUser(currentUser)))
+            )
+
+        case .userProfileLoadFailed:
+            let defaultUser = User.defaultCurrentUser()
+
+            return .merge(
+                .send(.medicineList(.updateCurrentUser(defaultUser))),
+                .send(.userSelection(.updateCurrentUser(defaultUser)))
+            )
+
+        case .notificationTapped:
+            return .send(.showNotificationList)
+
+        case .menuTapped:
+            return .send(.showMyPage)
+
+        case .showAddRoutine:
+            let userName = state.currentUserNickname ?? ""
+            var addRoutineState = AddRoutineFeature.State()
+            addRoutineState.categorySelection?.userNickname = userName
+            state.addRoutine = addRoutineState
+            return .none
+
+        case .dismissAddRoutine:
+            state.addRoutine = nil
+            return .none
+
+        case .showNotificationList:
+            state.notificationList = .init()
+            return .none
+
+        case .dismissNotificationList:
+            state.notificationList = nil
+            return .none
+
+        case .showMateRegistration:
+            let userName = state.userSelection?.currentUser?.name ?? ""
+            state.mateRegistration = MateRegistrationFeature.State(currentUserName: userName)
+            return .none
+
+        case .dismissMateRegistration:
+            state.mateRegistration = nil
+            return .none
+
+        case .showMyPage:
+            state.myPage = .init()
+            return .none
+
+        case .dismissMyPage:
+            state.myPage = nil
+            return .none
+
+        case .myPage(.delegate(.backToHome)):
+            state.myPage = nil
+            return .none
+
+        case .userSelection(.delegate(.userSelectionChanged(let user))):
+            return .merge(
+                .send(.medicineList(.updateSelectedUser(user))),
+                .send(.loadMonthlyData)
+            )
+
+        case .userSelection(.userSelected):
+            return .none
+
+        case .userSelection(.addUserButtonTapped):
+            return .send(.showMateRegistration)
+
+        case .mateRegistration(.delegate(.mateAddingCompleted)):
+            state.mateRegistration = nil
+            return .send(.userSelection(.loadUsers))
+
+        case .userSelection(.delegate(.addUserRequested)):
+            return .send(.showMateRegistration)
+
+        case .medicineList(.delegate(.addMedicineRequested)):
+            return .send(.showAddRoutine)
+
+        case .addRoutine(.dismissRequested):
+            state.addRoutine = nil
+            return .none
+
+        case .addRoutine(.routineCompleted):
+            state.addRoutine = nil
+            return .send(.medicineList(.onAppear))
+
+        case .notificationList(.backButtonTapped):
+            state.notificationList = nil
+            return .none
+
+        case .mateRegistration(.backButtonTapped):
+            state.mateRegistration = nil
+            return .none
+
+        case .delegate, .userSelection, .medicineList, .addRoutine, .notificationList, .mateRegistration, .myPage:
+            return .none
         }
     }
 

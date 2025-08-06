@@ -21,6 +21,9 @@ struct MedicineListFeature {
         var isLoading: Bool = false
         var error: String?
 
+        var animatingMedicineId: String? = nil
+        var animationDirection: AnimationDirection? = nil
+
         var medicineState: MedicineState {
             if !hasRoutinesEverRegistered {
                 return .noRoutines
@@ -39,6 +42,11 @@ struct MedicineListFeature {
         }
     }
 
+    enum AnimationDirection: Equatable {
+        case toCompleted  // 먹을 약 -> 복용 완료
+        case toTodo      // 복용 완료 -> 먹을 약
+    }
+
     enum Action: Equatable {
         case onAppear
         case loadInitialData
@@ -54,6 +62,9 @@ struct MedicineListFeature {
         case loadFriendMedicineData(friendId: Int)
         case friendMedicineDataLoaded(MedicineDataResponse)
         case loadingFailed(String)
+
+        case startMedicineAnimation(medicineId: String, direction: AnimationDirection)
+        case finishMedicineAnimation
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -96,11 +107,9 @@ struct MedicineListFeature {
             case .updateSelectedUser(let user):
                 state.selectedUser = user
 
-                // 선택된 사용자가 바뀌면 해당 사용자의 데이터를 로드
                 if let user = user, let friendId = Int(user.id), user.id != state.currentUser?.id {
                     return .send(.loadFriendMedicineData(friendId: friendId))
                 } else if user?.id == state.currentUser?.id {
-                    // 본인을 선택한 경우 본인 데이터 로드
                     return .send(.loadMedicineData)
                 }
                 return .none
@@ -172,7 +181,6 @@ struct MedicineListFeature {
             case .medicineToggled(let medicineId):
                 guard state.isViewingOwnMedicines else { return .none }
 
-                // 오늘 날짜인지 확인
                 let today = Date()
                 let calendar = Calendar.current
                 let isToday = calendar.isDate(state.selectedDate, inSameDayAs: today)
@@ -185,20 +193,46 @@ struct MedicineListFeature {
                     return .none
                 }
 
-                return .run { send in
-                    do {
-                        try await medicineClient.takeMedicine(scheduleId)
-                        let todayResponse = try await medicineClient.loadTodaySchedules()
-                        await send(.medicineDataLoaded(todayResponse))
-                    } catch {
+                // 애니메이션 방향 결정
+                let direction: AnimationDirection
+                if state.todayMedicines.contains(where: { $0.id == medicineId }) {
+                    direction = .toCompleted
+                } else {
+                    direction = .toTodo
+                }
+
+                // 애니메이션 시작
+                return .merge(
+                    .send(.startMedicineAnimation(medicineId: medicineId, direction: direction)),
+                    .run { send in
+                        // 0.3초 후에 실제 API 호출
+                        try await Task.sleep(nanoseconds: 300_000_000)
+
                         do {
+                            try await medicineClient.takeMedicine(scheduleId)
                             let todayResponse = try await medicineClient.loadTodaySchedules()
                             await send(.medicineDataLoaded(todayResponse))
                         } catch {
-                            await send(.loadingFailed(error.localizedDescription))
+                            do {
+                                let todayResponse = try await medicineClient.loadTodaySchedules()
+                                await send(.medicineDataLoaded(todayResponse))
+                            } catch {
+                                await send(.loadingFailed(error.localizedDescription))
+                            }
                         }
+                        await send(.finishMedicineAnimation)
                     }
-                }
+                )
+
+            case .startMedicineAnimation(let medicineId, let direction):
+                state.animatingMedicineId = medicineId
+                state.animationDirection = direction
+                return .none
+
+            case .finishMedicineAnimation:
+                state.animatingMedicineId = nil
+                state.animationDirection = nil
+                return .none
 
             case .addMedicineButtonTapped:
                 return .send(.delegate(.addMedicineRequested))

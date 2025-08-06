@@ -24,31 +24,23 @@ struct MedicineClient {
 extension MedicineClient: DependencyKey {
     static let liveValue = Self(
         loadMedicineData: {
-            do {
-                let response: MedicationListResponse = try await APIClient.shared.request(
-                    endpoint: .getMedications,
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: MedicationListResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getMedications,
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
-
-                return convertToMedicineDataResponse(response)
-            } catch {
-                return MedicineDataResponse(
-                    routines: [],
-                    todayMedicines: [],
-                    completedMedicines: []
-                )
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
+
+            return convertToMedicineDataResponse(response)
         },
 
         createMedicineRoutine: { registrationData in
             let request = registrationData.toAPIRequest()
 
-            let response: MedicationCreateResponse = try await APIClient.shared.request(
+            let response: MedicationCreateResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .createMedication,
                 method: .POST,
                 body: request
@@ -60,75 +52,63 @@ extension MedicineClient: DependencyKey {
         },
 
         loadTodaySchedules: {
-            do {
-                let response: MedicationScheduleResponse = try await APIClient.shared.request(
-                    endpoint: .getMedicationSchedulesToday,
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: MedicationScheduleResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getMedicationSchedulesToday,
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
-
-                return response.toMedicineDataResponse()
-            } catch {
-                return MedicineDataResponse(routines: [], todayMedicines: [], completedMedicines: [])
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
+
+            return response.toMedicineDataResponse()
         },
 
         loadSchedulesForDateRange: { startDate, endDate in
-            do {
-                let response: MedicationScheduleResponse = try await APIClient.shared.request(
-                    endpoint: .getMedicationSchedules(startDate, endDate),
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: MedicationScheduleResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getMedicationSchedules(startDate, endDate),
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
-
-                return response.toMedicineDataResponse()
-            } catch {
-                return MedicineDataResponse(routines: [], todayMedicines: [], completedMedicines: [])
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
+
+            return response.toMedicineDataResponse()
         },
 
         loadMonthlyStatus: { startDate, endDate in
-            do {
-                let response: MedicationScheduleResponse = try await APIClient.shared.request(
-                    endpoint: .getMedicationSchedules(startDate, endDate),
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: MedicationScheduleResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getMedicationSchedules(startDate, endDate),
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
+            }
 
-                var monthlyStatus: [String: MedicineStatus] = [:]
+            var monthlyStatus: [String: MedicineStatus] = [:]
 
-                for (dateKey, daySchedules) in response.body.groupedSchedules {
-                    for daySchedule in daySchedules {
-                        if daySchedule.schedules.isEmpty {
-                            monthlyStatus[dateKey] = .none
-                        } else if daySchedule.allTaken {
-                            monthlyStatus[dateKey] = .completed
-                        } else {
-                            monthlyStatus[dateKey] = .incomplete
-                        }
+            for (dateKey, daySchedules) in response.body.groupedSchedules {
+                for daySchedule in daySchedules {
+                    if daySchedule.schedules.isEmpty {
+                        monthlyStatus[dateKey] = .none
+                    } else if daySchedule.allTaken {
+                        monthlyStatus[dateKey] = .completed
+                    } else {
+                        monthlyStatus[dateKey] = .incomplete
                     }
                 }
-
-                return monthlyStatus
-            } catch {
-                return [:]
             }
+
+            return monthlyStatus
         },
 
         takeMedicine: { scheduleId in
-            let response: TakeMedicationResponse = try await APIClient.shared.request(
+            let response: TakeMedicationResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .takeMedication(scheduleId),
                 method: .PUT,
                 body: Optional<String>.none
@@ -140,75 +120,63 @@ extension MedicineClient: DependencyKey {
         },
 
         loadFriendTodaySchedules: { friendId in
-            do {
-                let response: MedicationScheduleResponse = try await APIClient.shared.request(
-                    endpoint: .getFriendMedicationSchedulesToday(friendId),
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: MedicationScheduleResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getFriendMedicationSchedulesToday(friendId),
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
-
-                return response.toMedicineDataResponse()
-            } catch {
-                return MedicineDataResponse(routines: [], todayMedicines: [], completedMedicines: [])
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
+
+            return response.toMedicineDataResponse()
         },
 
         loadFriendSchedulesForDateRange: { friendId, startDate, endDate in
-            do {
-                let response: MedicationScheduleResponse = try await APIClient.shared.request(
-                    endpoint: .getFriendMedicationSchedules(friendId, startDate, endDate),
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: MedicationScheduleResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getFriendMedicationSchedules(friendId, startDate, endDate),
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
-
-                return response.toMedicineDataResponse()
-            } catch {
-                return MedicineDataResponse(routines: [], todayMedicines: [], completedMedicines: [])
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
             }
+
+            return response.toMedicineDataResponse()
         },
 
         loadFriendMonthlyStatus: { friendId, startDate, endDate in
-            do {
-                let response: MedicationScheduleResponse = try await APIClient.shared.request(
-                    endpoint: .getFriendMedicationSchedules(friendId, startDate, endDate),
-                    method: .GET,
-                    body: Optional<String>.none
-                )
+            let response: MedicationScheduleResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getFriendMedicationSchedules(friendId, startDate, endDate),
+                method: .GET,
+                body: Optional<String>.none
+            )
 
-                if response.code != 0 {
-                    throw APIError.serverError(response.code)
-                }
+            if response.code != 0 {
+                throw APIError.serverError(response.code)
+            }
 
-                var monthlyStatus: [String: MedicineStatus] = [:]
+            var monthlyStatus: [String: MedicineStatus] = [:]
 
-                for (dateKey, daySchedules) in response.body.groupedSchedules {
-                    for daySchedule in daySchedules {
-                        if daySchedule.schedules.isEmpty {
-                            monthlyStatus[dateKey] = .none
-                        } else if daySchedule.allTaken {
-                            monthlyStatus[dateKey] = .completed
-                        } else {
-                            monthlyStatus[dateKey] = .incomplete
-                        }
+            for (dateKey, daySchedules) in response.body.groupedSchedules {
+                for daySchedule in daySchedules {
+                    if daySchedule.schedules.isEmpty {
+                        monthlyStatus[dateKey] = .none
+                    } else if daySchedule.allTaken {
+                        monthlyStatus[dateKey] = .completed
+                    } else {
+                        monthlyStatus[dateKey] = .incomplete
                     }
                 }
-
-                return monthlyStatus
-            } catch {
-                return [:]
             }
+
+            return monthlyStatus
         },
 
         stopMedicine: { medicationId in
-            let response: StopMedicineResponse = try await APIClient.shared.request(
+            let response: StopMedicineResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .stopMedication(medicationId),
                 method: .PUT,
                 body: Optional<String>.none
@@ -228,7 +196,6 @@ extension DependencyValues {
     }
 }
 
-// MARK: - Helper Functions
 private func convertToMedicineDataResponse(_ apiResponse: MedicationListResponse, selectedDate: Date = Date()) -> MedicineDataResponse {
     var allTodayMedicines: [Medicine] = []
     var allCompletedMedicines: [Medicine] = []

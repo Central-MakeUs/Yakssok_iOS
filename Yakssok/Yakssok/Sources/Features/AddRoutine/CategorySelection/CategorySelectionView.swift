@@ -33,7 +33,7 @@ struct CategorySelectionView: View {
 
     private func medicineNameSection(viewStore: ViewStoreOf<CategorySelectionFeature>) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(AddRoutineConstants.StepTitle.medicineQuestion)
+            Text("\(viewStore.userNickname)님이 먹을 약은 무엇인가요?")
                 .font(YKFont.subtitle2)
                 .foregroundColor(YKColor.Neutral.grey950)
 

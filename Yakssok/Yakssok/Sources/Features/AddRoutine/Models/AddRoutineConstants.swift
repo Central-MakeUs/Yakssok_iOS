@@ -13,7 +13,6 @@ enum AddRoutineConstants {
     static let stepImagePrefix = "step"
 
     enum StepTitle {
-        static let medicineQuestion = "집00님이 먹을 약은 무엇인가요?"
         static let categoryQuestion = "약 종류를 선택해주세요"
     }
 

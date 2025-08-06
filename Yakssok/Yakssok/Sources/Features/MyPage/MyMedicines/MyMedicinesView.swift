@@ -83,6 +83,16 @@ struct MyMedicinesView: View {
                             onConfirm: { viewStore.send(.confirmStopMedicine) }
                         )
                     }
+
+                    // 에러 메시지 토스트
+                    WithViewStore(store, observe: \.error) { errorViewStore in
+                        if let error = errorViewStore.state {
+                            MessageOverlay(
+                                message: error,
+                                onDismiss: { store.send(.dismissError) }
+                            )
+                        }
+                    }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
                 .navigationBarHidden(true)
@@ -128,8 +138,7 @@ private struct AddMedicineButton: View {
     let onTapped: () -> Void
 
     var body: some View {
-        Button(action: {
-        }) {
+        Button(action: onTapped) {
             HStack(spacing: 4) {
                 Text("복약추가하기")
                     .font(YKFont.body2)
@@ -367,19 +376,33 @@ private struct StopMedicineConfirmationModal: View {
                     .padding(.bottom, 60)
 
                     HStack(spacing: 8) {
-                        Button("취소") { onDismiss() }
+                        Button {
+                            onDismiss()
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("취소")
+                                    .foregroundColor(YKColor.Neutral.grey500)
+                                Spacer()
+                            }
                             .frame(height: 56)
-                            .frame(maxWidth: .infinity)
-                            .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey500)
-                            .cornerRadius(16)
+                        }
+                        .background(YKColor.Neutral.grey100)
+                        .cornerRadius(16)
 
-                        Button("종료") { onConfirm() }
+                        Button {
+                            onConfirm()
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("종료")
+                                    .foregroundColor(YKColor.Neutral.grey500)
+                                Spacer()
+                            }
                             .frame(height: 56)
-                            .frame(maxWidth: .infinity)
-                            .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey500)
-                            .cornerRadius(16)
+                        }
+                        .background(YKColor.Neutral.grey100)
+                        .cornerRadius(16)
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
@@ -388,6 +411,37 @@ private struct StopMedicineConfirmationModal: View {
                 .cornerRadius(24)
                 .padding(.horizontal, 13.5)
                 .padding(.bottom, 50)
+            }
+        }
+    }
+}
+
+private struct MessageOverlay: View {
+    let message: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.clear
+                .ignoresSafeArea()
+                .onTapGesture {
+                    onDismiss()
+                }
+
+            VStack(spacing: 16) {
+                Text(message)
+                    .font(YKFont.subtitle2)
+                    .foregroundColor(Color.white)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(YKColor.Neutral.grey900)
+            .cornerRadius(12)
+            .padding(.bottom, 50)
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                onDismiss()
             }
         }
     }

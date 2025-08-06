@@ -18,7 +18,7 @@ struct MateRegistrationClient {
 extension MateRegistrationClient: DependencyKey {
     static let liveValue = Self(
         getMyInviteCode: {
-            let response: MyInviteCodeResponse = try await APIClient.shared.request(
+            let response: MyInviteCodeResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .getMyInviteCode,
                 method: .GET,
                 body: Optional<String>.none
@@ -30,7 +30,7 @@ extension MateRegistrationClient: DependencyKey {
         },
 
         getUserByInviteCode: { inviteCode in
-            let response: UserByInviteCodeResponse = try await APIClient.shared.request(
+            let response: UserByInviteCodeResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .getUserByInviteCode(inviteCode),
                 method: .GET,
                 body: Optional<String>.none
@@ -49,7 +49,7 @@ extension MateRegistrationClient: DependencyKey {
                 inviteCode: inviteCode,
                 relationName: relationName
             )
-            let response: FollowFriendResponse = try await APIClient.shared.request(
+            let response: FollowFriendResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .followFriend,
                 method: .POST,
                 body: request

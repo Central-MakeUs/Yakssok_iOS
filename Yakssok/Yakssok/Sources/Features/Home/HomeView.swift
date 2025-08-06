@@ -25,9 +25,6 @@ struct HomeView: View {
                             IfLetStore(store.scope(state: \.messageModal, action: \.messageModal)) { modalStore in
                                 MessageModalView(store: modalStore)
                             }
-                            IfLetStore(store.scope(state: \.reminderModal, action: \.reminderModal)) { modalStore in
-                                ReminderModalView(store: modalStore)
-                            }
                             IfLetStore(store.scope(state: \.addRoutine, action: \.addRoutine)) { addRoutineStore in
                                 AddRoutineView(store: addRoutineStore)
                             }

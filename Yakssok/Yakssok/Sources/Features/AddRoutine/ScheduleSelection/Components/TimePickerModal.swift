@@ -53,22 +53,34 @@ struct TimePickerModal: View {
                         Spacer()
                             .frame(height: 50)
 
-                        // 하단 버튼들
                         HStack(spacing: 8) {
-                            Button("닫기") {
+                            Button {
                                 viewStore.send(.dismissTimePickerModal)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("닫기")
+                                        .foregroundColor(YKColor.Neutral.grey400)
+                                    Spacer()
+                                }
+                                .frame(height: 56)
                             }
-                            .frame(width: 84, height: 56)
+                            .frame(width: 84)
                             .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey400)
                             .cornerRadius(16)
 
-                            Button("선택") {
+                            Button {
                                 viewStore.send(.confirmTimeSelection)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("선택")
+                                        .foregroundColor(YKColor.Neutral.grey50)
+                                    Spacer()
+                                }
+                                .frame(minHeight: 56)
                             }
-                            .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Primary.primary400)
-                            .foregroundColor(YKColor.Neutral.grey50)
                             .cornerRadius(16)
                         }
                         .padding(.horizontal, 16)

@@ -63,19 +63,33 @@ private struct WithdrawalConfirmModal: View {
                         .padding(.bottom, 60)
 
                         HStack(spacing: 8) {
-                            Button("취소") { viewStore.send(.cancelTapped) }
+                            Button {
+                                viewStore.send(.cancelTapped)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("취소")
+                                        .foregroundColor(YKColor.Neutral.grey500)
+                                    Spacer()
+                                }
                                 .frame(height: 56)
-                                .frame(maxWidth: .infinity)
-                                .background(YKColor.Neutral.grey100)
-                                .foregroundColor(YKColor.Neutral.grey500)
-                                .cornerRadius(16)
+                            }
+                            .background(YKColor.Neutral.grey100)
+                            .cornerRadius(16)
 
-                            Button("회원탈퇴") { viewStore.send(.withdrawalTapped) }
+                            Button {
+                                viewStore.send(.withdrawalTapped)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("회원탈퇴")
+                                        .foregroundColor(YKColor.Neutral.grey500)
+                                    Spacer()
+                                }
                                 .frame(height: 56)
-                                .frame(maxWidth: .infinity)
-                                .background(YKColor.Neutral.grey100)
-                                .foregroundColor(YKColor.Neutral.grey500)
-                                .cornerRadius(16)
+                            }
+                            .background(YKColor.Neutral.grey100)
+                            .cornerRadius(16)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
@@ -128,15 +142,22 @@ private struct WithdrawalCompleteModal: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 60)
 
-                        Button("또 봐요!") { viewStore.send(.withdrawalCompleteTapped) }
+                        Button {
+                            viewStore.send(.withdrawalCompleteTapped)
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("또 봐요!")
+                                    .font(YKFont.subtitle2)
+                                    .foregroundColor(YKColor.Neutral.grey50)
+                                Spacer()
+                            }
                             .frame(height: 56)
-                            .frame(maxWidth: .infinity)
-                            .font(YKFont.subtitle2)
-                            .background(YKColor.Primary.primary400)
-                            .foregroundColor(YKColor.Neutral.grey50)
-                            .cornerRadius(16)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 16)
+                        }
+                        .background(YKColor.Primary.primary400)
+                        .cornerRadius(16)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
                     }
                     .background(YKColor.Neutral.grey50)
                     .cornerRadius(24)

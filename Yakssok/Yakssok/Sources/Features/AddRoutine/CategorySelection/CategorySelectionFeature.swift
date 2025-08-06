@@ -9,6 +9,7 @@ import ComposableArchitecture
 
 struct CategorySelectionFeature: Reducer {
     struct State: Equatable {
+        var userNickname: String = ""
         var medicineName: String = ""
         var selectedCategory: MedicineCategory?
         let categories: [MedicineCategory] = MedicineCategory.defaultCategories

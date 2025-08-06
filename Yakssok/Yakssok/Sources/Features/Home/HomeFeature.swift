@@ -162,7 +162,7 @@ struct HomeFeature: Reducer {
             return .none
 
         case .showReminderModal:
-            return handleShowMissedMedicineModal(&state)
+            return .none
 
         case .showMessageModal(let targetUser, let targetUserId, let messageType):
             return handleShowMessageModal(&state, targetUser: targetUser, targetUserId: targetUserId, messageType: messageType)
@@ -172,7 +172,10 @@ struct HomeFeature: Reducer {
             return .none
 
         case .showAddRoutine:
-            state.addRoutine = .init()
+            let userName = state.currentUserNickname ?? ""
+            var addRoutineState = AddRoutineFeature.State()
+            addRoutineState.categorySelection?.userNickname = userName
+            state.addRoutine = addRoutineState
             return .none
 
         case .dismissAddRoutine:
@@ -290,15 +293,6 @@ struct HomeFeature: Reducer {
             .send(.weeklyCalendar(.onAppear)),
             .send(.showReminderModal)
         )
-    }
-
-    private func handleShowMissedMedicineModal(_ state: inout State) -> Effect<Action> {
-        let mockData = MockMedicineData.medicineData(for: .hasMedicines)
-        state.reminderModal = ReminderModalFeature.State(
-            userName: "김00",
-            missedMedicines: mockData.todayMedicines
-        )
-        return .none
     }
 
     private func handleShowMessageModal(

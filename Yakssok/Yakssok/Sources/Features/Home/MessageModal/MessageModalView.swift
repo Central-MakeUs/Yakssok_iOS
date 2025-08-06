@@ -182,7 +182,7 @@ private struct MedicineRowView: View {
     var body: some View {
         HStack {
             Circle()
-                .fill(YKColor.Sub.purple)
+                .fill(medicineColorValue)
                 .frame(width: Layout.medicineDotSize, height: Layout.medicineDotSize)
 
             HStack(spacing: Layout.infoSpacing) {
@@ -209,6 +209,10 @@ private struct MedicineRowView: View {
                         .stroke(YKColor.Neutral.grey200, lineWidth: 1)
                 )
         )
+    }
+
+    private var medicineColorValue: Color {
+        medicine.color.colorValue
     }
 }
 
@@ -348,10 +352,7 @@ private struct CustomMessageView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
         .background(YKColor.Neutral.grey100)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(lineWidth: 1)
-        )
+        .cornerRadius(16)
     }
 
     private func placeholderView(placeholderText: String) -> some View {
@@ -420,37 +421,45 @@ private struct ModalFooterView: View {
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             HStack(spacing: Layout.footerButtonSpacing) {
+                // 닫기 버튼
                 Button(action: {
                     viewStore.send(.closeButtonTapped)
                 }) {
-                    Text("닫기")
-                        .font(YKFont.subtitle2)
-                        .foregroundColor(YKColor.Neutral.grey400)
-                        .padding(.horizontal, 28)
+                    HStack {
+                        Spacer()
+                        Text("닫기")
+                            .font(YKFont.subtitle2)
+                            .foregroundColor(YKColor.Neutral.grey400)
+                        Spacer()
+                    }
+                    .padding(.vertical, Layout.footerButtonVerticalPadding)
                 }
-                .padding(.vertical, Layout.footerButtonVerticalPadding)
                 .frame(width: 84)
                 .background(
                     RoundedRectangle(cornerRadius: Layout.footerButtonCornerRadius)
                         .fill(YKColor.Neutral.grey100)
                 )
+
+                // 전송 버튼
                 Button(action: {
                     viewStore.send(.sendButtonTapped)
                 }) {
-                    Text("전송")
-                        .font(YKFont.subtitle2)
-                        .foregroundStyle(hasSelectedMessage(viewStore) ? YKColor.Neutral.grey50 : YKColor.Neutral.grey400)
+                    HStack {
+                        Spacer()
+                        Text("전송")
+                            .font(YKFont.subtitle2)
+                            .foregroundStyle(hasSelectedMessage(viewStore) ? YKColor.Neutral.grey50 : YKColor.Neutral.grey400)
+                        Spacer()
+                    }
+                    .padding(.vertical, Layout.footerButtonVerticalPadding)
                 }
-
-                .padding(.vertical, Layout.footerButtonVerticalPadding)
-                .frame(maxWidth: .infinity)
+                .disabled(!hasSelectedMessage(viewStore))
                 .background(
                     RoundedRectangle(cornerRadius: Layout.footerButtonCornerRadius)
                         .fill(hasSelectedMessage(viewStore) ?
                               (viewStore.messageType == .nagging ? YKColor.Primary.primary400 : YKColor.Sub.blue) :
                                 YKColor.Neutral.grey150)
                 )
-                .disabled(!hasSelectedMessage(viewStore))
             }
             .padding(.horizontal, Layout.footerHorizontalPadding)
             .padding(.bottom, Layout.footerBottomPadding)
