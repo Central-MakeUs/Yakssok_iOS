@@ -22,6 +22,7 @@ struct MyPageFeature: Reducer {
         var logoutModal: LogoutModalFeature.State?
         var withdrawalModal: WithdrawalModalFeature.State?
         var mateRegistration: MateRegistrationFeature.State?
+        var addRoutine: AddRoutineFeature.State?
         var showPrivacyPolicy: Bool = false
         var showTermsOfUse: Bool = false
     }
@@ -41,12 +42,14 @@ struct MyPageFeature: Reducer {
         case logoutTapped
         case withdrawalTapped
         case showMateRegistration
+        case showAddRoutine
         case myMedicines(MyMedicinesFeature.Action)
         case myMates(MyMatesFeature.Action)
         case profileEdit(ProfileEditFeature.Action)
         case logoutModal(LogoutModalFeature.Action)
         case withdrawalModal(WithdrawalModalFeature.Action)
         case mateRegistration(MateRegistrationFeature.Action)
+        case addRoutine(AddRoutineFeature.Action)
         case dismissPrivacyPolicy
         case dismissTermsOfUse
         case delegate(Delegate)
@@ -80,6 +83,9 @@ struct MyPageFeature: Reducer {
             }
             .ifLet(\.mateRegistration, action: \.mateRegistration) {
                 MateRegistrationFeature()
+            }
+            .ifLet(\.addRoutine, action: \.addRoutine) {
+                AddRoutineFeature()
             }
     }
 
@@ -139,6 +145,9 @@ struct MyPageFeature: Reducer {
             state.myMedicines = nil
             return .none
 
+        case .myMedicines(.delegate(.navigateToAddMedicine)):
+            return .send(.showAddRoutine)
+
         case .myMatesTapped:
             state.myMates = .init()
             return .none
@@ -158,15 +167,35 @@ struct MyPageFeature: Reducer {
             state.mateRegistration = .init(currentUserName: userName)
             return .none
 
+        case .showAddRoutine:
+            let userName = state.userProfile?.name ?? ""
+            var addRoutineState = AddRoutineFeature.State()
+            addRoutineState.categorySelection?.userNickname = userName
+            state.addRoutine = addRoutineState
+            return .none
+
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
-            return .send(.myMates(.loadMates))
-
+            return .merge(
+                .send(.loadUserProfile),
+                .send(.myMates(.loadMates))
+            )
         case .mateRegistration(.backButtonTapped):
             state.mateRegistration = nil
             return .none
 
         case .mateRegistration:
+            return .none
+
+        case .addRoutine(.routineSubmissionSucceeded):
+            state.addRoutine = nil
+            return .send(.loadUserProfile)
+
+        case .addRoutine(.dismissRequested):
+            state.addRoutine = nil
+            return .none
+
+        case .addRoutine:
             return .none
 
         case .personalInfoPolicyTapped:

@@ -67,6 +67,9 @@ struct MyPageView: View {
                     IfLetStore(store.scope(state: \.mateRegistration, action: \.mateRegistration)) { mateRegistrationStore in
                         MateRegistrationView(store: mateRegistrationStore)
                     }
+                    IfLetStore(store.scope(state: \.addRoutine, action: \.addRoutine)) { addRoutineStore in
+                        AddRoutineView(store: addRoutineStore)
+                    }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
                 .sheet(isPresented: viewStore.binding(

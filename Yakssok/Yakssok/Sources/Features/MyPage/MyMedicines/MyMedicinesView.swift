@@ -128,8 +128,7 @@ private struct AddMedicineButton: View {
     let onTapped: () -> Void
 
     var body: some View {
-        Button(action: {
-        }) {
+        Button(action: onTapped) {
             HStack(spacing: 4) {
                 Text("복약추가하기")
                     .font(YKFont.body2)
