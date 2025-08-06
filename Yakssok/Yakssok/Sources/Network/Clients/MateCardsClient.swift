@@ -15,7 +15,7 @@ struct MateCardsClient {
 extension MateCardsClient: DependencyKey {
     static let liveValue = Self(
         loadCards: {
-            let followingResponse: FollowingListResponse = try await APIClient.shared.request(
+            let followingResponse: FollowingListResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .getFollowingList,
                 method: .GET,
                 body: Optional<String>.none
@@ -30,7 +30,7 @@ extension MateCardsClient: DependencyKey {
 
             for friend in followingResponse.body.followingInfoResponses {
                 do {
-                    let scheduleResponse: MedicationScheduleResponse = try await APIClient.shared.request(
+                    let scheduleResponse: MedicationScheduleResponse = try await APIClient.shared.requestWithTokenRefresh(
                         endpoint: .getFriendMedicationSchedulesToday(friend.userId),
                         method: .GET,
                         body: Optional<String>.none

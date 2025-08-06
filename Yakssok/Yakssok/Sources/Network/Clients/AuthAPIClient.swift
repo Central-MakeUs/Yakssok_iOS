@@ -36,7 +36,7 @@ extension AuthAPIClient: DependencyKey {
         },
 
         logout: {
-            let response: JoinResponse = try await APIClient.shared.request(
+            let response: JoinResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .logout,
                 method: .PUT,
                 body: Optional<String>.none
@@ -49,7 +49,7 @@ extension AuthAPIClient: DependencyKey {
 
         refreshToken: { refreshToken in
             let request = RefreshTokenRequest(refreshToken: refreshToken)
-            let response: RefreshTokenResponse = try await APIClient.shared.request(
+            let response: RefreshTokenResponse = try await APIClient.shared.authRequest(
                 endpoint: .refreshToken,
                 method: .POST,
                 body: request
@@ -58,7 +58,7 @@ extension AuthAPIClient: DependencyKey {
         },
 
         withdrawal: {
-            let response: JoinResponse = try await APIClient.shared.request(
+            let response: JoinResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .deleteUser,
                 method: .DELETE,
                 body: Optional<String>.none

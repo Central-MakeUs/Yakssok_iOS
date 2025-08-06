@@ -16,7 +16,7 @@ struct FeedbackAPIClient {
 extension FeedbackAPIClient: DependencyKey {
     static let liveValue = Self(
         sendFeedback: { request in
-            let response: FeedbackResponse = try await APIClient.shared.request(
+            let response: FeedbackResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .sendFeedback,
                 method: .POST,
                 body: request
