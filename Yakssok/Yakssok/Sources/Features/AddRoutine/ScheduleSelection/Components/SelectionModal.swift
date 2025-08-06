@@ -40,22 +40,34 @@ struct SelectionModal<T: Hashable>: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 60)
 
-            // 하단 버튼들
             HStack(spacing: 8) {
-                Button("닫기") {
+                Button {
                     onDismiss()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("닫기")
+                            .foregroundColor(YKColor.Neutral.grey400)
+                        Spacer()
+                    }
+                    .frame(height: 56)
                 }
-                .frame(width: 84, height: 56)
+                .frame(width: 84)
                 .background(YKColor.Neutral.grey100)
-                .foregroundColor(YKColor.Neutral.grey400)
                 .cornerRadius(16)
 
-                Button("선택") {
+                Button {
                     onDismiss()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("선택")
+                            .foregroundColor(.white)
+                        Spacer()
+                    }
+                    .frame(minHeight: 56)
                 }
-                .frame(maxWidth: .infinity, minHeight: 56)
                 .background(YKColor.Primary.primary400)
-                .foregroundColor(.white)
                 .cornerRadius(16)
             }
             .padding(.horizontal, 16)

@@ -56,19 +56,33 @@ private struct LogoutConfirmModal: View {
                             .padding(.bottom, 104)
 
                         HStack(spacing: 8) {
-                            Button("취소") { viewStore.send(.cancelTapped) }
+                            Button {
+                                viewStore.send(.cancelTapped)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("취소")
+                                        .foregroundColor(YKColor.Neutral.grey500)
+                                    Spacer()
+                                }
                                 .frame(height: 56)
-                                .frame(maxWidth: .infinity)
-                                .background(YKColor.Neutral.grey100)
-                                .foregroundColor(YKColor.Neutral.grey500)
-                                .cornerRadius(16)
+                            }
+                            .background(YKColor.Neutral.grey100)
+                            .cornerRadius(16)
 
-                            Button("로그아웃") { viewStore.send(.logoutTapped) }
+                            Button {
+                                viewStore.send(.logoutTapped)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("로그아웃")
+                                        .foregroundColor(YKColor.Neutral.grey500)
+                                    Spacer()
+                                }
                                 .frame(height: 56)
-                                .frame(maxWidth: .infinity)
-                                .background(YKColor.Neutral.grey100)
-                                .foregroundColor(YKColor.Neutral.grey500)
-                                .cornerRadius(16)
+                            }
+                            .background(YKColor.Neutral.grey100)
+                            .cornerRadius(16)
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 16)
@@ -121,15 +135,22 @@ private struct LogoutCompleteModal: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 60)
 
-                        Button("또 봐요!") { viewStore.send(.logoutCompleteTapped) }
+                        Button {
+                            viewStore.send(.logoutCompleteTapped)
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("또 봐요!")
+                                    .font(YKFont.subtitle2)
+                                    .foregroundColor(YKColor.Neutral.grey50)
+                                Spacer()
+                            }
                             .frame(height: 56)
-                            .frame(maxWidth: .infinity)
-                            .font(YKFont.subtitle2)
-                            .background(YKColor.Primary.primary400)
-                            .foregroundColor(YKColor.Neutral.grey50)
-                            .cornerRadius(16)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 16)
+                        }
+                        .background(YKColor.Primary.primary400)
+                        .cornerRadius(16)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
                     }
                     .background(YKColor.Neutral.grey50)
                     .cornerRadius(24)

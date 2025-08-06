@@ -66,16 +66,22 @@ struct CustomTimePickerModal: View {
                             .frame(height: 60)
 
                         HStack(spacing: 8) {
-                            Button("닫기") {
+                            Button {
                                 viewStore.send(.dismissTimePickerModal)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("닫기")
+                                        .font(YKFont.subtitle2)
+                                        .foregroundColor(YKColor.Neutral.grey500)
+                                    Spacer()
+                                }
+                                .frame(minHeight: 56)
                             }
-                            .font(YKFont.subtitle2)
-                            .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey500)
                             .cornerRadius(16)
 
-                            Button("선택") {
+                            Button {
                                 var hour24 = selectedHour
                                 if selectedPeriod == 1 && selectedHour != 12 {
                                     hour24 += 12
@@ -85,11 +91,17 @@ struct CustomTimePickerModal: View {
                                 let time = MedicineTime(hour: hour24, minute: selectedMinute)
                                 viewStore.send(.tempTimeChanged(time))
                                 viewStore.send(.confirmTimeSelection)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("선택")
+                                        .font(YKFont.subtitle2)
+                                        .foregroundColor(YKColor.Neutral.grey50)
+                                    Spacer()
+                                }
+                                .frame(minHeight: 56)
                             }
-                            .font(YKFont.subtitle2)
-                            .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Primary.primary400)
-                            .foregroundColor(YKColor.Neutral.grey50)
                             .cornerRadius(16)
                         }
                         .padding(.horizontal, 16)

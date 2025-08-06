@@ -98,25 +98,37 @@ struct CustomDatePickerModal: View {
                             .frame(height: 60)
 
                         HStack(spacing: 8) {
-                            Button("닫기") {
+                            Button {
                                 viewStore.send(.datePickerDismissed)
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("닫기")
+                                        .font(YKFont.subtitle2)
+                                        .foregroundColor(YKColor.Neutral.grey500)
+                                    Spacer()
+                                }
+                                .frame(minHeight: 56)
                             }
-                            .font(YKFont.subtitle2)
-                            .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey500)
                             .cornerRadius(16)
 
-                            Button("선택") {
+                            Button {
                                 let components = DateComponents(year: selectedYear, month: selectedMonth, day: selectedDay)
                                 if let date = Calendar.current.date(from: components) {
                                     viewStore.send(.dateChanged(date))
                                 }
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("선택")
+                                        .font(YKFont.subtitle2)
+                                        .foregroundColor(YKColor.Neutral.grey50)
+                                    Spacer()
+                                }
+                                .frame(minHeight: 56)
                             }
-                            .font(YKFont.subtitle2)
-                            .frame(maxWidth: .infinity, minHeight: 56)
                             .background(YKColor.Primary.primary400)
-                            .foregroundColor(YKColor.Neutral.grey50)
                             .cornerRadius(16)
                         }
                         .padding(.horizontal, 16)

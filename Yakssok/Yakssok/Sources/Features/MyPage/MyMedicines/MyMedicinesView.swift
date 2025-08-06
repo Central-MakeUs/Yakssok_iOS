@@ -366,19 +366,33 @@ private struct StopMedicineConfirmationModal: View {
                     .padding(.bottom, 60)
 
                     HStack(spacing: 8) {
-                        Button("취소") { onDismiss() }
+                        Button {
+                            onDismiss()
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("취소")
+                                    .foregroundColor(YKColor.Neutral.grey500)
+                                Spacer()
+                            }
                             .frame(height: 56)
-                            .frame(maxWidth: .infinity)
-                            .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey500)
-                            .cornerRadius(16)
+                        }
+                        .background(YKColor.Neutral.grey100)
+                        .cornerRadius(16)
 
-                        Button("종료") { onConfirm() }
+                        Button {
+                            onConfirm()
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("종료")
+                                    .foregroundColor(YKColor.Neutral.grey500)
+                                Spacer()
+                            }
                             .frame(height: 56)
-                            .frame(maxWidth: .infinity)
-                            .background(YKColor.Neutral.grey100)
-                            .foregroundColor(YKColor.Neutral.grey500)
-                            .cornerRadius(16)
+                        }
+                        .background(YKColor.Neutral.grey100)
+                        .cornerRadius(16)
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
