@@ -64,6 +64,9 @@ struct MyPageView: View {
                     IfLetStore(store.scope(state: \.withdrawalModal, action: \.withdrawalModal)) { withdrawalStore in
                         WithdrawalModalView(store: withdrawalStore)
                     }
+                    IfLetStore(store.scope(state: \.mateRegistration, action: \.mateRegistration)) { mateRegistrationStore in
+                        MateRegistrationView(store: mateRegistrationStore)
+                    }
                 }
                 .ignoresSafeArea(.container, edges: .bottom)
                 .sheet(isPresented: viewStore.binding(
