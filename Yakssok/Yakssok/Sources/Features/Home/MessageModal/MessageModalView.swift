@@ -182,7 +182,7 @@ private struct MedicineRowView: View {
     var body: some View {
         HStack {
             Circle()
-                .fill(YKColor.Sub.purple)
+                .fill(medicineColorValue)
                 .frame(width: Layout.medicineDotSize, height: Layout.medicineDotSize)
 
             HStack(spacing: Layout.infoSpacing) {
@@ -209,6 +209,10 @@ private struct MedicineRowView: View {
                         .stroke(YKColor.Neutral.grey200, lineWidth: 1)
                 )
         )
+    }
+
+    private var medicineColorValue: Color {
+        medicine.color.colorValue
     }
 }
 
