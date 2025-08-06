@@ -172,7 +172,10 @@ struct HomeFeature: Reducer {
             return .none
 
         case .showAddRoutine:
-            state.addRoutine = .init()
+            let userName = state.currentUserNickname ?? ""
+            var addRoutineState = AddRoutineFeature.State()
+            addRoutineState.categorySelection?.userNickname = userName
+            state.addRoutine = addRoutineState
             return .none
 
         case .dismissAddRoutine:
