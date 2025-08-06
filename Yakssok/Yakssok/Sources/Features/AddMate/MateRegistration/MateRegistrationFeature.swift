@@ -52,6 +52,7 @@ struct MateRegistrationFeature: Reducer {
     }
 
     @Dependency(\.mateRegistrationClient) var mateRegistrationClient
+    @Dependency(\.userClient) var userClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -85,7 +86,7 @@ struct MateRegistrationFeature: Reducer {
                 let inviteCode = state.mateCode.trimmingCharacters(in: .whitespaces)
                 guard !inviteCode.isEmpty else { return .none }
 
-                // 자기 자신의 코드인지 체크
+                // 내 코드인지 체크
                 if inviteCode == state.myCode {
                     state.error = "자신의 코드는 입력할 수 없어요!"
                     return .none
@@ -98,13 +99,19 @@ struct MateRegistrationFeature: Reducer {
                     do {
                         let userInfo = try await mateRegistrationClient.getUserByInviteCode(inviteCode)
 
+                        let followingUsers = try await userClient.loadFollowingsForMyPage()
+                        let userNames = followingUsers.map { user in user.name }
+                        let isAlreadyFollowing = userNames.contains(userInfo.nickname)
+                        if isAlreadyFollowing {
+                            await send(.addMateFailed("이미 등록된 메이트예요!"))
+                            return
+                        }
+
                         let mateInfo = MateRelationshipFeature.State.MateInfo(
                             name: userInfo.nickname,
                             profileImage: userInfo.profileImageUrl,
                             code: inviteCode
                         )
-
-
                         await send(.addMateSuccess(mateInfo))
                     } catch APIError.userNotFound {
                         await send(.addMateFailed("존재하지 않는 코드예요!"))
