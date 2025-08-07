@@ -25,6 +25,12 @@ struct MedicineListFeature {
         var animationDirection: AnimationDirection? = nil
 
         var medicineState: MedicineState {
+            // 메이트를 선택한 경우에는 항상 hasMedicines 상태로 처리
+            if !isViewingOwnMedicines {
+                return .hasMedicines
+            }
+
+            // "나"를 선택한 경우
             if !hasRoutinesEverRegistered {
                 return .noRoutines
             } else if todayMedicines.isEmpty && completedMedicines.isEmpty {
