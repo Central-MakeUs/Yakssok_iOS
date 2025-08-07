@@ -12,6 +12,8 @@ import Combine
 
 struct MessageModalView: View {
     let store: StoreOf<MessageModalFeature>
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var textFieldFrame: CGRect = .zero
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
@@ -21,17 +23,43 @@ struct MessageModalView: View {
                     .onTapGesture {
                         viewStore.send(.closeButtonTapped)
                     }
-                VStack(spacing: 0) {
-                    Spacer()
-                    modalContent
-                        .offset(y: -viewStore.keyboardHeight * 0.6)
-                        .animation(.easeInOut(duration: 0.3), value: viewStore.keyboardHeight)
+
+                GeometryReader { geometry in
+                    VStack(spacing: 0) {
+                        Spacer()
+                        modalContent
+                            .background(
+                                GeometryReader { modalGeometry in
+                                    Color.clear
+                                        .preference(key: TextFieldFramePreferenceKey.self,
+                                                    value: modalGeometry.frame(in: .global))
+                                }
+                            )
+                            .offset(y: calculateModalOffset(screenHeight: geometry.size.height))
+                            .animation(.easeInOut(duration: 0.3), value: keyboardHeight)
+                    }
                 }
             }
-            .onReceive(Publishers.keyboardHeight) { height in
+            .onReceive(keyboardHeightPublisher) { height in
+                keyboardHeight = height
                 viewStore.send(.keyboardHeightChanged(height))
             }
+            .onPreferenceChange(TextFieldFramePreferenceKey.self) { frame in
+                textFieldFrame = frame
+            }
         }
+    }
+
+    private func calculateModalOffset(screenHeight: CGFloat) -> CGFloat {
+        guard keyboardHeight > 0 else { return 0 }
+
+        let textFieldBottom = textFieldFrame.maxY
+        let keyboardTop = screenHeight - keyboardHeight
+        let desiredSpacing: CGFloat = 20
+        let currentSpacing = keyboardTop - textFieldBottom
+        let requiredOffset = min(0, currentSpacing - desiredSpacing)
+
+        return requiredOffset
     }
 
     private var modalContent: some View {
@@ -49,7 +77,7 @@ struct MessageModalView: View {
                     targetUser: viewStore.targetUser,
                     messageType: viewStore.messageType
                 )
-                ModalContentView(store: store)
+                ModalContentView(store: store, keyboardHeight: keyboardHeight)
                 ModalFooterView(store: store)
             }
             .background(
@@ -62,6 +90,148 @@ struct MessageModalView: View {
     }
 }
 
+private struct TextFieldFramePreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
+
+private var keyboardHeightPublisher: AnyPublisher<CGFloat, Never> {
+    let willShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        .compactMap { notification -> CGFloat? in
+            guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
+                return nil
+            }
+            return keyboardFrame.height
+        }
+
+    let willHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+        .map { _ in CGFloat(0) }
+
+    return willShow
+        .merge(with: willHide)
+        .removeDuplicates()
+        .eraseToAnyPublisher()
+}
+
+private struct ModalContentView: View {
+    let store: StoreOf<MessageModalFeature>
+    let keyboardHeight: CGFloat
+
+    var body: some View {
+        WithViewStore(store, observe: { $0 }) { viewStore in
+            VStack(spacing: Layout.contentSpacing) {
+                PredefinedMessagesView(store: store)
+                CustomMessageView(store: store)
+                    .background(
+                        GeometryReader { geometry in
+                            Color.clear
+                                .preference(key: TextFieldFramePreferenceKey.self,
+                                            value: geometry.frame(in: .global))
+                        }
+                    )
+            }
+            .padding(.horizontal, Layout.contentHorizontalPadding)
+            .padding(.vertical, Layout.contentVerticalPadding)
+        }
+    }
+}
+
+private struct CustomMessageView: View {
+    let store: StoreOf<MessageModalFeature>
+    @State private var localMessage: String = ""
+    @FocusState private var isTextFieldFocused: Bool
+
+    var body: some View {
+        WithViewStore(store, observe: { $0 }) { viewStore in
+            let placeholderText = viewStore.messageType == .nagging ? "한 줄 잔소리" : "한 줄 응원"
+
+            textFieldView(viewStore: viewStore, placeholderText: placeholderText)
+                .onAppear {
+                    localMessage = viewStore.customMessage
+                }
+        }
+    }
+
+    private func textFieldView(viewStore: ViewStoreOf<MessageModalFeature>, placeholderText: String) -> some View {
+        ZStack {
+            placeholderView(placeholderText: placeholderText)
+            inputFieldView(viewStore: viewStore)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+        .background(YKColor.Neutral.grey100)
+        .cornerRadius(16)
+    }
+
+    private func placeholderView(placeholderText: String) -> some View {
+        Group {
+            if localMessage.isEmpty {
+                HStack {
+                    Text(placeholderText)
+                        .font(YKFont.body2)
+                        .foregroundColor(YKColor.Neutral.grey400)
+                    Spacer()
+                }
+            }
+        }
+    }
+
+    private func inputFieldView(viewStore: ViewStoreOf<MessageModalFeature>) -> some View {
+        HStack {
+            textField(viewStore: viewStore)
+            counterAndClearButton(viewStore: viewStore)
+        }
+    }
+
+    private func textField(viewStore: ViewStoreOf<MessageModalFeature>) -> some View {
+        TextField("", text: $localMessage)
+            .focused($isTextFieldFocused)
+            .onChange(of: localMessage) { oldValue, newValue in
+                let trimmedValue = String(newValue.prefix(15))
+                if localMessage != trimmedValue {
+                    localMessage = trimmedValue
+                }
+                viewStore.send(.customMessageChanged(localMessage))
+            }
+            .onChange(of: viewStore.customMessage) { _, newValue in
+                if localMessage != newValue {
+                    localMessage = newValue
+                }
+            }
+            .font(YKFont.body1)
+            .foregroundColor(YKColor.Neutral.grey950)
+            .submitLabel(.done)
+            .onSubmit {
+                isTextFieldFocused = false
+            }
+    }
+
+    private func counterAndClearButton(viewStore: ViewStoreOf<MessageModalFeature>) -> some View {
+        HStack(spacing: 12) {
+            Text("\(localMessage.count)/15")
+                .font(YKFont.body1)
+                .foregroundColor(YKColor.Neutral.grey300)
+            if !localMessage.isEmpty {
+                clearButton(viewStore: viewStore)
+            }
+        }
+    }
+
+    private func clearButton(viewStore: ViewStoreOf<MessageModalFeature>) -> some View {
+        Button(action: {
+            localMessage = ""
+            viewStore.send(.customMessageChanged(""))
+        }) {
+            Image(systemName: "xmark")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(YKColor.Neutral.grey500)
+        }
+    }
+}
+
+// MARK: - Header Views (기존 코드 유지)
 private struct ModalHeaderView: View {
     let store: StoreOf<MessageModalFeature>
     let targetUser: String
@@ -90,7 +260,6 @@ private struct ModalHeaderView: View {
                 }
                 .padding(.horizontal, Layout.headerHorizontalPadding)
                 .padding(.top, Layout.headerTopPadding)
-
 
                 ModalMedicineListView(store: store)
                 Rectangle()
@@ -216,21 +385,7 @@ private struct MedicineRowView: View {
     }
 }
 
-private struct ModalContentView: View {
-    let store: StoreOf<MessageModalFeature>
-
-    var body: some View {
-        WithViewStore(store, observe: { $0 }) { viewStore in
-            VStack(spacing: Layout.contentSpacing) {
-                PredefinedMessagesView(store: store)
-                CustomMessageView(store: store)
-            }
-            .padding(.horizontal, Layout.contentHorizontalPadding)
-            .padding(.vertical, Layout.contentVerticalPadding)
-        }
-    }
-}
-
+// MARK: - Predefined Messages View
 private struct PredefinedMessagesView: View {
     let store: StoreOf<MessageModalFeature>
 
@@ -329,92 +484,7 @@ private struct MessageButton: View {
     }
 }
 
-private struct CustomMessageView: View {
-    let store: StoreOf<MessageModalFeature>
-    @State private var localMessage: String = ""
-
-    var body: some View {
-        WithViewStore(store, observe: { $0 }) { viewStore in
-            let placeholderText = viewStore.messageType == .nagging ? "한 줄 잔소리" : "한 줄 응원"
-
-            textFieldView(viewStore: viewStore, placeholderText: placeholderText)
-                .onAppear {
-                    localMessage = viewStore.customMessage
-                }
-        }
-    }
-
-    private func textFieldView(viewStore: ViewStoreOf<MessageModalFeature>, placeholderText: String) -> some View {
-        ZStack {
-            placeholderView(placeholderText: placeholderText)
-            inputFieldView(viewStore: viewStore)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 16)
-        .background(YKColor.Neutral.grey100)
-        .cornerRadius(16)
-    }
-
-    private func placeholderView(placeholderText: String) -> some View {
-        Group {
-            if localMessage.isEmpty {
-                HStack {
-                    Text(placeholderText)
-                        .font(YKFont.body2)
-                        .foregroundColor(YKColor.Neutral.grey400)
-                    Spacer()
-                }
-            }
-        }
-    }
-
-    private func inputFieldView(viewStore: ViewStoreOf<MessageModalFeature>) -> some View {
-        HStack {
-            textField(viewStore: viewStore)
-            counterAndClearButton(viewStore: viewStore)
-        }
-    }
-
-    private func textField(viewStore: ViewStoreOf<MessageModalFeature>) -> some View {
-        TextField("", text: $localMessage)
-            .onChange(of: localMessage) { oldValue, newValue in
-                if newValue.count > 15 {
-                    localMessage = String(newValue.prefix(15))
-                }
-                viewStore.send(.customMessageChanged(localMessage))
-            }
-            .onChange(of: viewStore.customMessage) { newValue in
-                if localMessage != newValue {
-                    localMessage = newValue
-                }
-            }
-            .font(YKFont.body1)
-            .foregroundColor(YKColor.Neutral.grey950)
-    }
-
-    private func counterAndClearButton(viewStore: ViewStoreOf<MessageModalFeature>) -> some View {
-        HStack(spacing: 12) {
-            Text("\(localMessage.count)/15")
-                .font(YKFont.body1)
-                .foregroundColor(YKColor.Neutral.grey300)
-            if !localMessage.isEmpty {
-                clearButton(viewStore: viewStore)
-            }
-        }
-    }
-
-    private func clearButton(viewStore: ViewStoreOf<MessageModalFeature>) -> some View {
-        Button(action: {
-            localMessage = ""
-            viewStore.send(.customMessageChanged(""))
-        }) {
-            Image(systemName: "xmark")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(YKColor.Neutral.grey500)
-        }
-    }
-}
-
+// MARK: - Footer View
 private struct ModalFooterView: View {
     let store: StoreOf<MessageModalFeature>
 
@@ -471,21 +541,6 @@ private struct ModalFooterView: View {
     }
 }
 
-extension Publishers {
-    static var keyboardHeight: AnyPublisher<CGFloat, Never> {
-        let willShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-            .map { notification -> CGFloat in
-                (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect)?.height ?? 0
-            }
-
-        let willHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
-            .map { _ -> CGFloat in 0 }
-
-        return willShow.merge(with: willHide)
-            .eraseToAnyPublisher()
-    }
-}
-
 private enum Layout {
     // 모달 전체
     static let modalCornerRadius: CGFloat = 24
@@ -513,22 +568,11 @@ private enum Layout {
     static let contentVerticalPadding: CGFloat = 20
 
     // 메시지 버튼
-    static let messageGridColumns = [
-        GridItem(.flexible()),
-        GridItem(.flexible())
-    ]
     static let messageGridSpacing: CGFloat = 8
     static let messageButtonVerticalPadding: CGFloat = 12
     static let messageButtonHorizontalPadding: CGFloat = 16
-    //    static let messageButtonMinHeight: CGFloat = 48
     static let messageButtonCornerRadius: CGFloat = 12
     static let infoSpacing: CGFloat = 8
-
-    // 커스텀 메시지
-    static let customMessageSpacing: CGFloat = 12
-    static let textFieldHorizontalPadding: CGFloat = 16
-    static let textFieldVerticalPadding: CGFloat = 12
-    static let textFieldCornerRadius: CGFloat = 12
 
     // 푸터
     static let footerButtonSpacing: CGFloat = 8
