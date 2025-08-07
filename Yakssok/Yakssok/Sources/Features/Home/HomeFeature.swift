@@ -116,11 +116,13 @@ struct HomeFeature: Reducer {
             return handleOnAppear(&state)
 
         case .onResume:
-            return .merge(
-                .send(.loadUserProfile),
-                .send(.medicineList(.loadInitialData)),
-                .send(.mateCards(.loadCards))
-            )
+            return .run { send in
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { await send(.loadUserProfile) }
+                    group.addTask { await send(.medicineList(.loadInitialData)) }
+                    group.addTask { await send(.mateCards(.loadCards)) }
+                }
+            }
 
         case .loadUserProfile:
             return .run { send in
@@ -180,7 +182,7 @@ struct HomeFeature: Reducer {
 
         case .dismissAddRoutine:
             state.addRoutine = nil
-            return .send(.onResume)
+            return refreshAllComponentsData(&state)
 
         case .showNotificationList:
             state.notificationList = .init()
@@ -213,7 +215,7 @@ struct HomeFeature: Reducer {
         // MARK: - Delegate Actions
         case .myPage(.delegate(.backToHome)):
             state.myPage = nil
-            return .send(.onResume)
+            return refreshAllComponentsData(&state)
 
         case .weeklyCalendar(.delegate(.showFullCalendar)):
             state.fullCalendar = FullCalendarFeature.State()
@@ -221,17 +223,14 @@ struct HomeFeature: Reducer {
 
         case .fullCalendar(.delegate(.backToHome)):
             state.fullCalendar = nil
-            return .send(.onResume)
+            return refreshAllComponentsData(&state)
 
         case .userSelection(.addUserButtonTapped):
             return .send(.showMateRegistration)
 
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
-            return .merge(
-                .send(.userSelection(.loadUsers)),
-                .send(.mateCards(.loadCards))
-            )
+            return refreshAllComponentsData(&state)
 
         case .userSelection(.delegate(.addUserRequested)):
             return .send(.showMateRegistration)
@@ -261,11 +260,11 @@ struct HomeFeature: Reducer {
 
         case .addRoutine(.dismissRequested):
             state.addRoutine = nil
-            return .send(.refreshMedicineList)
+            return refreshAllComponentsData(&state)
 
         case .addRoutine(.routineCompleted):
             state.addRoutine = nil
-            return .send(.refreshMedicineList)
+            return refreshAllComponentsData(&state)
 
         case .notificationList(.backButtonTapped):
             state.notificationList = nil
@@ -287,12 +286,45 @@ struct HomeFeature: Reducer {
     }
 
     private func handleOnAppear(_ state: inout State) -> Effect<Action> {
-        return .merge(
-            .send(.loadUserProfile),
-            .send(.mateCards(.onAppear)),
-            .send(.weeklyCalendar(.onAppear)),
-            .send(.showReminderModal)
-        )
+        return .run { send in
+            // 모든 API를 병렬로 동시 호출
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    await send(.weeklyCalendar(.onAppear))
+                }
+
+                group.addTask {
+                    await send(.showReminderModal)
+                }
+
+                group.addTask {
+                    await send(.loadUserProfile)
+                }
+
+                group.addTask {
+                    await send(.userSelection(.loadUsers))
+                }
+
+                group.addTask {
+                    await send(.mateCards(.loadCards))
+                }
+
+                group.addTask {
+                    await send(.medicineList(.loadInitialData))
+                }
+            }
+        }
+    }
+
+    private func refreshAllComponentsData(_ state: inout State) -> Effect<Action> {
+        return .run { send in
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await send(.loadUserProfile) }
+                group.addTask { await send(.userSelection(.loadUsers)) }
+                group.addTask { await send(.mateCards(.loadCards)) }
+                group.addTask { await send(.medicineList(.loadInitialData)) }
+            }
+        }
     }
 
     private func handleShowMessageModal(
