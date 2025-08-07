@@ -46,7 +46,9 @@ struct AddRoutineFeature: Reducer {
         // API 관련 액션
         case submitRoutine
         case routineSubmissionSucceeded
+        case routineApiSuccess
         case routineSubmissionFailed(String)
+        case rollbackRoutineSubmission
     }
 
     @Dependency(\.medicineClient) var medicineClient
@@ -135,32 +137,40 @@ struct AddRoutineFeature: Reducer {
             case .alarmSelection(.nextButtonTapped):
                 if let finalData = createFinalRoutineData(from: state) {
                     state.completedRoutineData = finalData
-                    state.showFinalCompletionModal = true
+                    return .send(.submitRoutine)
                 } else {
                     print("루틴 데이터 생성 실패")
+                    return .none
                 }
-                return .none
-
-            case .dismissFinalCompletionModal:
-                state.showFinalCompletionModal = false
-                return .send(.submitRoutine)
 
             case .submitRoutine:
                 guard let routineData = state.completedRoutineData else {
-                    return .send(.routineSubmissionFailed("루틴 데이터가 없습니다."))
+                    return .send(.routineSubmissionFailed("루틴 데이터 없음"))
                 }
 
-                state.isSubmitting = true
+                state.showFinalCompletionModal = true
+                state.isSubmitting = false
                 state.submitError = nil
 
                 return .run { send in
                     do {
                         try await medicineClient.createMedicineRoutine(routineData)
-                        await send(.routineSubmissionSucceeded)
+                        await send(.routineApiSuccess)
                     } catch {
-                        await send(.routineSubmissionFailed(error.localizedDescription))
+                        await send(.rollbackRoutineSubmission)
                     }
                 }
+
+            case .routineApiSuccess:
+                return .none
+
+            case .rollbackRoutineSubmission:
+                state.showFinalCompletionModal = false
+                return .none
+
+            case .dismissFinalCompletionModal:
+                state.showFinalCompletionModal = false
+                return .send(.routineSubmissionSucceeded)
 
             case .routineSubmissionSucceeded:
                 state.isSubmitting = false
@@ -168,9 +178,7 @@ struct AddRoutineFeature: Reducer {
 
             case .routineSubmissionFailed(let error):
                 state.isSubmitting = false
-                state.submitError = error
-                print("루틴 등록 실패: \(error)")
-                return .send(.dismissRequested)
+                return .none
 
             case .routineCompleted:
                 return .none
