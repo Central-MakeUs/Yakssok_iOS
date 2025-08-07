@@ -228,18 +228,21 @@ struct HomeFeature: Reducer {
         case .userSelection(.addUserButtonTapped):
             return .send(.showMateRegistration)
 
+        case .userSelection(.delegate(.addUserRequested)):
+            return .send(.showMateRegistration)
+
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
             return refreshAllComponentsData(&state)
-
-        case .userSelection(.delegate(.addUserRequested)):
-            return .send(.showMateRegistration)
 
         case .mateCards(.delegate(.showMessageModal(let targetUser, let targetUserId, let messageType))):
             return .send(.showMessageModal(targetUser: targetUser, targetUserId: targetUserId, messageType: messageType))
 
         case .medicineList(.delegate(.addMedicineRequested)):
             return .send(.showAddRoutine)
+
+        case .medicineList(.delegate(.medicineStatusChanged)):
+            return .send(.mateCards(.loadCards))
 
         case .myPage(.delegate(.logoutCompleted)):
             state.myPage = nil
@@ -258,11 +261,7 @@ struct HomeFeature: Reducer {
             state.messageModal = nil
             return .none
 
-        case .addRoutine(.dismissRequested):
-            state.addRoutine = nil
-            return refreshAllComponentsData(&state)
-
-        case .addRoutine(.routineCompleted):
+        case .addRoutine(.dismissRequested), .addRoutine(.routineCompleted):
             state.addRoutine = nil
             return refreshAllComponentsData(&state)
 
@@ -287,31 +286,13 @@ struct HomeFeature: Reducer {
 
     private func handleOnAppear(_ state: inout State) -> Effect<Action> {
         return .run { send in
-            // 모든 API를 병렬로 동시 호출
             await withTaskGroup(of: Void.self) { group in
-                group.addTask {
-                    await send(.weeklyCalendar(.onAppear))
-                }
-
-                group.addTask {
-                    await send(.showReminderModal)
-                }
-
-                group.addTask {
-                    await send(.loadUserProfile)
-                }
-
-                group.addTask {
-                    await send(.userSelection(.loadUsers))
-                }
-
-                group.addTask {
-                    await send(.mateCards(.loadCards))
-                }
-
-                group.addTask {
-                    await send(.medicineList(.loadInitialData))
-                }
+                group.addTask { await send(.weeklyCalendar(.onAppear)) }
+                group.addTask { await send(.showReminderModal) }
+                group.addTask { await send(.loadUserProfile) }
+                group.addTask { await send(.userSelection(.loadUsers)) }
+                group.addTask { await send(.mateCards(.loadCards)) }
+                group.addTask { await send(.medicineList(.loadInitialData)) }
             }
         }
     }
@@ -337,9 +318,9 @@ struct HomeFeature: Reducer {
             return .none
         }
 
-        let medicines = messageType == .nagging ?
-        card.todayMedicines :   // 못 먹은 약
-        card.completedMedicines // 먹은 약
+        let medicines = messageType == .nagging
+            ? card.todayMedicines
+            : card.completedMedicines
 
         let medicineCount = medicines.count
 
