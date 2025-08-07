@@ -23,7 +23,7 @@ struct OnboardingFeature: Reducer {
         case onAppear
         case nicknameChanged(String)
         case startButtonTapped
-        case isCompleted(nickname: String, authorizationCode: String, oauthType: String)
+        case isCompleted(nickname: String, authorizationCode: String, oauthType: String, identityToken: String? = nil)
         case backToLogin
     }
 
@@ -44,9 +44,10 @@ struct OnboardingFeature: Reducer {
                 return .send(.isCompleted(
                     nickname: state.nickname,
                     authorizationCode: state.authorizationCode,
-                    oauthType: state.oauthType
+                    oauthType: state.oauthType,
+                    identityToken: state.identityToken
                 ))
-                
+
             case .backToLogin:
                 return .none
 

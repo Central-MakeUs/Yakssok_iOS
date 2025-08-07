@@ -17,6 +17,7 @@ struct AppleAuthClient {
 
 struct AppleLoginResult: Equatable {
     let identityToken: String
+    let authorizationCode: String?
 }
 
 extension AppleAuthClient: DependencyKey {
@@ -96,7 +97,15 @@ extension AppleSignInManager: ASAuthorizationControllerDelegate {
             return
         }
 
-        let result = AppleLoginResult(identityToken: identityToken)
+        var authorizationCode: String?
+        if let authorizationCodeData = appleIDCredential.authorizationCode {
+            authorizationCode = String(data: authorizationCodeData, encoding: .utf8)
+        }
+
+        let result = AppleLoginResult(
+            identityToken: identityToken,
+            authorizationCode: authorizationCode
+        )
         completeContinuation(with: .success(result))
     }
 
