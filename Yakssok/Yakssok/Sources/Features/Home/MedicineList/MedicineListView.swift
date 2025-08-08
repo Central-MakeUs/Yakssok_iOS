@@ -89,7 +89,7 @@ private struct HasMedicinesView: View {
                     title: "먹을 약",
                     medicines: viewStore.todayMedicines,
                     isCompleted: false,
-                    canToggle: viewStore.isViewingOwnMedicines,
+                    canToggle: viewStore.canToggleMedicine,
                     animatingMedicineId: viewStore.animatingMedicineId,
                     animationDirection: viewStore.animationDirection,
                     onMedicineToggle: { medicineId in
@@ -104,7 +104,7 @@ private struct HasMedicinesView: View {
                     title: "복용 완료",
                     medicines: viewStore.completedMedicines,
                     isCompleted: true,
-                    canToggle: viewStore.isViewingOwnMedicines,
+                    canToggle: viewStore.canToggleMedicine,
                     animatingMedicineId: viewStore.animatingMedicineId,
                     animationDirection: viewStore.animationDirection,
                     onMedicineToggle: { medicineId in
