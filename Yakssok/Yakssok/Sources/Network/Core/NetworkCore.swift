@@ -193,6 +193,8 @@ class APIClient {
     static let shared = APIClient()
     static let tokenExpiredNotification = Notification.Name("TokenExpired")
 
+    private var tokenRefreshTask: Task<Void, Error>?
+
     private init() {}
 
     // MARK: - 토큰이 필요한 일반적인 API 요청
@@ -393,41 +395,16 @@ class APIClient {
     }
 
     private func refreshTokenAndRetry() async throws {
-        guard let refreshToken = TokenManager.shared.refreshToken else {
-            throw APIError.serverError(401)
-        }
-
-        let oldToken = TokenManager.shared.accessToken
-
-        let request = RefreshTokenRequest(refreshToken: refreshToken)
-        let response: RefreshTokenResponse = try await authRequest(
-            endpoint: .refreshToken,
-            method: .POST,
-            body: request
-        )
-
-        let newToken = response.body.accessToken
-        TokenManager.shared.accessToken = newToken
-
-        let savedToken = TokenManager.shared.accessToken
-
-        if savedToken == nil || savedToken == oldToken {
-            throw APIError.serverError(401)
-        }
-
-        try await Task.sleep(nanoseconds: 100_000_000)
+        _ = try await TokenManager.shared.getValidTokenAsync()
     }
 
     @MainActor
     private func handleTokenExpiry() {
-        let hasAccessToken = TokenManager.shared.accessToken != nil
-        let hasRefreshToken = TokenManager.shared.refreshToken != nil
-
-        if !hasAccessToken && !hasRefreshToken {
-            return
+        // 토큰이 있을 때만 클리어하고 알림 전송
+        if TokenManager.shared.accessToken != nil || TokenManager.shared.refreshToken != nil {
+            TokenManager.shared.clearAllTokens()
+            NotificationCenter.default.post(name: Self.tokenExpiredNotification, object: nil)
         }
-
-        NotificationCenter.default.post(name: Self.tokenExpiredNotification, object: nil)
     }
 
     func testTokenValidity() async {

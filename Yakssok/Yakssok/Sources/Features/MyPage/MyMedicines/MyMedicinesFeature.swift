@@ -62,9 +62,14 @@ struct MyMedicinesFeature: Reducer {
         case routinesLoaded([MedicineRoutine])
         case routinesLoadFailed(String)
         case stopMedicine(String)
-        case stopMedicineCompleted
+        case stopMedicineApiSuccess
         case stopMedicineFailed(String)
         case dismissError
+
+        case dataChanged(DataChangeEvent)
+        case startDataSubscription
+        case stopDataSubscription
+
         case delegate(Delegate)
 
         @CasePathable
@@ -80,10 +85,39 @@ struct MyMedicinesFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .send(.loadRoutines)
+                return .merge(
+                    .send(.loadRoutines),
+                    .send(.startDataSubscription)
+                )
+
+            case .startDataSubscription:
+                return .run { send in
+                    await AppDataManager.shared.subscribe(id: "mymedicines-subscription") { event in
+                        await send(.dataChanged(event))
+                    }
+                }
+                .cancellable(id: "mymedicines-subscription")
+
+            case .stopDataSubscription:
+                return .run { _ in
+                    await AppDataManager.shared.unsubscribe(id: "mymedicines-subscription")
+                }
+                .cancellable(id: "mymedicines-subscription", cancelInFlight: true)
+
+            case .dataChanged(let event):
+                switch event {
+                case .medicineAdded, .medicineUpdated, .medicineDeleted, .allDataChanged:
+                    return .send(.loadRoutines)
+                        .debounce(id: "reload-routines", for: 0.3, scheduler: DispatchQueue.main)
+                default:
+                    return .none
+                }
 
             case .backButtonTapped:
-                return .send(.delegate(.backToMyPage))
+                return .merge(
+                    .send(.stopDataSubscription),
+                    .send(.delegate(.backToMyPage))
+                )
 
             case .tabSelected(let tab):
                 state.selectedTab = tab
@@ -158,15 +192,17 @@ struct MyMedicinesFeature: Reducer {
                 return .run { send in
                     do {
                         try await medicineClient.stopMedicine(medicationId)
-                        await send(.stopMedicineCompleted)
+                        await send(.stopMedicineApiSuccess)
                     } catch {
                         await send(.stopMedicineFailed(error.localizedDescription))
                     }
                 }
 
-            case .stopMedicineCompleted:
+            case .stopMedicineApiSuccess:
                 state.isLoading = false
-                return .send(.loadRoutines)
+                return .run { _ in
+                    await AppDataManager.shared.notifyDataChanged(.medicineDeleted)
+                }
 
             case .stopMedicineFailed(let error):
                 state.error = error

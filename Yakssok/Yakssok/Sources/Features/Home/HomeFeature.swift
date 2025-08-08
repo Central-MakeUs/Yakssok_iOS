@@ -62,6 +62,7 @@ struct HomeFeature: Reducer {
         case showMyPage
         case dismissMyPage
         case refreshMedicineList
+        case refreshAllData
         case delegate(Delegate)
 
         @CasePathable
@@ -113,14 +114,32 @@ struct HomeFeature: Reducer {
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
         switch action {
         case .onAppear:
-            return handleOnAppear(&state)
+            return .merge(
+                handleOnAppear(&state),
+                .run { send in
+                    await AppDataManager.shared.subscribe(id: "home") { event in
+                        switch event {
+                        case .medicineAdded, .medicineUpdated, .medicineDeleted:
+                            await send(.refreshAllData)
+                        case .mateAdded, .mateRemoved:
+                            await send(.refreshAllData)
+                        case .profileUpdated:
+                            await send(.loadUserProfile)
+                        case .allDataChanged:
+                            await send(.refreshAllData)
+                        }
+                    }
+                }
+            )
 
         case .onResume:
-            return .merge(
-                .send(.loadUserProfile),
-                .send(.medicineList(.loadInitialData)),
-                .send(.mateCards(.loadCards))
-            )
+            return .run { send in
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { await send(.loadUserProfile) }
+                    group.addTask { await send(.medicineList(.loadInitialData)) }
+                    group.addTask { await send(.mateCards(.loadCards)) }
+                }
+            }
 
         case .loadUserProfile:
             return .run { send in
@@ -180,7 +199,7 @@ struct HomeFeature: Reducer {
 
         case .dismissAddRoutine:
             state.addRoutine = nil
-            return .send(.onResume)
+            return .none
 
         case .showNotificationList:
             state.notificationList = .init()
@@ -213,7 +232,7 @@ struct HomeFeature: Reducer {
         // MARK: - Delegate Actions
         case .myPage(.delegate(.backToHome)):
             state.myPage = nil
-            return .send(.onResume)
+            return .send(.refreshAllData)
 
         case .weeklyCalendar(.delegate(.showFullCalendar)):
             state.fullCalendar = FullCalendarFeature.State()
@@ -221,17 +240,14 @@ struct HomeFeature: Reducer {
 
         case .fullCalendar(.delegate(.backToHome)):
             state.fullCalendar = nil
-            return .send(.onResume)
+            return .send(.refreshAllData)
 
         case .userSelection(.addUserButtonTapped):
             return .send(.showMateRegistration)
 
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
-            return .merge(
-                .send(.userSelection(.loadUsers)),
-                .send(.mateCards(.loadCards))
-            )
+            return .none
 
         case .userSelection(.delegate(.addUserRequested)):
             return .send(.showMateRegistration)
@@ -241,6 +257,9 @@ struct HomeFeature: Reducer {
 
         case .medicineList(.delegate(.addMedicineRequested)):
             return .send(.showAddRoutine)
+
+        case .medicineList(.delegate(.medicineStatusChanged)):
+            return .send(.mateCards(.loadCards))
 
         case .myPage(.delegate(.logoutCompleted)):
             state.myPage = nil
@@ -261,11 +280,11 @@ struct HomeFeature: Reducer {
 
         case .addRoutine(.dismissRequested):
             state.addRoutine = nil
-            return .send(.refreshMedicineList)
+            return .none
 
         case .addRoutine(.routineCompleted):
             state.addRoutine = nil
-            return .send(.refreshMedicineList)
+            return .none
 
         case .notificationList(.backButtonTapped):
             state.notificationList = nil
@@ -278,6 +297,9 @@ struct HomeFeature: Reducer {
         case .refreshMedicineList:
             return .send(.medicineList(.loadMedicineData))
 
+        case .refreshAllData:
+            return refreshAllComponentsData(&state)
+
         // MARK: - Child Feature Actions
         case .userSelection, .mateCards, .weeklyCalendar, .medicineList,
                 .messageModal, .reminderModal, .addRoutine, .notificationList,
@@ -287,12 +309,27 @@ struct HomeFeature: Reducer {
     }
 
     private func handleOnAppear(_ state: inout State) -> Effect<Action> {
-        return .merge(
-            .send(.loadUserProfile),
-            .send(.mateCards(.onAppear)),
-            .send(.weeklyCalendar(.onAppear)),
-            .send(.showReminderModal)
-        )
+        return .run { send in
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await send(.weeklyCalendar(.onAppear)) }
+                group.addTask { await send(.showReminderModal) }
+                group.addTask { await send(.loadUserProfile) }
+                group.addTask { await send(.userSelection(.loadUsers)) }
+                group.addTask { await send(.mateCards(.loadCards)) }
+                group.addTask { await send(.medicineList(.loadInitialData)) }
+            }
+        }
+    }
+
+    private func refreshAllComponentsData(_ state: inout State) -> Effect<Action> {
+        return .run { send in
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await send(.loadUserProfile) }
+                group.addTask { await send(.userSelection(.loadUsers)) }
+                group.addTask { await send(.mateCards(.loadCards)) }
+                group.addTask { await send(.medicineList(.loadInitialData)) }
+            }
+        }
     }
 
     private func handleShowMessageModal(

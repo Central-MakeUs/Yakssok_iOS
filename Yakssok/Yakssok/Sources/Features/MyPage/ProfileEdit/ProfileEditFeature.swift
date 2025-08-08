@@ -43,7 +43,7 @@ struct ProfileEditFeature: Reducer {
         case imageSelected(UIImage?)
         case changeButtonTapped
         case profileLoaded(UserProfileResponse)
-        case profileUpdateSuccess
+        case profileApiSuccess
         case profileUpdateFailed(String)
         case dismissError
         case delegate(Delegate)
@@ -120,41 +120,40 @@ struct ProfileEditFeature: Reducer {
                 return .run { [nickname = state.nickname, selectedImage = state.selectedImage, currentProfileImage = state.profileImage, shouldDeleteImage = state.shouldDeleteImage] send in
                     do {
                         var newProfileImageUrl: String? = currentProfileImage
-                        // 이미지 처리
+
                         if shouldDeleteImage {
-                            // 이미지 삭제
                             if let oldImageUrl = currentProfileImage {
                                 try await imageClient.deleteImage(oldImageUrl)
                             }
                             newProfileImageUrl = nil
                         } else if let image = selectedImage {
-                            // 새 이미지 처리
                             if currentProfileImage == nil {
-                                // 기존 이미지가 없으면 → 새로 업로드 (POST)
                                 newProfileImageUrl = try await imageClient.uploadImage(image, "profile")
                             } else {
-                                // 기존 이미지가 있으면 → 수정 (PUT)
                                 newProfileImageUrl = try await imageClient.updateImage(image, "profile", currentProfileImage!)
                             }
                         }
-                        // 프로필 업데이트
                         let request = UpdateProfileRequest(
                             nickname: nickname,
                             profileImageUrl: newProfileImageUrl
                         )
 
                         try await userClient.updateProfile(request)
-                        await send(.profileUpdateSuccess)
+                        await send(.profileApiSuccess)
 
                     } catch {
                         await send(.profileUpdateFailed(error.localizedDescription))
                     }
                 }
-
-            case .profileUpdateSuccess:
+                
+            case .profileApiSuccess:
                 state.isLoading = false
-                return .send(.delegate(.profileUpdated))
-
+                return .run { send in
+                    await AppDataManager.shared.notifyDataChanged(.profileUpdated)
+                    try await Task.sleep(nanoseconds: 500_000_000)
+                    await send(.delegate(.profileUpdated))
+                }
+                
             case .profileUpdateFailed(let error):
                 state.isLoading = false
                 state.error = error

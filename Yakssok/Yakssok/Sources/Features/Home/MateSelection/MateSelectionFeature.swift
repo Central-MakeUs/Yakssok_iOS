@@ -6,6 +6,7 @@
 //
 
 import ComposableArchitecture
+import Foundation
 
 struct MateSelectionFeature: Reducer {
     struct State: Equatable {
@@ -29,6 +30,11 @@ struct MateSelectionFeature: Reducer {
         case usersLoaded([User])
         case updateCurrentUser(User)
         case loadingFailed(String)
+
+        case dataChanged(DataChangeEvent)
+        case startDataSubscription
+        case stopDataSubscription
+
         case delegate(Delegate)
 
         @CasePathable
@@ -44,7 +50,33 @@ struct MateSelectionFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .send(.loadUsers)
+                return .merge(
+                    .send(.loadUsers),
+                    .send(.startDataSubscription)
+                )
+
+            case .startDataSubscription:
+                return .run { send in
+                    await AppDataManager.shared.subscribe(id: "mateselection-subscription") { event in
+                        await send(.dataChanged(event))
+                    }
+                }
+                .cancellable(id: "mateselection-subscription")
+
+            case .stopDataSubscription:
+                return .run { _ in
+                    await AppDataManager.shared.unsubscribe(id: "mateselection-subscription")
+                }
+                .cancellable(id: "mateselection-subscription", cancelInFlight: true)
+
+            case .dataChanged(let event):
+                switch event {
+                case .profileUpdated, .mateAdded, .mateRemoved, .allDataChanged:
+                    return .send(.loadUsers)
+                        .debounce(id: "reload-users", for: 0.3, scheduler: DispatchQueue.main)
+                default:
+                    return .none
+                }
 
             case .loadUsers:
                 state.isLoading = true

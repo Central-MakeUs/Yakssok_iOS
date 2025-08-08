@@ -204,18 +204,21 @@ private struct MateAddButton: View {
             Button(action: {
                 viewStore.send(.addMateButtonTapped)
             }) {
-                if viewStore.isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .frame(height: 20)
-                } else {
-                    Text("메이트 추가")
-                        .font(YKFont.subtitle2)
-                        .foregroundColor(buttonTextColor(isEnabled: viewStore.isAddButtonEnabled))
+                HStack {
+                    Spacer()
+                    if viewStore.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .frame(height: 20)
+                    } else {
+                        Text("메이트 추가")
+                            .font(YKFont.subtitle2)
+                            .foregroundColor(buttonTextColor(isEnabled: viewStore.isAddButtonEnabled))
+                    }
+                    Spacer()
                 }
+                .frame(height: Layout.buttonHeight)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: Layout.buttonHeight)
             .background(buttonBackgroundColor(isEnabled: viewStore.isAddButtonEnabled))
             .cornerRadius(Layout.buttonCornerRadius)
             .disabled(!viewStore.isAddButtonEnabled || viewStore.isLoading)
