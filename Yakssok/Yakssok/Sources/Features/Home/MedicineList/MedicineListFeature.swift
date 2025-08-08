@@ -24,6 +24,16 @@ struct MedicineListFeature {
         var animatingMedicineId: String? = nil
         var animationDirection: AnimationDirection? = nil
 
+        var canToggleMedicine: Bool {
+            guard isViewingOwnMedicines else { return false }
+
+            let today = Date()
+            let calendar = Calendar.current
+
+            // 오늘만 토글 가능하게 함
+            return calendar.isDate(selectedDate, inSameDayAs: today)
+        }
+
         var medicineState: MedicineState {
             if !isViewingOwnMedicines {
                 return .hasMedicines
@@ -224,7 +234,7 @@ struct MedicineListFeature {
                 return .none
 
             case .medicineToggled(let medicineId):
-                guard state.isViewingOwnMedicines else { return .none }
+                guard state.canToggleMedicine else { return .none }
 
                 let today = Date()
                 let calendar = Calendar.current
