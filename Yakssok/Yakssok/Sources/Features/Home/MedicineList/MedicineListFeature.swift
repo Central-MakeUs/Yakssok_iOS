@@ -25,12 +25,9 @@ struct MedicineListFeature {
         var animationDirection: AnimationDirection? = nil
 
         var medicineState: MedicineState {
-            // 메이트를 선택한 경우에는 항상 hasMedicines 상태로 처리
             if !isViewingOwnMedicines {
                 return .hasMedicines
             }
-
-            // "나"를 선택한 경우
             if !hasRoutinesEverRegistered {
                 return .noRoutines
             } else if todayMedicines.isEmpty && completedMedicines.isEmpty {
@@ -49,8 +46,8 @@ struct MedicineListFeature {
     }
 
     enum AnimationDirection: Equatable {
-        case toCompleted  // 먹을 약 -> 복용 완료
-        case toTodo      // 복용 완료 -> 먹을 약
+        case toCompleted
+        case toTodo
     }
 
     enum Action: Equatable {
@@ -71,10 +68,18 @@ struct MedicineListFeature {
 
         case startMedicineAnimation(medicineId: String, direction: AnimationDirection)
         case finishMedicineAnimation
+        case rollbackMedicine(medicineId: String)
+        case medicineApiSuccess(medicineId: String)
+
+        case dataChanged(DataChangeEvent)
+        case startDataSubscription
+        case stopDataSubscription
+
         case delegate(Delegate)
 
         enum Delegate: Equatable {
             case addMedicineRequested
+            case medicineStatusChanged
         }
     }
 
@@ -84,7 +89,35 @@ struct MedicineListFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .send(.loadInitialData)
+                return .merge(
+                    .send(.loadInitialData),
+                    .send(.startDataSubscription)
+                )
+
+            case .startDataSubscription:
+                return .run { send in
+                    await AppDataManager.shared.subscribe(id: "medicinelist-subscription") { event in
+                        await send(.dataChanged(event))
+                    }
+                }
+                .cancellable(id: "medicinelist-subscription")
+
+            case .stopDataSubscription:
+                return .run { _ in
+                    await AppDataManager.shared.unsubscribe(id: "medicinelist-subscription")
+                }
+                .cancellable(id: "medicinelist-subscription", cancelInFlight: true)
+
+            case .dataChanged(let event):
+                switch event {
+                case .medicineAdded, .medicineUpdated, .medicineDeleted, .allDataChanged:
+                    return .merge(
+                        .send(.loadInitialData)
+                    )
+                    .debounce(id: "reload-medicines", for: 0.3, scheduler: DispatchQueue.main)
+                default:
+                    return .none
+                }
 
             case .loadInitialData:
                 state.isLoading = true
@@ -94,6 +127,38 @@ struct MedicineListFeature {
                         let routineResponse = try await medicineClient.loadMedicineData()
                         await send(.routinesLoaded(routineResponse.routines))
 
+                        let today = Date()
+                        let calendar = Calendar.current
+
+                        let response: MedicineDataResponse
+                        if calendar.isDate(selectedDate, inSameDayAs: today) {
+                            response = try await medicineClient.loadTodaySchedules()
+                        } else {
+                            response = try await medicineClient.loadSchedulesForDateRange(selectedDate, selectedDate)
+                        }
+
+                        await send(.medicineDataLoaded(response))
+                    } catch {
+                        await send(.loadingFailed(error.localizedDescription))
+                    }
+                }
+
+            case .routinesLoaded(let routines):
+                state.userMedicineRoutines = routines
+                state.hasRoutinesEverRegistered = !routines.isEmpty
+                return .none
+
+            case .medicineDataLoaded(let response):
+                state.todayMedicines = response.todayMedicines
+                state.completedMedicines = response.completedMedicines
+                state.isLoading = false
+                return .none
+
+            case .loadMedicineData:
+                state.isLoading = true
+                state.error = nil
+                return .run { [selectedDate = state.selectedDate] send in
+                    do {
                         let today = Date()
                         let calendar = Calendar.current
 
@@ -158,32 +223,6 @@ struct MedicineListFeature {
                 state.isLoading = false
                 return .none
 
-            case .routinesLoaded(let routines):
-                state.userMedicineRoutines = routines
-                state.hasRoutinesEverRegistered = !routines.isEmpty
-                return .none
-
-            case .loadMedicineData:
-                state.isLoading = true
-                state.error = nil
-                return .run { [selectedDate = state.selectedDate] send in
-                    do {
-                        let today = Date()
-                        let calendar = Calendar.current
-
-                        let response: MedicineDataResponse
-                        if calendar.isDate(selectedDate, inSameDayAs: today) {
-                            response = try await medicineClient.loadTodaySchedules()
-                        } else {
-                            response = try await medicineClient.loadSchedulesForDateRange(selectedDate, selectedDate)
-                        }
-
-                        await send(.medicineDataLoaded(response))
-                    } catch {
-                        await send(.loadingFailed(error.localizedDescription))
-                    }
-                }
-
             case .medicineToggled(let medicineId):
                 guard state.isViewingOwnMedicines else { return .none }
 
@@ -191,43 +230,26 @@ struct MedicineListFeature {
                 let calendar = Calendar.current
                 let isToday = calendar.isDate(state.selectedDate, inSameDayAs: today)
 
-                guard isToday else {
+                guard isToday, let scheduleId = Int(medicineId) else {
                     return .none
                 }
 
-                guard let scheduleId = Int(medicineId) else {
-                    return .none
-                }
+                let direction = optimisticallyToggleMedicine(&state, medicineId)
 
-                // 애니메이션 방향 결정
-                let direction: AnimationDirection
-                if state.todayMedicines.contains(where: { $0.id == medicineId }) {
-                    direction = .toCompleted
-                } else {
-                    direction = .toTodo
-                }
-
-                // 애니메이션 시작
                 return .merge(
                     .send(.startMedicineAnimation(medicineId: medicineId, direction: direction)),
                     .run { send in
-                        // 0.3초 후에 실제 API 호출
-                        try await Task.sleep(nanoseconds: 300_000_000)
-
                         do {
                             try await medicineClient.takeMedicine(scheduleId)
-                            let todayResponse = try await medicineClient.loadTodaySchedules()
-                            await send(.medicineDataLoaded(todayResponse))
+                            await send(.medicineApiSuccess(medicineId: medicineId))
+                            await send(.delegate(.medicineStatusChanged))
                         } catch {
-                            do {
-                                let todayResponse = try await medicineClient.loadTodaySchedules()
-                                await send(.medicineDataLoaded(todayResponse))
-                            } catch {
-                                await send(.loadingFailed(error.localizedDescription))
-                            }
+                            await send(.rollbackMedicine(medicineId: medicineId))
                         }
+
+                        try await Task.sleep(nanoseconds: 700_000_000)
                         await send(.finishMedicineAnimation)
-                    }
+                    }.cancellable(id: "medicineToggle-\(medicineId)")
                 )
 
             case .startMedicineAnimation(let medicineId, let direction):
@@ -240,18 +262,22 @@ struct MedicineListFeature {
                 state.animationDirection = nil
                 return .none
 
+            case .rollbackMedicine(let medicineId):
+                rollbackMedicineOptimistically(&state, medicineId)
+                return .none
+
+            case .medicineApiSuccess(let medicineId):
+                return .run { send in
+                    await AppDataManager.shared.notifyDataChanged(.medicineUpdated)
+                    await send(.delegate(.medicineStatusChanged))
+                }
+
             case .addMedicineButtonTapped:
                 return .send(.delegate(.addMedicineRequested))
 
-            case .medicineDataLoaded(let response):
-                state.todayMedicines = response.todayMedicines
-                state.completedMedicines = response.completedMedicines
-                state.isLoading = false
-                return .none
-
-            case let .updateMedicines(todayMedicines, completedMedicines):
-                state.todayMedicines = todayMedicines
-                state.completedMedicines = completedMedicines
+            case let .updateMedicines(today, completed):
+                state.todayMedicines = today
+                state.completedMedicines = completed
                 return .none
 
             case .updateCurrentUser(let user):
@@ -267,6 +293,30 @@ struct MedicineListFeature {
                 return .none
             }
         }
+    }
+}
+
+// MARK: - Helper Functions
+private func optimisticallyToggleMedicine(_ state: inout MedicineListFeature.State, _ medicineId: String) -> MedicineListFeature.AnimationDirection {
+    if let index = state.todayMedicines.firstIndex(where: { $0.id == medicineId }) {
+        let medicine = state.todayMedicines.remove(at: index)
+        state.completedMedicines.append(medicine)
+        return .toCompleted
+    } else if let index = state.completedMedicines.firstIndex(where: { $0.id == medicineId }) {
+        let medicine = state.completedMedicines.remove(at: index)
+        state.todayMedicines.append(medicine)
+        return .toTodo
+    }
+    return .toCompleted
+}
+
+private func rollbackMedicineOptimistically(_ state: inout MedicineListFeature.State, _ medicineId: String) {
+    if let index = state.completedMedicines.firstIndex(where: { $0.id == medicineId }) {
+        let medicine = state.completedMedicines.remove(at: index)
+        state.todayMedicines.append(medicine)
+    } else if let index = state.todayMedicines.firstIndex(where: { $0.id == medicineId }) {
+        let medicine = state.todayMedicines.remove(at: index)
+        state.completedMedicines.append(medicine)
     }
 }
 

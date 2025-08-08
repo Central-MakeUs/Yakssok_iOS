@@ -227,12 +227,15 @@ private struct ChangeButton: View {
             Button(action: {
                 viewStore.send(.changeButtonTapped)
             }) {
-                Text("변경 완료")
-                    .font(YKFont.subtitle2)
-                    .foregroundColor(buttonTextColor(isEnabled: viewStore.isChangeButtonEnabled))
+                HStack {
+                    Spacer()
+                    Text("변경 완료")
+                        .font(YKFont.subtitle2)
+                        .foregroundColor(buttonTextColor(isEnabled: viewStore.isChangeButtonEnabled))
+                    Spacer()
+                }
+                .frame(height: Layout.changeButtonHeight)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: Layout.changeButtonHeight)
             .background(buttonBackgroundColor(isEnabled: viewStore.isChangeButtonEnabled))
             .cornerRadius(Layout.changeButtonCornerRadius)
             .disabled(!viewStore.isChangeButtonEnabled || viewStore.isLoading)

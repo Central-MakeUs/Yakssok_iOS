@@ -124,7 +124,7 @@ private struct ProfileSection: View {
                 }
 
                 // 닉네임
-                Text(viewStore.userProfile?.name ?? "사용자")
+                Text(viewStore.userProfile?.name ?? "")
                     .font(YKFont.header2)
                     .foregroundColor(YKColor.Neutral.grey900)
 

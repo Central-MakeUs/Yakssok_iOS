@@ -25,6 +25,11 @@ struct MyMatesFeature: Reducer {
         case loadMates
         case matesLoaded(following: [User], followers: [User])
         case loadingFailed(String)
+
+        case dataChanged(DataChangeEvent)
+        case startDataSubscription
+        case stopDataSubscription
+
         case delegate(Delegate)
 
         @CasePathable
@@ -40,10 +45,39 @@ struct MyMatesFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .send(.loadMates)
+                return .merge(
+                    .send(.loadMates),
+                    .send(.startDataSubscription)
+                )
+
+            case .startDataSubscription:
+                return .run { send in
+                    await AppDataManager.shared.subscribe(id: "mymates-subscription") { event in
+                        await send(.dataChanged(event))
+                    }
+                }
+                .cancellable(id: "mymates-subscription")
+
+            case .stopDataSubscription:
+                return .run { _ in
+                    await AppDataManager.shared.unsubscribe(id: "mymates-subscription")
+                }
+                .cancellable(id: "mymates-subscription", cancelInFlight: true)
+
+            case .dataChanged(let event):
+                switch event {
+                case .mateAdded, .mateRemoved, .allDataChanged:
+                    return .send(.loadMates)
+                        .debounce(id: "reload-mates", for: 0.3, scheduler: DispatchQueue.main)
+                default:
+                    return .none
+                }
 
             case .backButtonTapped:
-                return .send(.delegate(.backToMyPage))
+                return .merge(
+                    .send(.stopDataSubscription),
+                    .send(.delegate(.backToMyPage))
+                )
 
             case .addMateButtonTapped:
                 return .send(.delegate(.navigateToAddMate))

@@ -15,6 +15,8 @@ class TokenManager {
     private let accessTokenKey = "yakssok_access_token"
     private let refreshTokenKey = "yakssok_refresh_token"
 
+    private let refreshManager = TokenRefreshManager()
+
     private init() {}
 
     // MARK: - Public Properties
@@ -41,7 +43,8 @@ class TokenManager {
     }
 
     var isLoggedIn: Bool {
-        return accessToken != nil
+        // 액세스 토큰과 리프레시 토큰이 모두 있어야 로그인 상태임
+        return accessToken != nil && refreshToken != nil
     }
 
     // MARK: - Public Methods
@@ -102,7 +105,70 @@ class TokenManager {
             kSecAttrAccount as String: key
         ]
 
-        SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(query as CFDictionary)
+        if status == errSecSuccess {
+        } else if status != errSecItemNotFound {
+            print("토큰 삭제 실패: \(key), status: \(status)")
+        }
+    }
+
+    func getValidTokenAsync() async throws -> String {
+        return try await refreshManager.getValidToken()
+    }
+}
+
+// MARK: - TokenRefreshManager Actor
+actor TokenRefreshManager {
+    private enum RefreshState {
+        case idle
+        case refreshing(Task<String, Error>)
+    }
+
+    private var refreshState: RefreshState = .idle
+
+    func getValidToken() async throws -> String {
+        switch refreshState {
+        case .idle:
+            // 토큰이 있고 유효하면 바로 반환
+            if let token = TokenManager.shared.accessToken {
+                return token
+            }
+
+            // 새로운 토큰 갱신 시작
+            let refreshTask = Task<String, Error> {
+                try await performTokenRefresh()
+            }
+            refreshState = .refreshing(refreshTask)
+
+            do {
+                let newToken = try await refreshTask.value
+                refreshState = .idle
+                return newToken
+            } catch {
+                refreshState = .idle
+                throw error
+            }
+
+        case .refreshing(let existingTask):
+            // 이미 진행 중인 갱신 작업 기다리기
+            return try await existingTask.value
+        }
+    }
+
+    private func performTokenRefresh() async throws -> String {
+        guard let refreshToken = TokenManager.shared.refreshToken else {
+            throw APIError.serverError(401)
+        }
+
+        let request = RefreshTokenRequest(refreshToken: refreshToken)
+        let response: RefreshTokenResponse = try await APIClient.shared.authRequest(
+            endpoint: .refreshToken,
+            method: .POST,
+            body: request
+        )
+
+        TokenManager.shared.accessToken = response.body.accessToken
+        return response.body.accessToken
     }
 }
 
