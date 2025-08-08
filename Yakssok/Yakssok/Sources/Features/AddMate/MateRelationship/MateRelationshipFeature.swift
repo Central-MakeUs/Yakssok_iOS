@@ -32,7 +32,7 @@ struct MateRelationshipFeature: Reducer {
         case backButtonTapped
         case relationshipChanged(String)
         case addMateButtonTapped
-        case addMateSuccess
+        case mateApiSuccess
         case addMateFailed(String)
         case showCompletionModal
         case dismissCompletionModal
@@ -74,16 +74,18 @@ struct MateRelationshipFeature: Reducer {
                 return .run { send in
                     do {
                         try await mateRegistrationClient.followFriend(inviteCode, relationName)
-                        await send(.addMateSuccess)
+                        await send(.mateApiSuccess)
                     } catch {
                         await send(.addMateFailed("메이트 추가에 실패했어요. 다시 시도해주세요."))
                     }
                 }
 
-            case .addMateSuccess:
+            case .mateApiSuccess:
                 state.isLoading = false
                 state.showCompletionModal = true
-                return .none
+                return .run { _ in
+                    await AppDataManager.shared.notifyDataChanged(.mateAdded)
+                }
 
             case .addMateFailed(let error):
                 state.isLoading = false

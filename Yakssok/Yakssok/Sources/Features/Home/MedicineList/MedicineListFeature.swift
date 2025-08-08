@@ -70,6 +70,11 @@ struct MedicineListFeature {
         case finishMedicineAnimation
         case rollbackMedicine(medicineId: String)
         case medicineApiSuccess(medicineId: String)
+
+        case dataChanged(DataChangeEvent)
+        case startDataSubscription
+        case stopDataSubscription
+
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -84,7 +89,35 @@ struct MedicineListFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .send(.loadInitialData)
+                return .merge(
+                    .send(.loadInitialData),
+                    .send(.startDataSubscription)
+                )
+
+            case .startDataSubscription:
+                return .run { send in
+                    await AppDataManager.shared.subscribe(id: "medicinelist-subscription") { event in
+                        await send(.dataChanged(event))
+                    }
+                }
+                .cancellable(id: "medicinelist-subscription")
+
+            case .stopDataSubscription:
+                return .run { _ in
+                    await AppDataManager.shared.unsubscribe(id: "medicinelist-subscription")
+                }
+                .cancellable(id: "medicinelist-subscription", cancelInFlight: true)
+
+            case .dataChanged(let event):
+                switch event {
+                case .medicineAdded, .medicineUpdated, .medicineDeleted, .allDataChanged:
+                    return .merge(
+                        .send(.loadInitialData)
+                    )
+                    .debounce(id: "reload-medicines", for: 0.3, scheduler: DispatchQueue.main)
+                default:
+                    return .none
+                }
 
             case .loadInitialData:
                 state.isLoading = true
@@ -205,7 +238,6 @@ struct MedicineListFeature {
 
                 return .merge(
                     .send(.startMedicineAnimation(medicineId: medicineId, direction: direction)),
-
                     .run { send in
                         do {
                             try await medicineClient.takeMedicine(scheduleId)

@@ -71,6 +71,10 @@ struct FullCalendarFeature: Reducer {
         case showMyPage
         case dismissMyPage
 
+        case dataChanged(DataChangeEvent)
+        case startDataSubscription
+        case stopDataSubscription
+
         case delegate(Delegate)
         case userSelection(MateSelectionFeature.Action)
         case medicineList(MedicineListFeature.Action)
@@ -117,9 +121,37 @@ struct FullCalendarFeature: Reducer {
             return .merge(
                 .send(.loadUserProfile),
                 .send(.loadMonthlyData),
+                .send(.startDataSubscription),
                 .send(.userSelection(.onAppear)),
                 .send(.medicineList(.onAppear))
             )
+
+        case .startDataSubscription:
+            return .run { send in
+                await AppDataManager.shared.subscribe(id: "fullcalendar-subscription") { event in
+                    await send(.dataChanged(event))
+                }
+            }
+            .cancellable(id: "fullcalendar-subscription")
+
+        case .stopDataSubscription:
+            return .run { _ in
+                await AppDataManager.shared.unsubscribe(id: "fullcalendar-subscription")
+            }
+            .cancellable(id: "fullcalendar-subscription", cancelInFlight: true)
+
+        case .dataChanged(let event):
+            switch event {
+            case .medicineAdded, .medicineUpdated, .medicineDeleted, .allDataChanged:
+                return .send(.loadMonthlyData)
+                    .debounce(id: "reload-calendar", for: 0.3, scheduler: DispatchQueue.main)
+            case .mateAdded, .mateRemoved:
+                return .send(.userSelection(.loadUsers))
+                    .debounce(id: "reload-users", for: 0.3, scheduler: DispatchQueue.main)
+            case .profileUpdated:
+                return .send(.loadUserProfile)
+                    .debounce(id: "reload-userprofile", for: 0.3, scheduler: DispatchQueue.main)
+            }
 
         case .previousMonthTapped:
             state.currentDate = Calendar.current.date(byAdding: .month, value: -1, to: state.currentDate) ?? state.currentDate
@@ -180,7 +212,10 @@ struct FullCalendarFeature: Reducer {
             return .none
 
         case .backButtonTapped:
-            return .send(.delegate(.backToHome))
+            return .merge(
+                .send(.stopDataSubscription),
+                .send(.delegate(.backToHome))
+            )
 
         case .loadUserProfile:
             return .run { send in
@@ -268,7 +303,7 @@ struct FullCalendarFeature: Reducer {
 
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
-            return .send(.userSelection(.loadUsers))
+            return .none
 
         case .userSelection(.delegate(.addUserRequested)):
             return .send(.showMateRegistration)
@@ -280,9 +315,9 @@ struct FullCalendarFeature: Reducer {
             state.addRoutine = nil
             return .none
 
-        case .addRoutine(.routineCompleted):
+        case .addRoutine(.routineSubmissionSucceeded):
             state.addRoutine = nil
-            return .send(.medicineList(.onAppear))
+            return .none
 
         case .notificationList(.backButtonTapped):
             state.notificationList = nil

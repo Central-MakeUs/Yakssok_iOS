@@ -52,6 +52,11 @@ struct MyPageFeature: Reducer {
         case addRoutine(AddRoutineFeature.Action)
         case dismissPrivacyPolicy
         case dismissTermsOfUse
+
+        case dataChanged(DataChangeEvent)
+        case startDataSubscription
+        case stopDataSubscription
+
         case delegate(Delegate)
 
         @CasePathable
@@ -92,7 +97,32 @@ struct MyPageFeature: Reducer {
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
         switch action {
         case .onAppear:
-            return .send(.loadUserProfile)
+            return .merge(
+                .send(.loadUserProfile),
+                .send(.startDataSubscription)
+            )
+
+        case .startDataSubscription:
+            return .run { send in
+                await AppDataManager.shared.subscribe(id: "mypage-subscription") { event in
+                    await send(.dataChanged(event))
+                }
+            }
+            .cancellable(id: "mypage-subscription")
+
+        case .stopDataSubscription:
+            return .run { _ in
+                await AppDataManager.shared.unsubscribe(id: "mypage-subscription")
+            }
+            .cancellable(id: "mypage-subscription", cancelInFlight: true)
+
+        case .dataChanged(let event):
+            switch event {
+            case .medicineAdded, .medicineUpdated, .medicineDeleted,
+                 .mateAdded, .mateRemoved, .profileUpdated, .allDataChanged:
+                return .send(.loadUserProfile)
+                    .debounce(id: "reload-userprofile", for: 0.3, scheduler: DispatchQueue.main)
+            }
 
         case .loadUserProfile:
             state.isLoading = true
@@ -123,7 +153,10 @@ struct MyPageFeature: Reducer {
             return .none
 
         case .backButtonTapped:
-            return .send(.delegate(.backToHome))
+            return .merge(
+                .send(.stopDataSubscription),
+                .send(.delegate(.backToHome))
+            )
 
         case .profileEditTapped:
             state.profileEdit = .init()
@@ -135,7 +168,7 @@ struct MyPageFeature: Reducer {
 
         case .profileEdit(.delegate(.profileUpdated)):
             state.profileEdit = nil
-            return .send(.loadUserProfile)
+            return .none
 
         case .myMedicinesTapped:
             state.myMedicines = .init()
@@ -176,10 +209,8 @@ struct MyPageFeature: Reducer {
 
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
-            return .merge(
-                .send(.loadUserProfile),
-                .send(.myMates(.loadMates))
-            )
+            return .none
+
         case .mateRegistration(.backButtonTapped):
             state.mateRegistration = nil
             return .none
@@ -189,7 +220,7 @@ struct MyPageFeature: Reducer {
 
         case .addRoutine(.routineSubmissionSucceeded):
             state.addRoutine = nil
-            return .send(.loadUserProfile)
+            return .none
 
         case .addRoutine(.dismissRequested):
             state.addRoutine = nil
