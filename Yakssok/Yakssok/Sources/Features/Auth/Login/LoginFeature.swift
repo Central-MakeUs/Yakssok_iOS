@@ -19,11 +19,9 @@ struct LoginFeature: Reducer {
         case appleLoginTapped
         case kakaoLoginSuccess(result: KakaoLoginResult)
         case appleLoginSuccess(result: AppleLoginResult)
-        case loginAPISuccess(accessToken: String, refreshToken: String)
+        case loginAPISuccess(accessToken: String, refreshToken: String, isInitialized: Bool)
         case loginAPIFailure(String)
-        case userNotFound(authorizationCode: String, oauthType: String)
-        case appleUserNotFound(authorizationCode: String, identityToken: String)
-        case isCompleted(isExistingUser: Bool, authorizationCode: String? = nil, oauthType: String? = nil, identityToken: String? = nil)
+        case authenticationCompleted(needsOnboarding: Bool)
     }
 
     @Dependency(\.kakaoAuthClient) var kakaoAuthClient
@@ -76,18 +74,11 @@ struct LoginFeature: Reducer {
 
                         await send(.loginAPISuccess(
                             accessToken: response.body.accessToken,
-                            refreshToken: response.body.refreshToken
+                            refreshToken: response.body.refreshToken,
+                            isInitialized: response.body.isInitialized
                         ))
                     } catch {
-                        if let apiError = error as? APIError,
-                           case .userNotFound = apiError {
-                            await send(.userNotFound(
-                                authorizationCode: result.authorizationCode,
-                                oauthType: "kakao"
-                            ))
-                        } else {
-                            await send(.loginAPIFailure(error.localizedDescription))
-                        }
+                        await send(.loginAPIFailure(error.localizedDescription))
                     }
                 }
 
@@ -97,63 +88,32 @@ struct LoginFeature: Reducer {
                         let loginRequest = LoginRequest(
                             oauthAuthorizationCode: result.authorizationCode ?? result.identityToken,
                             oauthType: "apple",
-                            nonce: result.identityToken
+                            nonce: result.nonce
                         )
+
                         let response = try await authAPIClient.login(loginRequest)
+
                         await send(.loginAPISuccess(
                             accessToken: response.body.accessToken,
-                            refreshToken: response.body.refreshToken
+                            refreshToken: response.body.refreshToken,
+                            isInitialized: response.body.isInitialized
                         ))
                     } catch {
-                        if let apiError = error as? APIError {
-                            switch apiError {
-                            case .userNotFound:
-                                await send(.appleUserNotFound(
-                                    authorizationCode: result.authorizationCode ?? "",
-                                    identityToken: result.identityToken
-                                ))
-                            case .serverError(401):
-                                await send(.appleUserNotFound(
-                                    authorizationCode: result.authorizationCode ?? "",
-                                    identityToken: result.identityToken
-                                ))
-                            default:
-                                await send(.loginAPIFailure(error.localizedDescription))
-                            }
-                        } else {
-                            await send(.loginAPIFailure(error.localizedDescription))
-                        }
+                        await send(.loginAPIFailure(error.localizedDescription))
                     }
                 }
 
-            case .appleUserNotFound(let authorizationCode, let identityToken):
-                state.isLoading = false
-                return .send(.isCompleted(
-                    isExistingUser: false,
-                    authorizationCode: authorizationCode,
-                    oauthType: "apple",
-                    identityToken: identityToken
-                ))
-
-            case .loginAPISuccess(let accessToken, let refreshToken):
+            case .loginAPISuccess(let accessToken, let refreshToken, let isInitialized):
                 state.isLoading = false
                 tokenManager.saveTokens(accessToken, refreshToken)
-                return .send(.isCompleted(isExistingUser: true))
-
-            case .userNotFound(let authorizationCode, let oauthType):
-                state.isLoading = false
-                return .send(.isCompleted(
-                    isExistingUser: false,
-                    authorizationCode: authorizationCode,
-                    oauthType: oauthType
-                ))
+                return .send(.authenticationCompleted(needsOnboarding: !isInitialized))
 
             case .loginAPIFailure(let error):
                 state.isLoading = false
                 state.error = error
                 return .none
 
-            case .isCompleted:
+            case .authenticationCompleted:
                 return .none
             }
         }

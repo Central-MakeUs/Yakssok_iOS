@@ -30,6 +30,7 @@ enum APIEndpoints {
     case join
     case logout
     case refreshToken
+    case updateNickname
 
     // MARK: - User Endpoints
     case getUserProfile
@@ -83,6 +84,8 @@ enum APIEndpoints {
             return "/api/auth/reissue"
 
         // User
+        case .updateNickname:
+            return "/api/users/init"
         case .getUserProfile:
             return "/api/users/me"
         case .updateUserProfile:

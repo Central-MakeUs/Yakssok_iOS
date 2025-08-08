@@ -18,6 +18,7 @@ struct AppleAuthClient {
 struct AppleLoginResult: Equatable {
     let identityToken: String
     let authorizationCode: String?
+    let nonce: String
 }
 
 extension AppleAuthClient: DependencyKey {
@@ -46,6 +47,7 @@ class AppleSignInManager: NSObject, ObservableObject {
     static let shared = AppleSignInManager()
 
     private var currentContinuation: CheckedContinuation<AppleLoginResult, Error>?
+    private var currentNonce: String?
 
     private override init() {
         super.init()
@@ -63,6 +65,10 @@ class AppleSignInManager: NSObject, ObservableObject {
             let provider = ASAuthorizationAppleIDProvider()
             let request = provider.createRequest()
             request.requestedScopes = [.fullName, .email]
+
+            let nonce = UUID().uuidString
+            request.nonce = nonce
+            self.currentNonce = nonce
 
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
@@ -104,12 +110,15 @@ extension AppleSignInManager: ASAuthorizationControllerDelegate {
 
         let result = AppleLoginResult(
             identityToken: identityToken,
-            authorizationCode: authorizationCode
+            authorizationCode: authorizationCode,
+            nonce: currentNonce ?? ""
         )
+        currentNonce = nil
         completeContinuation(with: .success(result))
     }
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        currentNonce = nil
         completeContinuation(with: .failure(error))
     }
 }

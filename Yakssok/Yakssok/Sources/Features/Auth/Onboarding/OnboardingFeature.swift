@@ -23,9 +23,13 @@ struct OnboardingFeature: Reducer {
         case onAppear
         case nicknameChanged(String)
         case startButtonTapped
+        case onboardingCompleted
+        case onboardingFailed(String)
         case isCompleted(nickname: String, authorizationCode: String, oauthType: String, identityToken: String? = nil)
         case backToLogin
     }
+
+    @Dependency(\.authAPIClient) var authAPIClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -41,12 +45,22 @@ struct OnboardingFeature: Reducer {
 
             case .startButtonTapped:
                 guard state.isButtonEnabled else { return .none }
-                return .send(.isCompleted(
-                    nickname: state.nickname,
-                    authorizationCode: state.authorizationCode,
-                    oauthType: state.oauthType,
-                    identityToken: state.identityToken
-                ))
+
+                return .run { [nickname = state.nickname.trimmingCharacters(in: .whitespaces)] send in
+                    do {
+                        let request = UpdateNicknameRequest(nickName: nickname)
+                        try await authAPIClient.updateNickname(request)
+                        await send(.onboardingCompleted)
+                    } catch {
+                        await send(.onboardingFailed(error.localizedDescription))
+                    }
+                }
+
+            case .onboardingCompleted:
+                return .none
+
+            case .onboardingFailed(let error):
+                return .none
 
             case .backToLogin:
                 return .none
