@@ -28,7 +28,10 @@ struct LoginView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 91, height: 79)
-
+                        .contentShape(Rectangle())
+                        .onLongPressGesture(minimumDuration: 5) {
+                            viewStore.send(.logoLongPressed)
+                        }
                         .padding(.top, logoTopSpacing)
 
                     Spacer()
@@ -42,6 +45,7 @@ struct LoginView: View {
                         ) {
                             viewStore.send(.kakaoLoginTapped)
                         }
+
                         LoginButton(
                             title: "Apple로 계속하기",
                             iconName: "apple",
@@ -50,9 +54,65 @@ struct LoginView: View {
                         ) {
                             viewStore.send(.appleLoginTapped)
                         }
+
+                        // 마스터 모드가 활성화되면 마스터 로그인 버튼 표시
+                        if viewStore.isMasterModeEnabled {
+                            LoginButton(
+                                title: "마스터 계정으로 로그인",
+                                iconName: "key",
+                                backgroundColor: YKColor.Primary.primary400,
+                                titleColor: YKColor.Neutral.grey50
+                            ) {
+                                viewStore.send(.masterLoginTapped)
+                            }
+                            .transition(.opacity.combined(with: .scale))
+                            .animation(.easeInOut(duration: 0.3), value: viewStore.isMasterModeEnabled)
+                        }
                     }
                     .padding(.horizontal, horizontalPadding)
                     .padding(.bottom, bottomPadding)
+                }
+            }
+
+            .overlay(
+                Group {
+                    if viewStore.isLoading {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: YKColor.Primary.primary400))
+                            .scaleEffect(1.5)
+                    }
+                }
+            )
+            .alert(
+                "마스터 계정 로그인",
+                isPresented: Binding(
+                    get: { viewStore.showMasterLoginAlert },
+                    set: { _ in }
+                )
+            ) {
+                Button("확인") {
+                    viewStore.send(.masterLoginConfirmed)
+                }
+                Button("취소", role: .cancel) {
+                    viewStore.send(.masterLoginCancelled)
+                }
+            } message: {
+                Text("마스터 계정으로 로그인하시겠습니까?\n이 기능은 앱 심사용입니다.")
+            }
+            .alert(
+                "로그인 오류",
+                isPresented: Binding(
+                    get: { viewStore.error != nil },
+                    set: { _ in }
+                )
+            ) {
+                Button("확인") {
+                }
+            } message: {
+                if let error = viewStore.error {
+                    Text(error)
                 }
             }
         }
@@ -77,9 +137,16 @@ struct LoginButton: View {
                     .font(YKFont.body1)
                     .foregroundColor(titleColor)
                 HStack {
-                    Image(iconName)
-                        .resizable()
-                        .scaledToFit()
+                    // 시스템 아이콘인 경우와 이미지 파일인 경우 구분
+                    if iconName == "key" {
+                        Image(systemName: "key.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(titleColor)
+                    } else {
+                        Image(iconName)
+                            .resizable()
+                            .scaledToFit()
+                    }
                     Spacer()
                 }
                 .padding(.leading, iconPadding)

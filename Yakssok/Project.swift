@@ -27,8 +27,12 @@ let project = Project(
                         "Pretendard-SemiBold.otf",
                         "Pretendard-Bold.otf"
                     ],
+                    "CFBundleShortVersionString": "1.0",
+                    "CFBundleVersion": "1",
                     "KAKAO_NATIVE_APP_KEY": "$(KAKAO_NATIVE_APP_KEY)",
                     "API_BASE_URL": "https://yakssok.site",
+                    "MASTER_ACCESS_TOKEN": "$(MASTER_ACCESS_TOKEN)",
+                    "MASTER_REFRESH_TOKEN": "$(MASTER_REFRESH_TOKEN)",
                     "CFBundleURLTypes": [
                         [
                             "CFBundleURLName": "kakao",
