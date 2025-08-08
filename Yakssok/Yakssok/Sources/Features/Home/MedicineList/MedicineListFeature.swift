@@ -234,8 +234,11 @@ struct MedicineListFeature {
                 rollbackMedicineOptimistically(&state, medicineId)
                 return .none
 
-            case .medicineApiSuccess:
-                return .none
+            case .medicineApiSuccess(let medicineId):
+                return .run { send in
+                    await AppDataManager.shared.notifyDataChanged(.medicineUpdated)
+                    await send(.delegate(.medicineStatusChanged))
+                }
 
             case .addMedicineButtonTapped:
                 return .send(.delegate(.addMedicineRequested))

@@ -162,7 +162,9 @@ struct AddRoutineFeature: Reducer {
                 }
 
             case .routineApiSuccess:
-                return .none
+                return .run { send in
+                    await AppDataManager.shared.notifyDataChanged(.medicineAdded)
+                }
 
             case .rollbackRoutineSubmission:
                 state.showFinalCompletionModal = false

@@ -62,6 +62,7 @@ struct HomeFeature: Reducer {
         case showMyPage
         case dismissMyPage
         case refreshMedicineList
+        case refreshAllData
         case delegate(Delegate)
 
         @CasePathable
@@ -113,7 +114,23 @@ struct HomeFeature: Reducer {
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
         switch action {
         case .onAppear:
-            return handleOnAppear(&state)
+            return .merge(
+                handleOnAppear(&state),
+                .run { send in
+                    await AppDataManager.shared.subscribe(id: "home") { event in
+                        switch event {
+                        case .medicineAdded, .medicineUpdated, .medicineDeleted:
+                            await send(.refreshAllData)
+                        case .mateAdded, .mateRemoved:
+                            await send(.refreshAllData)
+                        case .profileUpdated:
+                            await send(.loadUserProfile)
+                        case .allDataChanged:
+                            await send(.refreshAllData)
+                        }
+                    }
+                }
+            )
 
         case .onResume:
             return .run { send in
@@ -182,7 +199,7 @@ struct HomeFeature: Reducer {
 
         case .dismissAddRoutine:
             state.addRoutine = nil
-            return refreshAllComponentsData(&state)
+            return .none
 
         case .showNotificationList:
             state.notificationList = .init()
@@ -215,7 +232,7 @@ struct HomeFeature: Reducer {
         // MARK: - Delegate Actions
         case .myPage(.delegate(.backToHome)):
             state.myPage = nil
-            return refreshAllComponentsData(&state)
+            return .send(.refreshAllData)
 
         case .weeklyCalendar(.delegate(.showFullCalendar)):
             state.fullCalendar = FullCalendarFeature.State()
@@ -223,17 +240,17 @@ struct HomeFeature: Reducer {
 
         case .fullCalendar(.delegate(.backToHome)):
             state.fullCalendar = nil
-            return refreshAllComponentsData(&state)
+            return .send(.refreshAllData)
 
         case .userSelection(.addUserButtonTapped):
             return .send(.showMateRegistration)
 
-        case .userSelection(.delegate(.addUserRequested)):
-            return .send(.showMateRegistration)
-
         case .mateRegistration(.delegate(.mateAddingCompleted)):
             state.mateRegistration = nil
-            return refreshAllComponentsData(&state)
+            return .none
+
+        case .userSelection(.delegate(.addUserRequested)):
+            return .send(.showMateRegistration)
 
         case .mateCards(.delegate(.showMessageModal(let targetUser, let targetUserId, let messageType))):
             return .send(.showMessageModal(targetUser: targetUser, targetUserId: targetUserId, messageType: messageType))
@@ -261,9 +278,13 @@ struct HomeFeature: Reducer {
             state.messageModal = nil
             return .none
 
-        case .addRoutine(.dismissRequested), .addRoutine(.routineCompleted):
+        case .addRoutine(.dismissRequested):
             state.addRoutine = nil
-            return refreshAllComponentsData(&state)
+            return .none
+
+        case .addRoutine(.routineCompleted):
+            state.addRoutine = nil
+            return .none
 
         case .notificationList(.backButtonTapped):
             state.notificationList = nil
@@ -275,6 +296,9 @@ struct HomeFeature: Reducer {
 
         case .refreshMedicineList:
             return .send(.medicineList(.loadMedicineData))
+
+        case .refreshAllData:
+            return refreshAllComponentsData(&state)
 
         // MARK: - Child Feature Actions
         case .userSelection, .mateCards, .weeklyCalendar, .medicineList,
@@ -318,9 +342,9 @@ struct HomeFeature: Reducer {
             return .none
         }
 
-        let medicines = messageType == .nagging
-            ? card.todayMedicines
-            : card.completedMedicines
+        let medicines = messageType == .nagging ?
+        card.todayMedicines :   // 못 먹은 약
+        card.completedMedicines // 먹은 약
 
         let medicineCount = medicines.count
 
