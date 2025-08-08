@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "calendar-done-1.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
