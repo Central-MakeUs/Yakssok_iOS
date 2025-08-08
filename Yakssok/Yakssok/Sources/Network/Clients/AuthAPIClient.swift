@@ -10,7 +10,7 @@ import Foundation
 
 struct AuthAPIClient {
     var login: @Sendable (LoginRequest) async throws -> LoginResponse
-    var join: @Sendable (JoinRequest) async throws -> Void
+    var updateNickname: @Sendable (UpdateNicknameRequest) async throws -> Void
     var logout: @Sendable () async throws -> Void
     var refreshToken: @Sendable (String) async throws -> String
     var withdrawal: @Sendable () async throws -> Void
@@ -27,16 +27,16 @@ extension AuthAPIClient: DependencyKey {
             return loginResponse
         },
 
-        join: { request in
-            let _: JoinResponse = try await APIClient.shared.authRequest(
-                endpoint: .join,
-                method: .POST,
+        updateNickname: { request in
+            let _: UpdateNicknameResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .updateNickname,
+                method: .PUT,
                 body: request
             )
         },
 
         logout: {
-            let response: JoinResponse = try await APIClient.shared.requestWithTokenRefresh(
+            let response: UpdateNicknameResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .logout,
                 method: .PUT,
                 body: Optional<String>.none
@@ -58,7 +58,7 @@ extension AuthAPIClient: DependencyKey {
         },
 
         withdrawal: {
-            let response: JoinResponse = try await APIClient.shared.requestWithTokenRefresh(
+            let response: UpdateNicknameResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .deleteUser,
                 method: .DELETE,
                 body: Optional<String>.none

@@ -37,8 +37,6 @@ struct LoadingFeature: Reducer {
     }
 
     @Dependency(\.continuousClock) var clock
-    @Dependency(\.authAPIClient) var authAPIClient
-    @Dependency(\.tokenManager) var tokenManager
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -46,10 +44,6 @@ struct LoadingFeature: Reducer {
             case .onAppear:
                 guard !state.isRegistering else { return .none }
                 state.isRegistering = true
-
-                guard !state.authorizationCode.isEmpty else {
-                    return .send(.registrationFailed("Authorization Code가 없습니다."))
-                }
 
                 return .merge(
                     // 아이콘 애니메이션
@@ -60,42 +54,12 @@ struct LoadingFeature: Reducer {
                     }
                     .cancellable(id: "iconTimer"),
 
-                    // 회원가입 API 호출
-                    .run { [nickname = state.nickname, authCode = state.authorizationCode, oauthType = state.oauthType, identityToken = state.identityToken] send in
+                    // 로딩 애니메이션만 (닉네임 업데이트 제거)
+                    .run { send in
                         do {
-                            guard !authCode.isEmpty else {
-                                throw APIError.invalidResponse
-                            }
-
-                            let joinRequest = JoinRequest(
-                                oauthAuthorizationCode: authCode,
-                                oauthType: oauthType,
-                                nonce: identityToken,
-                                nickName: nickname
-                            )
-
-                            // 1. 회원가입 API 호출
-                            try await authAPIClient.join(joinRequest)
-
-                            // 2. 회원가입 성공 후 바로 로그인
-                            let loginRequest = LoginRequest(
-                                oauthAuthorizationCode: authCode,
-                                oauthType: oauthType,
-                                nonce: identityToken
-                            )
-                            let loginResponse = try await authAPIClient.login(loginRequest)
-
-                            // 3. 토큰 저장
-                            tokenManager.saveTokens(
-                                loginResponse.body.accessToken,
-                                loginResponse.body.refreshToken
-                            )
-
-                            // 4. 로딩 애니메이션 시간 확보
+                            // 로딩 애니메이션 시간 확보
                             try await clock.sleep(for: .seconds(2))
-
                             await send(.registrationCompleted)
-
                         } catch {
                             await send(.registrationFailed(error.localizedDescription))
                         }

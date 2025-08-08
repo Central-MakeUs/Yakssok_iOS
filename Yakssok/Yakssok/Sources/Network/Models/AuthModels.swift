@@ -28,14 +28,17 @@ struct LoginResponse: Codable, Equatable {
 struct LoginBody: Codable, Equatable {
     let accessToken: String
     let refreshToken: String
+    let isInitialized: Bool
 }
 
-// MARK: - Join Models
-struct JoinRequest: Codable {
-    let oauthAuthorizationCode: String
-    let oauthType: String
-    let nonce: String?
+struct UpdateNicknameRequest: Codable {
     let nickName: String
+}
+
+struct UpdateNicknameResponse: Codable {
+    let code: Int
+    let message: String
+    let body: EmptyBody
 }
 
 struct JoinResponse: Codable {
