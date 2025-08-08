@@ -11,10 +11,14 @@ struct LoginFeature: Reducer {
     struct State: Equatable {
         var isLoading: Bool = false
         var error: String?
+        var isMasterModeEnabled: Bool = false
+        var showMasterLoginAlert: Bool = false
     }
 
     enum Action: Equatable {
         case onAppear
+
+        // 일반 로그인
         case kakaoLoginTapped
         case appleLoginTapped
         case kakaoLoginSuccess(result: KakaoLoginResult)
@@ -22,6 +26,12 @@ struct LoginFeature: Reducer {
         case loginAPISuccess(accessToken: String, refreshToken: String, isInitialized: Bool)
         case loginAPIFailure(String)
         case authenticationCompleted(needsOnboarding: Bool)
+
+        // 마스터 계정
+        case logoLongPressed
+        case masterLoginTapped
+        case masterLoginConfirmed
+        case masterLoginCancelled
     }
 
     @Dependency(\.kakaoAuthClient) var kakaoAuthClient
@@ -35,6 +45,41 @@ struct LoginFeature: Reducer {
             case .onAppear:
                 return .none
 
+            // MARK: - 마스터 모드
+            case .logoLongPressed:
+                guard MasterAccountManager.isMasterModeAvailable else { return .none }
+                state.isMasterModeEnabled = true
+                return .none
+
+            case .masterLoginTapped:
+                state.showMasterLoginAlert = true
+                return .none
+
+            case .masterLoginCancelled:
+                state.showMasterLoginAlert = false
+                state.isMasterModeEnabled = false
+                return .none
+
+            case .masterLoginConfirmed:
+                state.showMasterLoginAlert = false
+                state.isLoading = true
+
+                return .run { send in
+                    guard let credentials = MasterAccountManager.getMasterCredentials() else {
+                        await send(.loginAPIFailure("마스터 계정 정보를 찾을 수 없습니다."))
+                        return
+                    }
+
+                    tokenManager.saveTokens(credentials.accessToken, credentials.refreshToken)
+
+                    await send(.loginAPISuccess(
+                        accessToken: credentials.accessToken,
+                        refreshToken: credentials.refreshToken,
+                        isInitialized: true
+                    ))
+                }
+
+            // MARK: - 일반 로그인
             case .kakaoLoginTapped:
                 state.isLoading = true
                 state.error = nil
