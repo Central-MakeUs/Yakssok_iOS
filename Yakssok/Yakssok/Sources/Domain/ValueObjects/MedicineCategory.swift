@@ -54,7 +54,7 @@ struct MedicineCategory: Equatable, Identifiable {
         MedicineCategory(id: "chronic", name: "만성 질환 관리", iconName: "", colorType: .chronic),
         MedicineCategory(id: "beauty", name: "미용 관련 관리", iconName: "", colorType: .beauty),
         MedicineCategory(id: "diet", name: "다이어트/대사 관련", iconName: "", colorType: .diet),
-        MedicineCategory(id: "pain", name: "통증/간기 등 일시적 치료", iconName: "", colorType: .pain),
+        MedicineCategory(id: "pain", name: "통증/김기 등 일시적 치료", iconName: "", colorType: .pain),
         MedicineCategory(id: "mental", name: "정신 건강 관리", iconName: "", colorType: .mental),
         MedicineCategory(id: "other", name: "기타 설정", iconName: "", colorType: .other)
     ]
