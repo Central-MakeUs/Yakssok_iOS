@@ -17,16 +17,18 @@ struct MasterAccountManager {
     static let isMasterModeAvailable = true // 심사용 - 출시 후 false로 변경 예정
     #endif
 
+    static func getMasterPassword() -> String {
+        return Bundle.main.object(forInfoDictionaryKey: "MASTER_PASSWORD") as? String ?? ""
+    }
+
     static func getMasterCredentials() -> MasterCredentials? {
         guard isMasterModeAvailable else {
-            print("❌ Master mode is disabled")
             return nil
         }
 
         // Config에서 토큰 읽기
         guard let accessToken = Bundle.main.object(forInfoDictionaryKey: "MASTER_ACCESS_TOKEN") as? String,
               let refreshToken = Bundle.main.object(forInfoDictionaryKey: "MASTER_REFRESH_TOKEN") as? String else {
-            print("Master tokens not found in config")
             return nil
         }
 

@@ -86,21 +86,28 @@ struct LoginView: View {
                 }
             )
             .alert(
-                "마스터 계정 로그인",
+                "마스터 모드",
                 isPresented: Binding(
-                    get: { viewStore.showMasterLoginAlert },
+                    get: { viewStore.showMasterPasswordAlert },
                     set: { _ in }
                 )
             ) {
+                SecureField("비밀번호", text: Binding(
+                    get: { viewStore.masterPassword },
+                    set: { viewStore.send(.masterPasswordChanged($0)) }
+                ))
+
                 Button("확인") {
                     viewStore.send(.masterLoginConfirmed)
                 }
+
                 Button("취소", role: .cancel) {
                     viewStore.send(.masterLoginCancelled)
                 }
             } message: {
-                Text("마스터 계정으로 로그인하시겠습니까?\n이 기능은 앱 심사용입니다.")
+                Text("마스터 계정 비밀번호를 입력하세요.")
             }
+
             .alert(
                 "로그인 오류",
                 isPresented: Binding(
