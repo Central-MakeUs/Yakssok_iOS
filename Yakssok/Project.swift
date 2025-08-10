@@ -11,7 +11,7 @@ let project = Project(
     targets: [
         .target(
             name: "Yakssok",
-            destinations: .iOS,
+            destinations: [.iPhone],
             product: .app,
             bundleId: "com.yakssok.app",
             deploymentTargets: .iOS("17.0"),
@@ -29,7 +29,7 @@ let project = Project(
                     ],
                     "CFBundleDisplayName": "약쏙",
                     "CFBundleShortVersionString": "1.0",
-                    "CFBundleVersion": "8",
+                    "CFBundleVersion": "9",
                     "KAKAO_NATIVE_APP_KEY": "$(KAKAO_NATIVE_APP_KEY)",
                     "API_BASE_URL": "https://yakssok.site",
                     "MASTER_ACCESS_TOKEN": "$(MASTER_ACCESS_TOKEN)",
@@ -61,7 +61,12 @@ let project = Project(
                 .external(name: "KakaoSDKAuth"),
                 .external(name: "KakaoSDKUser"),
                 .external(name: "YakssokDesignSystem")
-            ]
+            ],
+            settings: .settings(
+                base: [
+                    "DEVELOPMENT_TEAM": "VT34K852T5"
+                ]
+            )
         ),
         .target(
             name: "YakssokTests",
