@@ -12,7 +12,8 @@ struct LoginFeature: Reducer {
         var isLoading: Bool = false
         var error: String?
         var isMasterModeEnabled: Bool = false
-        var showMasterLoginAlert: Bool = false
+        var showMasterPasswordAlert: Bool = false
+        var masterPassword: String = ""
     }
 
     enum Action: Equatable {
@@ -30,6 +31,7 @@ struct LoginFeature: Reducer {
         // 마스터 계정
         case logoLongPressed
         case masterLoginTapped
+        case masterPasswordChanged(String)
         case masterLoginConfirmed
         case masterLoginCancelled
     }
@@ -52,16 +54,27 @@ struct LoginFeature: Reducer {
                 return .none
 
             case .masterLoginTapped:
-                state.showMasterLoginAlert = true
+                state.showMasterPasswordAlert = true
+                state.masterPassword = ""
+                return .none
+
+            case .masterPasswordChanged(let password):
+                state.masterPassword = password
                 return .none
 
             case .masterLoginCancelled:
-                state.showMasterLoginAlert = false
+                state.showMasterPasswordAlert = false
                 state.isMasterModeEnabled = false
+                state.masterPassword = ""
                 return .none
 
             case .masterLoginConfirmed:
-                state.showMasterLoginAlert = false
+                guard state.masterPassword == MasterAccountManager.getMasterPassword() else {
+                    state.masterPassword = ""
+                    return .none
+                }
+
+                state.showMasterPasswordAlert = false
                 state.isLoading = true
 
                 return .run { send in
