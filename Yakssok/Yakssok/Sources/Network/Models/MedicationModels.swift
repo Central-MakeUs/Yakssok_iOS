@@ -287,6 +287,14 @@ extension MedicationScheduleResponse {
 }
 
 func colorFromMedicationType(_ medicationType: String) -> MedicineColor {
-    let type = MedicineCategory.CategoryColorType(rawValue: medicationType.lowercased()) ?? .other
-    return colorFromMedicationCategory(type)
+    switch medicationType {
+    case "MENTAL": return colorFromMedicationCategory(.mental)
+    case "BEAUTY": return colorFromMedicationCategory(.beauty)
+    case "CHRONIC": return colorFromMedicationCategory(.chronic)
+    case "DIET": return colorFromMedicationCategory(.diet)
+    case "TEMPORARY": return colorFromMedicationCategory(.pain)
+    case "SUPPLEMENT": return colorFromMedicationCategory(.supplement)
+    case "OTHER": return colorFromMedicationCategory(.other)
+    default: return colorFromMedicationCategory(.other)
+    }
 }
