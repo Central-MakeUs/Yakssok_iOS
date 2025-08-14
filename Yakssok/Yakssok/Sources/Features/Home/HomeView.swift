@@ -37,6 +37,9 @@ struct HomeView: View {
                             IfLetStore(store.scope(state: \.myPage, action: \.myPage)) { myPageStore in
                                 MyPageView(store: myPageStore)
                             }
+                            IfLetStore(store.scope(state: \.reminderModal, action: \.reminderModal)) { reminderStore in
+                                ReminderModalView(store: reminderStore)
+                            }
                         }
                     }
                     .navigationViewStyle(StackNavigationViewStyle())

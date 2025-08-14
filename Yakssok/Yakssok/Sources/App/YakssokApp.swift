@@ -47,7 +47,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         content.title = title
         content.body = body
         content.sound = UNNotificationSound(named: UNNotificationSoundName(soundType.fileName + ".mp3"))
-        content.badge = 1
 
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
