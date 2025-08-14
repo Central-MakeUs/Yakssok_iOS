@@ -24,6 +24,10 @@ let package = Package(
             url: "https://github.com/kakao/kakao-ios-sdk",
             from: "2.24.5"
         ),
+        .package(
+            url: "https://github.com/firebase/firebase-ios-sdk",
+            from: "12.1.0"
+        ),
         .package(path: "../Packages/YakssokDesignSystem")
     ]
 )

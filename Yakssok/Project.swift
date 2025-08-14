@@ -60,11 +60,14 @@ let project = Project(
                 .external(name: "KakaoSDKCommon"),
                 .external(name: "KakaoSDKAuth"),
                 .external(name: "KakaoSDKUser"),
+                .external(name: "FirebaseCore"),
+                .external(name: "FirebaseMessaging"),
                 .external(name: "YakssokDesignSystem")
             ],
             settings: .settings(
                 base: [
-                    "DEVELOPMENT_TEAM": "VT34K852T5"
+                    "DEVELOPMENT_TEAM": "VT34K852T5",
+                    "CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION": "YES"
                 ]
             )
         ),

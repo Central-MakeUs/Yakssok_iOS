@@ -107,12 +107,10 @@ struct MessageModalFeature: Reducer {
 
             case .sendingCompleted:
                 state.isSending = false
-                print("피드백 전송 성공")
                 return .none
 
             case .sendingFailed(let error):
                 state.isSending = false
-                print("피드백 전송 실패: \(error)")
                 return .none
 
             case .closeButtonTapped:

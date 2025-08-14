@@ -31,7 +31,6 @@ struct NotificationResponse: Codable {
     let isSentByMe: Bool
 }
 
-// MARK: - Conversion Extensions
 extension NotificationResponse {
     func toNotificationItem() -> NotificationItem {
         let type = convertAPITypeToNotificationType()
@@ -41,12 +40,6 @@ extension NotificationResponse {
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
         dateFormatter.timeZone = TimeZone(identifier: "Asia/Seoul") // KST로 변경
         let timestamp = dateFormatter.date(from: createdAt) ?? Date()
-
-        // 디버깅용 로그
-        print("원본 시간: \(createdAt)")
-        print("파싱된 시간: \(timestamp)")
-        print("현재 시간: \(Date())")
-        print("시간 차이: \(Date().timeIntervalSince(timestamp)) 초")
 
         let senderProfile: UserProfile? = {
             if let senderNickName = senderNickName {

@@ -164,7 +164,13 @@ struct LoginFeature: Reducer {
             case .loginAPISuccess(let accessToken, let refreshToken, let isInitialized):
                 state.isLoading = false
                 tokenManager.saveTokens(accessToken, refreshToken)
-                return .send(.authenticationCompleted(needsOnboarding: !isInitialized))
+                
+                return .merge(
+                    .send(.authenticationCompleted(needsOnboarding: !isInitialized)),
+                    .run { _ in
+                        try? await FCMClient.liveValue.sendTokenToServer()
+                    }
+                )
 
             case .loginAPIFailure(let error):
                 state.isLoading = false

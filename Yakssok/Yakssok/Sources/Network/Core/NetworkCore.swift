@@ -65,6 +65,7 @@ enum APIEndpoints {
 
     // MARK: - Notification Endpoints
     case getNotifications
+    case registerDevice
 
     // MARK: - Mate Registration Endpoints
     case getMyInviteCode
@@ -150,6 +151,8 @@ enum APIEndpoints {
         // Notification
         case .getNotifications:
             return "/api/notifications"
+        case .registerDevice:
+            return "/api/user-devices/devices"
 
         // Mate Registration
         case .getMyInviteCode:
@@ -175,6 +178,7 @@ enum APIError: Error, LocalizedError {
     case userNotFound // 404 - 존재하지 않는 회원
     case decodingError
     case networkError(Error)
+    case fcmTokenNotFound
 
     var errorDescription: String? {
         switch self {
@@ -188,6 +192,8 @@ enum APIError: Error, LocalizedError {
             return "데이터 파싱 오류가 발생했습니다."
         case .networkError(let error):
             return "네트워크 오류가 발생했습니다: \(error.localizedDescription)"
+        case .fcmTokenNotFound:
+            return "FCM 토큰을 가져올 수 없습니다."
         }
     }
 }

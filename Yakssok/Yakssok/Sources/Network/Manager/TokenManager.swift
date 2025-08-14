@@ -43,11 +43,9 @@ class TokenManager {
     }
 
     var isLoggedIn: Bool {
-        // 액세스 토큰과 리프레시 토큰이 모두 있어야 로그인 상태임
         return accessToken != nil && refreshToken != nil
     }
 
-    // MARK: - Public Methods
     func saveTokens(accessToken: String, refreshToken: String) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
@@ -58,62 +56,93 @@ class TokenManager {
         refreshToken = nil
     }
 
-    // MARK: - Private Keychain Methods
     private func saveToken(_ token: String, for key: String) {
         let data = token.data(using: .utf8)!
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key,
-            kSecValueData as String: data
+            kSecValueData as String: data,
+            kSecAttrAccessGroup as String: "VT34K852T5.com.yakssok.app",
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
 
-        // 기존 토큰이 있으면 삭제
         SecItemDelete(query as CFDictionary)
-
-        // 새 토큰 저장
-        let status = SecItemAdd(query as CFDictionary, nil)
-
-        if status != errSecSuccess {
-            print("Keychain 저장 실패: \(key), status: \(status)")
-        }
+        SecItemAdd(query as CFDictionary, nil)
     }
 
     private func getToken(for key: String) -> String? {
-        let query: [String: Any] = [
+        let queryWithoutGroup: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
 
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        var result1: AnyObject?
+        let status1 = SecItemCopyMatching(queryWithoutGroup as CFDictionary, &result1)
 
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let token = String(data: data, encoding: .utf8) else {
-            return nil
+        let queryWithGroup: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrAccessGroup as String: "VT34K852T5.com.yakssok.app"
+        ]
+
+        var result2: AnyObject?
+        let status2 = SecItemCopyMatching(queryWithGroup as CFDictionary, &result2)
+
+        if status2 == errSecSuccess {
+            guard let data = result2 as? Data,
+                  let token = String(data: data, encoding: .utf8) else {
+                return nil
+            }
+            return token
+        } else if status1 == errSecSuccess {
+            guard let data = result1 as? Data,
+                  let token = String(data: data, encoding: .utf8) else {
+                return nil
+            }
+            return token
         }
 
-        return token
+        return nil
     }
 
     private func deleteToken(for key: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: key
+            kSecAttrAccount as String: key,
+            kSecAttrAccessGroup as String: "VT34K852T5.com.yakssok.app"
         ]
 
-        let status = SecItemDelete(query as CFDictionary)
-        if status == errSecSuccess {
-        } else if status != errSecItemNotFound {
-            print("토큰 삭제 실패: \(key), status: \(status)")
-        }
+        SecItemDelete(query as CFDictionary)
     }
 
     func getValidTokenAsync() async throws -> String {
         return try await refreshManager.getValidToken()
+    }
+
+    func migrateKeychainIfNeeded() {
+        let oldQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: accessTokenKey,
+            kSecReturnData as String: true
+        ]
+
+        var result: AnyObject?
+        let status = SecItemCopyMatching(oldQuery as CFDictionary, &result)
+
+        if status == errSecSuccess {
+            SecItemDelete(oldQuery as CFDictionary)
+
+            let oldRefreshQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: refreshTokenKey
+            ]
+            SecItemDelete(oldRefreshQuery as CFDictionary)
+        }
     }
 }
 
@@ -129,12 +158,10 @@ actor TokenRefreshManager {
     func getValidToken() async throws -> String {
         switch refreshState {
         case .idle:
-            // 토큰이 있고 유효하면 바로 반환
             if let token = TokenManager.shared.accessToken {
                 return token
             }
 
-            // 새로운 토큰 갱신 시작
             let refreshTask = Task<String, Error> {
                 try await performTokenRefresh()
             }
@@ -150,7 +177,6 @@ actor TokenRefreshManager {
             }
 
         case .refreshing(let existingTask):
-            // 이미 진행 중인 갱신 작업 기다리기
             return try await existingTask.value
         }
     }
