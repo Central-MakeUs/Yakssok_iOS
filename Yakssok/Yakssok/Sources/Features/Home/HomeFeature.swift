@@ -24,6 +24,7 @@ struct HomeFeature: Reducer {
         var mateRegistration: MateRegistrationFeature.State?
         var myPage: MyPageFeature.State?
         var fullCalendar: FullCalendarFeature.State?
+        var hasShownReminderToday: Bool = false
 
         var shouldShowMateCards: Bool {
             mateCards?.cards.isEmpty == false
@@ -39,6 +40,11 @@ struct HomeFeature: Reducer {
         case userProfileLoadFailed(String)
         case notificationTapped
         case menuTapped
+        case checkMissedMedicines
+        case showReminderModal([Medicine])
+        case dismissReminderModal
+        case startDataSubscription
+        case stopDataSubscription
         case userSelection(MateSelectionFeature.Action)
         case mateCards(MateCardsFeature.Action)
         case weeklyCalendar(WeeklyCalendarFeature.Action)
@@ -47,7 +53,6 @@ struct HomeFeature: Reducer {
         case showMessageModal(targetUser: String, targetUserId: Int, messageType: MessageType)
         case dismissMessageModal
         case reminderModal(ReminderModalFeature.Action)
-        case showReminderModal
         case addRoutine(AddRoutineFeature.Action)
         case showAddRoutine
         case dismissAddRoutine
@@ -73,6 +78,7 @@ struct HomeFeature: Reducer {
     }
 
     @Dependency(\.userClient) var userClient
+    @Dependency(\.medicineClient) var medicineClient
 
     var body: some ReducerOf<Self> {
         Reduce(handleAction)
@@ -116,19 +122,10 @@ struct HomeFeature: Reducer {
         case .onAppear:
             return .merge(
                 handleOnAppear(&state),
+                .send(.startDataSubscription),
                 .run { send in
-                    await AppDataManager.shared.subscribe(id: "home") { event in
-                        switch event {
-                        case .medicineAdded, .medicineUpdated, .medicineDeleted:
-                            await send(.refreshAllData)
-                        case .mateAdded, .mateRemoved:
-                            await send(.refreshAllData)
-                        case .profileUpdated:
-                            await send(.loadUserProfile)
-                        case .allDataChanged:
-                            await send(.refreshAllData)
-                        }
-                    }
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                    await send(.checkMissedMedicines)
                 }
             )
 
@@ -160,11 +157,71 @@ struct HomeFeature: Reducer {
                 .send(.userSelection(.updateCurrentUser(currentUser)))
             )
 
-        case .userProfileLoadFailed(let error):
-            state.currentUser = nil
-            if error.contains("401") || error.contains("토큰") || error.contains("인증") {
-                return .send(.delegate(.logoutCompleted))
+        case .userProfileLoadFailed:
+            return .merge(
+                .send(.stopDataSubscription),
+                .send(.delegate(.logoutCompleted))
+            )
+
+        case .startDataSubscription:
+            return .run { send in
+                await AppDataManager.shared.subscribe(id: "home") { event in
+                    switch event {
+                    case .medicineAdded, .medicineUpdated, .medicineDeleted:
+                        await send(.refreshAllData)
+                    case .mateAdded, .mateRemoved:
+                        await send(.refreshAllData)
+                    case .profileUpdated:
+                        await send(.loadUserProfile)
+                    case .allDataChanged:
+                        await send(.refreshAllData)
+                    }
+                }
             }
+
+        case .stopDataSubscription:
+            return .run { _ in
+                await AppDataManager.shared.unsubscribe(id: "home")
+            }
+            .cancellable(id: "home-subscription", cancelInFlight: true)
+
+        case .checkMissedMedicines:
+            guard !state.hasShownReminderToday else { return .none }
+
+            return .run { send in
+                guard let medicineData = try? await medicineClient.loadTodaySchedules() else {
+                    return
+                }
+
+                let missedMedicines = ReminderModalFeature.getMissedMedicines(from: medicineData)
+
+                if !missedMedicines.isEmpty {
+                    await send(.showReminderModal(missedMedicines))
+                }
+            }
+
+        case .showReminderModal(let missedMedicines):
+            guard let userName = state.currentUserNickname else {
+                return .none
+            }
+
+            state.reminderModal = ReminderModalFeature.State(
+                userName: userName,
+                missedMedicines: missedMedicines
+            )
+            state.hasShownReminderToday = true
+            return .none
+
+        case .reminderModal(.delegate(.dismissed)):
+            state.reminderModal = nil
+            return .none
+
+        case .reminderModal(.delegate(.navigateToHome)):
+            state.reminderModal = nil
+            return .send(.medicineList(.loadInitialData))
+
+        case .dismissReminderModal:
+            state.reminderModal = nil
             return .none
 
         case .notificationTapped:
@@ -180,9 +237,6 @@ struct HomeFeature: Reducer {
 
         case .dismissMyPage:
             state.myPage = nil
-            return .none
-
-        case .showReminderModal:
             return .none
 
         case .showMessageModal(let targetUser, let targetUserId, let messageType):
@@ -314,7 +368,6 @@ struct HomeFeature: Reducer {
         return .run { send in
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await send(.weeklyCalendar(.onAppear)) }
-                group.addTask { await send(.showReminderModal) }
                 group.addTask { await send(.loadUserProfile) }
                 group.addTask { await send(.userSelection(.loadUsers)) }
                 group.addTask { await send(.mateCards(.loadCards)) }
