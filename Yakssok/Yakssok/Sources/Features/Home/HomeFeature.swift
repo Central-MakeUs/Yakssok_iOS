@@ -161,9 +161,11 @@ struct HomeFeature: Reducer {
             )
 
         case .userProfileLoadFailed(let error):
-            let defaultUser = User.defaultCurrentUser()
-            state.currentUser = defaultUser
-            return .send(.medicineList(.updateCurrentUser(defaultUser)))
+            state.currentUser = nil
+            if error.contains("401") || error.contains("토큰") || error.contains("인증") {
+                return .send(.delegate(.logoutCompleted))
+            }
+            return .none
 
         case .notificationTapped:
             return .send(.showNotificationList)
