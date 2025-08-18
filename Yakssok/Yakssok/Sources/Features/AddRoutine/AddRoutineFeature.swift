@@ -31,6 +31,7 @@ struct AddRoutineFeature: Reducer {
     struct CompletedScheduleData: Equatable {
         let dateRange: DateRange
         let frequency: MedicineFrequency
+        let hasEndDate: Bool
     }
 
     @CasePathable
@@ -72,8 +73,9 @@ struct AddRoutineFeature: Reducer {
                     state.scheduleSelection = state.completedScheduleData.map { scheduleData in
                         var scheduleState = ScheduleSelectionFeature.State()
                         scheduleState.startDate = scheduleData.dateRange.startDate
-                        scheduleState.endDate = scheduleData.dateRange.endDate
-                        scheduleState.hasEndDate = scheduleData.dateRange.startDate != scheduleData.dateRange.endDate
+                        scheduleState.endDate   = scheduleData.dateRange.endDate
+
+                        scheduleState.hasEndDate = scheduleData.hasEndDate
 
                         switch scheduleData.frequency.type {
                         case .daily:
@@ -124,7 +126,8 @@ struct AddRoutineFeature: Reducer {
 
                     state.completedScheduleData = CompletedScheduleData(
                         dateRange: dateRange,
-                        frequency: frequency
+                        frequency: frequency,
+                        hasEndDate: scheduleState.hasEndDate
                     )
                 }
 
@@ -220,7 +223,8 @@ struct AddRoutineFeature: Reducer {
             dateRange: scheduleData.dateRange,
             frequency: scheduleData.frequency,
             alarmSound: alarmState.selectedAlarmType.toAlarmSound,
-            medicineInfo: medicineInfo
+            medicineInfo: medicineInfo,
+            hasEndDate: scheduleData.hasEndDate
         )
 
         return data
