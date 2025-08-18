@@ -411,7 +411,7 @@ class APIClient {
     private func handleTokenExpiry() {
         // 토큰이 있을 때만 클리어하고 알림 전송
         if TokenManager.shared.accessToken != nil || TokenManager.shared.refreshToken != nil {
-            TokenManager.shared.clearAllTokens()
+            TokenManager.shared.clearTokens()
             NotificationCenter.default.post(name: Self.tokenExpiredNotification, object: nil)
         }
     }

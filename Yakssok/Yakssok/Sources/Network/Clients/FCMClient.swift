@@ -14,6 +14,7 @@ import UIKit
 struct FCMClient: Sendable {
     var setupFCM: @Sendable () async -> Void
     var sendTokenToServer: @Sendable () async throws -> Void
+    var unregister: @Sendable () async -> Void
 }
 
 extension FCMClient: DependencyKey {
@@ -23,6 +24,9 @@ extension FCMClient: DependencyKey {
         },
         sendTokenToServer: {
             try await FCMManager.shared.sendTokenToServer()
+        },
+        unregister: {
+            await FCMManager.shared.unregister()
         }
     )
 }
@@ -35,7 +39,7 @@ extension DependencyValues {
 }
 
 @MainActor
-final class FCMManager: NSObject, ObservableObject, @unchecked Sendable {
+final class FCMManager: NSObject, ObservableObject {
     static let shared = FCMManager()
 
     private var isRegistering = false
@@ -46,15 +50,13 @@ final class FCMManager: NSObject, ObservableObject, @unchecked Sendable {
     }
 
     func setupFCM() {
-        Messaging.messaging().delegate = self
-        UNUserNotificationCenter.current().delegate = self
+        // FCM 초기 설정
     }
 
     func sendTokenToServer() async throws {
         guard !isRegistering else {
             return
         }
-
         guard TokenManager.shared.isLoggedIn else {
             return
         }
@@ -62,92 +64,84 @@ final class FCMManager: NSObject, ObservableObject, @unchecked Sendable {
         isRegistering = true
         defer { isRegistering = false }
 
-        do {
-            let fcmToken = try await Messaging.messaging().token()
+        // FCM 토큰 가져오기 (최대 3번 시도)
+        var fcmToken: String?
+        for attempt in 1...3 {
+            do {
+                fcmToken = try await Messaging.messaging().token()
 
-            if lastSentToken == fcmToken {
-                return
+                if let token = fcmToken, !token.isEmpty {
+                    break
+                } else {
+                    if attempt < 3 {
+                        try await Task.sleep(nanoseconds: 2_000_000_000)
+                    }
+                }
+            } catch {
+                if attempt < 3 {
+                    try await Task.sleep(nanoseconds: 2_000_000_000)
+                }
             }
+        }
 
-            let deviceId = await UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        guard let validToken = fcmToken, !validToken.isEmpty else {
+            throw APIError.fcmTokenNotFound
+        }
 
+        // 이전과 동일한 토큰이면 스킵
+        if lastSentToken == validToken {
+            return
+        }
+
+        let deviceId = DeviceIdManager.shared.stableDeviceId
+        let request = FCMTokenRequest(
+            deviceId: deviceId,
+            fcmToken: validToken,
+            alertOn: true
+        )
+
+        let response: FCMTokenResponse = try await APIClient.shared.requestWithTokenRefresh(
+            endpoint: .registerDevice,
+            method: .POST,
+            body: request
+        )
+
+        if response.code != 0 {
+            throw APIError.serverError(response.code)
+        }
+
+        lastSentToken = validToken
+    }
+
+    func unregister() async {
+        do {
+            let deviceId = DeviceIdManager.shared.stableDeviceId
+
+            // 서버에서 해제 (alertOn: false)
             let request = FCMTokenRequest(
                 deviceId: deviceId,
-                fcmToken: fcmToken,
-                alertOn: true
+                fcmToken: lastSentToken ?? "",
+                alertOn: false
             )
 
-            let response: FCMTokenResponse = try await APIClient.shared.requestWithTokenRefresh(
+            let _: FCMTokenResponse? = try? await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .registerDevice,
                 method: .POST,
                 body: request
             )
 
-            if response.code != 0 {
-                throw APIError.serverError(response.code)
+            // Firebase에서 토큰 삭제
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                Messaging.messaging().deleteToken { error in
+                    cont.resume()
+                }
             }
 
-            lastSentToken = fcmToken
+            // 캐시 정리
+            lastSentToken = nil
+
         } catch {
-            throw APIError.fcmTokenNotFound
+            // Handle unregister error
         }
-    }
-}
-
-extension FCMManager: MessagingDelegate {
-    nonisolated func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        if let _ = fcmToken, TokenManager.shared.isLoggedIn {
-            Task { @MainActor in
-                try? await sendTokenToServer()
-            }
-        }
-    }
-}
-
-// MARK: - UNUserNotificationCenterDelegate
-extension FCMManager: UNUserNotificationCenterDelegate {
-    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
-        await handleIncomingMessage(notification.request.content.userInfo)
-        return [.banner, .sound, .badge]
-    }
-
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        await handleNotificationTap(response)
-    }
-
-    private func handleNotificationTap(_ response: UNNotificationResponse) async {
-        // 추후 알림 탭 시 특정 화면으로 이동 등 처리
-    }
-
-    private func handleIncomingMessage(_ userInfo: [AnyHashable: Any]) async {
-        if let data = userInfo["data"] as? [String: Any] {
-            await handleDataOnlyMessage(data)
-        }
-    }
-
-    private func handleDataOnlyMessage(_ data: [String: Any]) async {
-        guard let title = data["title"] as? String,
-              let body = data["body"] as? String,
-              let soundTypeString = data["soundType"] as? String,
-              let soundType = FCMSoundType(rawValue: soundTypeString) else {
-            return
-        }
-
-        await createCustomNotification(title: title, body: body, soundType: soundType)
-    }
-
-    private func createCustomNotification(title: String, body: String, soundType: FCMSoundType) async {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = UNNotificationSound(named: UNNotificationSoundName(soundType.fileName + ".mp3"))
-        
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil
-        )
-
-        try? await UNUserNotificationCenter.current().add(request)
     }
 }

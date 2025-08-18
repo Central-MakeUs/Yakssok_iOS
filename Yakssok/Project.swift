@@ -35,6 +35,10 @@ let project = Project(
                     "MASTER_ACCESS_TOKEN": "$(MASTER_ACCESS_TOKEN)",
                     "MASTER_REFRESH_TOKEN": "$(MASTER_REFRESH_TOKEN)",
                     "MASTER_PASSWORD": "$(MASTER_PASSWORD)",
+                    "FirebaseAppDelegateProxyEnabled": false,
+                    "UIBackgroundModes": [
+                        "remote-notification"
+                    ],
                     "CFBundleURLTypes": [
                         [
                             "CFBundleURLName": "kakao",
