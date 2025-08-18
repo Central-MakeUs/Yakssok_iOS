@@ -34,7 +34,10 @@ struct MyPageView: View {
                                 .padding(.bottom, Layout.statsToMenuSpacing)
 
                             MenuSection(store: store)
-                                .padding(.bottom, Layout.menuToVersionSpacing)
+                                .padding(.bottom, Layout.menuToNotificationSpacing)
+
+                            NotificationSection(store: store)
+                                .padding(.bottom, Layout.notificationToVersionSpacing)
 
                             VersionSection(store: store)
 
@@ -87,6 +90,9 @@ struct MyPageView: View {
             }
             .onAppear {
                 store.send(.onAppear)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                store.send(.appDidBecomeActive)
             }
         }
     }
@@ -315,6 +321,63 @@ private struct MenuRow: View {
     }
 }
 
+private struct NotificationSection: View {
+    let store: StoreOf<MyPageFeature>
+
+    var body: some View {
+        WithViewStore(store, observe: { $0 }) { viewStore in
+            HStack {
+                Text("약 알람 받기")
+                    .font(YKFont.body1)
+                    .foregroundColor(YKColor.Neutral.grey900)
+
+                Spacer()
+
+                Toggle("", isOn: Binding(
+                    get: {
+                        viewStore.alertOn
+                    },
+                    set: { newValue in
+                        if !viewStore.permissionGranted {
+                            showPermissionAlert()
+                        } else {
+                            viewStore.send(.notificationToggled(newValue))
+                        }
+                    }
+                ))
+                .toggleStyle(SwitchToggleStyle(tint: YKColor.Primary.primary400))
+                .frame(width: 45, height: 24)
+            }
+            .padding(.vertical, 16)
+            .padding(.horizontal, 16)
+            .background(YKColor.Neutral.grey150)
+            .cornerRadius(12)
+        }
+    }
+
+    private func showPermissionAlert() {
+        let alert = UIAlertController(
+            title: "알림 권한 요청",
+            message: "설정에서도 알림을 허용해야 합니다.",
+            preferredStyle: .alert
+        )
+
+        alert.addAction(UIAlertAction(title: "설정", style: .default) { _ in
+            if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsUrl)
+            }
+        })
+
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
+            window.rootViewController?.present(alert, animated: true)
+        }
+    }
+}
+
+
 private struct VersionSection: View {
     let store: StoreOf<MyPageFeature>
 
@@ -387,7 +450,8 @@ private enum Layout {
     static let statsSpacing: CGFloat = 8
     static let statsToMenuSpacing: CGFloat = 32
     static let menuItemSpacing: CGFloat = 8
-    static let menuToVersionSpacing: CGFloat = 16
+    static let menuToNotificationSpacing: CGFloat = 8
+    static let notificationToVersionSpacing: CGFloat = 16
     static let bottomButtonSpacing: CGFloat = 8
     static let bottomSpacing: CGFloat = 50
 }

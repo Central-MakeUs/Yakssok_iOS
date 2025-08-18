@@ -68,6 +68,7 @@ struct HomeFeature: Reducer {
         case dismissMyPage
         case refreshMedicineList
         case refreshAllData
+        case notificationPermissionChanged(Bool)
         case delegate(Delegate)
 
         @CasePathable
@@ -126,6 +127,16 @@ struct HomeFeature: Reducer {
                 .run { send in
                     try await Task.sleep(nanoseconds: 1_000_000_000)
                     await send(.checkMissedMedicines)
+                },
+                .run { send in
+                    try await Task.sleep(nanoseconds: 2_000_000_000)
+
+                    NotificationPermissionManager.shared.onPermissionChanged = { granted in
+                        Task { @MainActor in
+                            await send(.notificationPermissionChanged(granted))
+                        }
+                    }
+                    await NotificationPermissionManager.shared.checkAndHandlePermissionOnAppEntry()
                 }
             )
 
@@ -324,6 +335,12 @@ struct HomeFeature: Reducer {
         case .myPage(.delegate(.withdrawalCompleted)):
             state.myPage = nil
             return .send(.delegate(.withdrawalCompleted))
+
+        case .notificationPermissionChanged(let granted):
+            if state.myPage != nil {
+                return .send(.myPage(.notificationPermissionChecked(granted)))
+            }
+            return .none
 
         // MARK: - Modal Close Actions
         case .reminderModal(.takeMedicineNowTapped), .reminderModal(.closeButtonTapped):
