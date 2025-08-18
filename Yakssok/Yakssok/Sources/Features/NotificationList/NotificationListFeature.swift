@@ -43,7 +43,7 @@ struct NotificationListFeature: Reducer {
                     }
                 }
             case .notificationsLoaded(let notifications):
-                state.notifications = notifications.sorted { $0.timestamp > $1.timestamp }
+                state.notifications = notifications.sorted { $0.timestamp < $1.timestamp }
                 state.isLoading = false
                 return .none
             case .loadingFailed(let error):
