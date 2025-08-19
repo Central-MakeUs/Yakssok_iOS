@@ -57,6 +57,7 @@ struct MyMatesView: View {
                                             MaPageAddMateButton(profileSize: profileSize) {
                                                 viewStore.send(.addMateButtonTapped)
                                             }
+                                            .padding(.leading, viewStore.followingUsers.isEmpty ? 16 : 0)
                                             .padding(.trailing, 16)
                                         }
                                         .padding(selectedBorderWidth)
