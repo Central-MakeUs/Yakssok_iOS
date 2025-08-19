@@ -206,9 +206,6 @@ private func convertToMedicineDataResponse(_ apiResponse: MedicationListResponse
         allTodayMedicines.append(contentsOf: todayMedicines)
         allCompletedMedicines.append(contentsOf: completedMedicines)
 
-        let baseDate = Date(timeIntervalSince1970: 1609459200)
-        let createdAt = baseDate.addingTimeInterval(TimeInterval(medicationCard.medicationId * 86400))
-
         let routine = MedicineRoutine(
             id: String(medicationCard.medicationId),
             medicineName: medicationCard.medicineName,
@@ -220,7 +217,6 @@ private func convertToMedicineDataResponse(_ apiResponse: MedicationListResponse
             ),
             startDate: nil,
             endDate: nil,
-            createdAt: createdAt,
             status: convertAPIStatusToMedicineStatus(medicationCard.medicationStatus)
         )
         routines.append(routine)
