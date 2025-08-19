@@ -347,8 +347,18 @@ struct HomeFeature: Reducer {
             state.reminderModal = nil
             return .none
 
-        case .messageModal(.closeButtonTapped), .messageModal(.sendingCompleted):
+        case .messageModal(.closeButtonTapped):
             state.messageModal = nil
+            return .none
+
+        case .messageModal(.sendingCompleted):
+            // 메시지 전송 완료 시 해당 카드 삭제
+            let targetUserId = state.messageModal?.targetUserId
+            state.messageModal = nil
+
+            if let userId = targetUserId {
+                return .send(.mateCards(.messageWasSent(targetUserId: String(userId))))
+            }
             return .none
 
         case .addRoutine(.dismissRequested):
