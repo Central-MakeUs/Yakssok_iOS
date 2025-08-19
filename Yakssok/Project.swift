@@ -29,7 +29,7 @@ let project = Project(
                     ],
                     "CFBundleDisplayName": "약쏙",
                     "CFBundleShortVersionString": "1.1",
-                    "CFBundleVersion": "9",
+                    "CFBundleVersion": "10",
                     "KAKAO_NATIVE_APP_KEY": "$(KAKAO_NATIVE_APP_KEY)",
                     "API_BASE_URL": "https://yakssok.site",
                     "MASTER_ACCESS_TOKEN": "$(MASTER_ACCESS_TOKEN)",
