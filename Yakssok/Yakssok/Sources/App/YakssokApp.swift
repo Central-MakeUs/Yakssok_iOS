@@ -5,12 +5,31 @@ import KakaoSDKAuth
 import FirebaseCore
 import FirebaseMessaging
 import UserNotifications
+import AppsFlyerLib
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, AppsFlyerLibDelegate, DeepLinkDelegate {
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
+        setupAppsFlyer()
         return true
+    }
+
+    private func setupAppsFlyer() {
+        guard let devKey = Bundle.main.object(forInfoDictionaryKey: "APPSFLYER_DEV_KEY") as? String,
+              let appID = Bundle.main.object(forInfoDictionaryKey: "ITUNES_APP_ID") as? String,
+              !devKey.isEmpty, !appID.isEmpty else {
+            return
+        }
+
+        let af = AppsFlyerLib.shared()
+        af.appsFlyerDevKey = devKey
+        af.appleAppID = appID
+        af.delegate = self
+        af.deepLinkDelegate = self
+        af.isDebug = false
+        af.start()
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -28,7 +47,42 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        // error
+        // 필요시 에러 로깅 시스템으로 전송
+    }
+
+    func application(_ application: UIApplication,
+                     continue userActivity: NSUserActivity,
+                     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+
+        AppsFlyerLib.shared().continue(userActivity, restorationHandler: nil)
+
+        if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+           let url = userActivity.webpageURL {
+            handleDeepLink(url)
+        }
+
+        return true
+    }
+
+    func application(_ app: UIApplication,
+                     open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+
+        if AuthApi.isKakaoTalkLoginUrl(url) {
+            return AuthController.handleOpenUrl(url: url)
+        }
+
+        AppsFlyerLib.shared().handleOpen(url, options: options)
+        handleDeepLink(url)
+
+        return true
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard let scheme = url.scheme, !scheme.isEmpty else {
+            return
+        }
+        DeepLinkManager.shared.handleURL(url)
     }
 
     // 포그라운드 수신
@@ -161,9 +215,34 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     private func handleNotificationTap(_ response: UNNotificationResponse) async {
         // Handle notification tap
     }
+
+    // MARK: - AppsFlyer Delegates
+    func onConversionDataSuccess(_ installData: [AnyHashable : Any]) {
+    }
+
+    func onConversionDataFail(_ error: Error) {
+    }
+
+    func onAppOpenAttribution(_ attributionData: [AnyHashable : Any]) {
+    }
+
+    func onAppOpenAttributionFailure(_ error: Error) {
+    }
+
+    func didResolveDeepLink(_ result: DeepLinkResult) {
+        switch result.status {
+        case .found:
+            if let deepLink = result.deepLink {
+                DeepLinkManager.shared.handleParams(deepLink.clickEvent)
+            }
+        case .notFound, .failure:
+            break
+        @unknown default:
+            break
+        }
+    }
 }
 
-// MessagingDelegate
 extension AppDelegate: MessagingDelegate {
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let fcmToken = fcmToken, !fcmToken.isEmpty else {
@@ -246,9 +325,15 @@ struct YakssokApp: App {
                 .onOpenURL { url in
                     if AuthApi.isKakaoTalkLoginUrl(url) {
                         _ = AuthController.handleOpenUrl(url: url)
+                        return
+                    }
+
+                    // 딥링크 처리
+                    if let scheme = url.scheme, !scheme.isEmpty {
+                        DeepLinkManager.shared.handleURL(url)
                     }
                 }
-                .onChange(of: scenePhase) { newPhase in
+                .onChange(of: scenePhase) { oldValue, newPhase in
                     switch newPhase {
                     case .active:
                         UIApplication.shared.applicationIconBadgeNumber = 0
