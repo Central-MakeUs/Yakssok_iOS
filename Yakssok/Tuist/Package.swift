@@ -28,6 +28,10 @@ let package = Package(
             url: "https://github.com/firebase/firebase-ios-sdk",
             from: "12.1.0"
         ),
+        .package(
+            url: "https://github.com/AppsFlyerSDK/AppsFlyerFramework",
+            from: "6.17.2"
+        ),
         .package(path: "../Packages/YakssokDesignSystem")
     ]
 )

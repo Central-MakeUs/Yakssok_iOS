@@ -11,6 +11,12 @@
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)com.yakssok.app</string>
-	</array>
+    </array>
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+        <string>applinks:yakssok.onelink.me</string>
+        <string>applinks:*.onelink.me</string>
+    </array>
+
 </dict>
 </plist>

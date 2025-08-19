@@ -47,12 +47,18 @@ let project = Project(
                         [
                             "CFBundleURLName": "apple",
                             "CFBundleURLSchemes": ["$(PRODUCT_BUNDLE_IDENTIFIER)"]
+                        ],
+                        [
+                            "CFBundleURLName": "yakssok",
+                            "CFBundleURLSchemes": ["yakssok"]
                         ]
                     ],
                     "LSApplicationQueriesSchemes": [
                         "kakaokompassauth",
                         "kakaolink"
-                    ]
+                    ],
+                    "AppsFlyerDevKey": "$(APPSFLYER_DEV_KEY)",
+                    "AppID": "$(ITUNES_APP_ID)"
                 ]
             ),
             sources: ["Yakssok/Sources/**"],
@@ -66,7 +72,8 @@ let project = Project(
                 .external(name: "KakaoSDKUser"),
                 .external(name: "FirebaseCore"),
                 .external(name: "FirebaseMessaging"),
-                .external(name: "YakssokDesignSystem")
+                .external(name: "YakssokDesignSystem"),
+                .external(name: "AppsFlyerLib")
             ],
             settings: .settings(
                 base: [
