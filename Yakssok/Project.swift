@@ -28,7 +28,7 @@ let project = Project(
                         "Pretendard-Bold.otf"
                     ],
                     "CFBundleDisplayName": "약쏙",
-                    "CFBundleShortVersionString": "1.0",
+                    "CFBundleShortVersionString": "1.1",
                     "CFBundleVersion": "9",
                     "KAKAO_NATIVE_APP_KEY": "$(KAKAO_NATIVE_APP_KEY)",
                     "API_BASE_URL": "https://yakssok.site",
