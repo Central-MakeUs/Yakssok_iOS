@@ -62,7 +62,17 @@ struct MateRegistrationView: View {
                         send: { _ in .dismissShareSheet }
                     )) {
                         ShareSheet(items: [
-                            "\(viewStore.currentUserName)님이 함께 약 챙기자고 해요. 가끔 잊어버릴 수도 있으니까,\n서로 약 잘 먹고 있는지 확인하며 챙기는 건 어때요?\n필요할 땐 잔소리도 살짝😉\n\(viewStore.currentUserName)님의 코드: \(viewStore.myCode)\n👇 여기로 들어오면 같이 챙길 수 있어요"
+                            """
+                        \(viewStore.currentUserName)님이 함께 약 챙기자고 해요.
+                        가끔 잊어버릴 수도 있으니까,
+                        서로 약 잘 먹고 있는지 확인하며 챙기는 건 어때요?
+                        필요할 땐 잔소리도 살짝😉
+                        
+                        \(viewStore.currentUserName)님의 코드: \(viewStore.myCode)
+                        
+                        👇 여기를 들어오면 같이 챙길 수 있어요
+                        https://yakssok.onelink.me/ggOB/uvut58xg
+                        """
                         ])
                         .presentationDetents([.medium])
                     }

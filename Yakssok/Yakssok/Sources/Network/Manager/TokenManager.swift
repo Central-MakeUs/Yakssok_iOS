@@ -14,72 +14,116 @@ class TokenManager {
 
     private let accessTokenKey = "yakssok_access_token"
     private let refreshTokenKey = "yakssok_refresh_token"
+    private let keychainAccessGroup: String? = nil
 
     private let refreshManager = TokenRefreshManager()
 
+    private var cachedAccessToken: String?
+    private var cachedRefreshToken: String?
+    private var lastCacheTime: Date?
+
     private init() {}
 
-    // MARK: - Public Properties
     var accessToken: String? {
-        get { getToken(for: accessTokenKey) }
+        get {
+            if let cached = cachedAccessToken,
+               let lastTime = lastCacheTime,
+               Date().timeIntervalSince(lastTime) < 5 {
+                return cached
+            }
+
+            let token = getTokenFromKeychain(for: accessTokenKey)
+            cachedAccessToken = token
+            lastCacheTime = Date()
+            return token
+        }
         set {
+            cachedAccessToken = newValue
+            lastCacheTime = Date()
+
             if let token = newValue {
-                saveToken(token, for: accessTokenKey)
+                saveTokenToKeychain(token, for: accessTokenKey)
             } else {
-                deleteToken(for: accessTokenKey)
+                deleteTokenFromKeychain(for: accessTokenKey)
             }
         }
     }
 
     var refreshToken: String? {
-        get { getToken(for: refreshTokenKey) }
+        get {
+            if let cached = cachedRefreshToken,
+               let lastTime = lastCacheTime,
+               Date().timeIntervalSince(lastTime) < 5 {
+                return cached
+            }
+
+            let token = getTokenFromKeychain(for: refreshTokenKey)
+            cachedRefreshToken = token
+            lastCacheTime = Date()
+            return token
+        }
         set {
+            cachedRefreshToken = newValue
+            lastCacheTime = Date()
+
             if let token = newValue {
-                saveToken(token, for: refreshTokenKey)
+                saveTokenToKeychain(token, for: refreshTokenKey)
             } else {
-                deleteToken(for: refreshTokenKey)
+                deleteTokenFromKeychain(for: refreshTokenKey)
             }
         }
     }
 
     var isLoggedIn: Bool {
-        // 액세스 토큰과 리프레시 토큰이 모두 있어야 로그인 상태임
         return accessToken != nil && refreshToken != nil
     }
 
-    // MARK: - Public Methods
-    func saveTokens(accessToken: String, refreshToken: String) {
+    func saveTokens(_ accessToken: String, _ refreshToken: String) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
     }
 
-    func clearAllTokens() {
+    func clearTokens() {
+        cachedAccessToken = nil
+        cachedRefreshToken = nil
+        lastCacheTime = nil
+
         accessToken = nil
         refreshToken = nil
     }
 
-    // MARK: - Private Keychain Methods
-    private func saveToken(_ token: String, for key: String) {
-        let data = token.data(using: .utf8)!
+    func refreshCachedTokens() {
+        cachedAccessToken = nil
+        cachedRefreshToken = nil
+        lastCacheTime = nil
+
+        let _ = accessToken
+        let _ = refreshToken
+    }
+
+    func refreshOnceOnLaunch() async throws {
+        try await refreshManager.forceRefreshNow()
+        refreshCachedTokens()
+    }
+
+    @discardableResult
+    private func saveTokenToKeychain(_ token: String, for key: String) -> Bool {
+        guard let data = token.data(using: .utf8) else { return false }
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key,
-            kSecValueData as String: data
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
 
-        // 기존 토큰이 있으면 삭제
         SecItemDelete(query as CFDictionary)
-
-        // 새 토큰 저장
         let status = SecItemAdd(query as CFDictionary, nil)
 
-        if status != errSecSuccess {
-            print("Keychain 저장 실패: \(key), status: \(status)")
-        }
+        return status == errSecSuccess
     }
 
-    private func getToken(for key: String) -> String? {
+    private func getTokenFromKeychain(for key: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key,
@@ -99,17 +143,13 @@ class TokenManager {
         return token
     }
 
-    private func deleteToken(for key: String) {
+    private func deleteTokenFromKeychain(for key: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key
         ]
 
-        let status = SecItemDelete(query as CFDictionary)
-        if status == errSecSuccess {
-        } else if status != errSecItemNotFound {
-            print("토큰 삭제 실패: \(key), status: \(status)")
-        }
+        SecItemDelete(query as CFDictionary)
     }
 
     func getValidTokenAsync() async throws -> String {
@@ -117,7 +157,6 @@ class TokenManager {
     }
 }
 
-// MARK: - TokenRefreshManager Actor
 actor TokenRefreshManager {
     private enum RefreshState {
         case idle
@@ -125,24 +164,25 @@ actor TokenRefreshManager {
     }
 
     private var refreshState: RefreshState = .idle
+    private var retryCount: Int = 0
+    private let maxRetries: Int = 3
 
     func getValidToken() async throws -> String {
         switch refreshState {
         case .idle:
-            // 토큰이 있고 유효하면 바로 반환
             if let token = TokenManager.shared.accessToken {
                 return token
             }
 
-            // 새로운 토큰 갱신 시작
             let refreshTask = Task<String, Error> {
-                try await performTokenRefresh()
+                try await performTokenRefreshWithRetry()
             }
             refreshState = .refreshing(refreshTask)
 
             do {
                 let newToken = try await refreshTask.value
                 refreshState = .idle
+                retryCount = 0
                 return newToken
             } catch {
                 refreshState = .idle
@@ -150,12 +190,11 @@ actor TokenRefreshManager {
             }
 
         case .refreshing(let existingTask):
-            // 이미 진행 중인 갱신 작업 기다리기
             return try await existingTask.value
         }
     }
 
-    private func performTokenRefresh() async throws -> String {
+    func forceRefreshNow() async throws {
         guard let refreshToken = TokenManager.shared.refreshToken else {
             throw APIError.serverError(401)
         }
@@ -168,11 +207,40 @@ actor TokenRefreshManager {
         )
 
         TokenManager.shared.accessToken = response.body.accessToken
-        return response.body.accessToken
+    }
+
+    private func performTokenRefreshWithRetry() async throws -> String {
+        retryCount += 1
+
+        guard let refreshToken = TokenManager.shared.refreshToken else {
+            throw APIError.serverError(401)
+        }
+
+        do {
+            let request = RefreshTokenRequest(refreshToken: refreshToken)
+            let response: RefreshTokenResponse = try await APIClient.shared.authRequest(
+                endpoint: .refreshToken,
+                method: .POST,
+                body: request
+            )
+
+            TokenManager.shared.accessToken = response.body.accessToken
+            retryCount = 0
+            return response.body.accessToken
+
+        } catch {
+            if retryCount >= maxRetries {
+                throw error
+            }
+
+            let delay = pow(2.0, Double(retryCount))
+            try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+
+            return try await performTokenRefreshWithRetry()
+        }
     }
 }
 
-// MARK: - TokenManager Dependency
 struct TokenManagerClient {
     var accessToken: @Sendable () -> String?
     var refreshToken: @Sendable () -> String?
@@ -187,10 +255,10 @@ extension TokenManagerClient: DependencyKey {
         refreshToken: { TokenManager.shared.refreshToken },
         isLoggedIn: { TokenManager.shared.isLoggedIn },
         saveTokens: { accessToken, refreshToken in
-            TokenManager.shared.saveTokens(accessToken: accessToken, refreshToken: refreshToken)
+            TokenManager.shared.saveTokens(accessToken, refreshToken)
         },
         clearTokens: {
-            TokenManager.shared.clearAllTokens()
+            TokenManager.shared.clearTokens()
         }
     )
 }

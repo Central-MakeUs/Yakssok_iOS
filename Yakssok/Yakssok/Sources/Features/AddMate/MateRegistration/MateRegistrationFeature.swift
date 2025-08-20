@@ -70,7 +70,8 @@ struct MateRegistrationFeature: Reducer {
                 }
 
             case .backButtonTapped:
-                return .none
+                NotificationCenter.default.post(name: Notification.Name("yakssok.mate.completed"), object: nil)
+                return .send(.delegate(.mateAddingCompleted))
 
             case .mateCodeChanged(let code):
                 let filteredCode = code.replacingOccurrences(of: " ", with: "")

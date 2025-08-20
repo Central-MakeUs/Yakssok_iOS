@@ -236,11 +236,9 @@ struct FullCalendarFeature: Reducer {
             )
 
         case .userProfileLoadFailed:
-            let defaultUser = User.defaultCurrentUser()
-
             return .merge(
-                .send(.medicineList(.updateCurrentUser(defaultUser))),
-                .send(.userSelection(.updateCurrentUser(defaultUser)))
+                .send(.stopDataSubscription),
+                .send(.delegate(.backToHome))
             )
 
         case .notificationTapped:

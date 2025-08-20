@@ -102,6 +102,7 @@ struct MateRelationshipFeature: Reducer {
 
             case .confirmButtonTapped:
                 state.showCompletionModal = false
+                NotificationCenter.default.post(name: Notification.Name("yakssok.mate.completed"), object: nil)
                 return .send(.delegate(.mateAddingCompleted))
 
             case .dismissError:

@@ -7,6 +7,7 @@
 
 import ComposableArchitecture
 import Foundation
+import UIKit
 
 struct LogoutModalFeature: Reducer {
     struct State: Equatable {
@@ -34,6 +35,7 @@ struct LogoutModalFeature: Reducer {
 
     @Dependency(\.authAPIClient) var authAPIClient
     @Dependency(\.tokenManager) var tokenManager
+    @Dependency(\.fcmClient) var fcmClient
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -49,8 +51,16 @@ struct LogoutModalFeature: Reducer {
             case .logoutAPI:
                 return .run { send in
                     do {
-                        try await authAPIClient.logout()
+                        // FCM 해제
+                        await fcmClient.unregister()
+
+                        // 서버 로그아웃
+                        let deviceId = DeviceIdManager.shared.stableDeviceId
+                        let request = LogoutRequest(deviceId: deviceId)
+                        try await authAPIClient.logout(request)
+
                         await send(.logoutSuccess)
+
                     } catch {
                         await send(.logoutFailed(error.localizedDescription))
                     }
@@ -58,7 +68,6 @@ struct LogoutModalFeature: Reducer {
 
             case .logoutSuccess:
                 state.isLoading = false
-                // 토큰 삭제
                 tokenManager.clearTokens()
                 state.showLogoutComplete = true
                 return .none
@@ -66,6 +75,7 @@ struct LogoutModalFeature: Reducer {
             case .logoutFailed(let error):
                 state.isLoading = false
                 state.error = error
+                tokenManager.clearTokens()
                 return .none
 
             case .logoutCompleteTapped:

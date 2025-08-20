@@ -105,3 +105,5 @@ Config.xcconfig
 
 # End of https://www.toptal.com/developers/gitignore/api/swift,swiftpackagemanager
 Yakssok/Tuist/Package.resolved
+Yakssok/Yakssok/Resources/GoogleService-Info.plist
+Yakssok/Yakssok/Resources/GoogleService-Info.plist

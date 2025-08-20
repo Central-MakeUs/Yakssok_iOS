@@ -6,6 +6,7 @@
 //
 
 import ComposableArchitecture
+import UIKit
 
 struct LoginFeature: Reducer {
     struct State: Equatable {
@@ -164,7 +165,25 @@ struct LoginFeature: Reducer {
             case .loginAPISuccess(let accessToken, let refreshToken, let isInitialized):
                 state.isLoading = false
                 tokenManager.saveTokens(accessToken, refreshToken)
-                return .send(.authenticationCompleted(needsOnboarding: !isInitialized))
+
+                return .merge(
+                    .send(.authenticationCompleted(needsOnboarding: !isInitialized)),
+                    .run { _ in
+                        // 즉시 알림 등록
+                        await MainActor.run {
+                            UIApplication.shared.registerForRemoteNotifications()
+                        }
+
+                        // 5초 후 FCM 등록
+                        try await Task.sleep(nanoseconds: 5_000_000_000)
+
+                        do {
+                            try await FCMClient.liveValue.sendTokenToServer()
+                        } catch {
+                            // error
+                        }
+                    }
+                )
 
             case .loginAPIFailure(let error):
                 state.isLoading = false

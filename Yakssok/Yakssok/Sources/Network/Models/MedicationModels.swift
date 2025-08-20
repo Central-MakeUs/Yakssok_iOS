@@ -108,20 +108,15 @@ extension MedicineRegistrationData {
             String(format: "%02d:%02d:00", medicineTime.hour, medicineTime.minute)
         }
 
-        let endDateString: String?
-        if dateRange.startDate == dateRange.endDate {
-            // 시작일과 종료일이 같으면 종료일 없음으로 처리
-            endDateString = nil
-        } else {
-            // 시작일과 종료일이 다르면 종료일 전송
-            endDateString = dateFormatter.string(from: dateRange.endDate)
-        }
+        let startStr = dateFormatter.string(from: dateRange.startDate)
+        let endStr   = dateFormatter.string(from: dateRange.endDate)
+        let endDateToSend: String? = hasEndDate ? endStr : nil
 
         return MedicationCreateRequest(
             name: medicineInfo.name,
             medicineType: category.toAPIString(),
-            startDate: dateFormatter.string(from: dateRange.startDate),
-            endDate: endDateString,
+            startDate: startStr,
+            endDate: endDateToSend,
             intakeDays: apiIntakeDays,
             intakeCount: frequency.times.count,
             alarmSound: alarmSound.toAPIString(),
@@ -287,6 +282,14 @@ extension MedicationScheduleResponse {
 }
 
 func colorFromMedicationType(_ medicationType: String) -> MedicineColor {
-    let type = MedicineCategory.CategoryColorType(rawValue: medicationType.lowercased()) ?? .other
-    return colorFromMedicationCategory(type)
+    switch medicationType {
+    case "MENTAL": return colorFromMedicationCategory(.mental)
+    case "BEAUTY": return colorFromMedicationCategory(.beauty)
+    case "CHRONIC": return colorFromMedicationCategory(.chronic)
+    case "DIET": return colorFromMedicationCategory(.diet)
+    case "TEMPORARY": return colorFromMedicationCategory(.pain)
+    case "SUPPLEMENT": return colorFromMedicationCategory(.supplement)
+    case "OTHER": return colorFromMedicationCategory(.other)
+    default: return colorFromMedicationCategory(.other)
+    }
 }

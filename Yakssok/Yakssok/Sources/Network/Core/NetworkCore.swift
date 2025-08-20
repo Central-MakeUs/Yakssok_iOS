@@ -59,12 +59,14 @@ enum APIEndpoints {
     // MARK: - Friend Medicine Endpoints
     case getFriendMedicationSchedulesToday(Int)
     case getFriendMedicationSchedules(Int, Date, Date)
+    case getFriendsMedicationStatus
 
     // MARK: - Feedback Endpoint
     case sendFeedback
 
     // MARK: - Notification Endpoints
     case getNotifications
+    case registerDevice
 
     // MARK: - Mate Registration Endpoints
     case getMyInviteCode
@@ -142,6 +144,8 @@ enum APIEndpoints {
             let start = formatter.string(from: startDate)
             let end = formatter.string(from: endDate)
             return "/api/medication-schedules/friends/\(friendId)?startDate=\(start)&endDate=\(end)"
+        case .getFriendsMedicationStatus:
+            return "/api/friends/medication-status"
 
         // Feedback
         case .sendFeedback:
@@ -150,6 +154,8 @@ enum APIEndpoints {
         // Notification
         case .getNotifications:
             return "/api/notifications"
+        case .registerDevice:
+            return "/api/user-devices/devices"
 
         // Mate Registration
         case .getMyInviteCode:
@@ -175,6 +181,7 @@ enum APIError: Error, LocalizedError {
     case userNotFound // 404 - 존재하지 않는 회원
     case decodingError
     case networkError(Error)
+    case fcmTokenNotFound
 
     var errorDescription: String? {
         switch self {
@@ -188,6 +195,8 @@ enum APIError: Error, LocalizedError {
             return "데이터 파싱 오류가 발생했습니다."
         case .networkError(let error):
             return "네트워크 오류가 발생했습니다: \(error.localizedDescription)"
+        case .fcmTokenNotFound:
+            return "FCM 토큰을 가져올 수 없습니다."
         }
     }
 }
@@ -405,7 +414,7 @@ class APIClient {
     private func handleTokenExpiry() {
         // 토큰이 있을 때만 클리어하고 알림 전송
         if TokenManager.shared.accessToken != nil || TokenManager.shared.refreshToken != nil {
-            TokenManager.shared.clearAllTokens()
+            TokenManager.shared.clearTokens()
             NotificationCenter.default.post(name: Self.tokenExpiredNotification, object: nil)
         }
     }

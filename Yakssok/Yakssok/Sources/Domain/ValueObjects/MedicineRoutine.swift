@@ -18,7 +18,6 @@ struct MedicineRoutine: Equatable, Identifiable {
     var frequency: MedicineFrequency
     var startDate: Date?
     var endDate: Date?
-    var createdAt: Date
     var status: MedicineStatus
 
     init(id: String, medicineName: String, schedule: [String]) {
@@ -29,11 +28,10 @@ struct MedicineRoutine: Equatable, Identifiable {
         self.frequency = MedicineFrequency(type: .daily, times: [])
         self.startDate = nil
         self.endDate = nil
-        self.createdAt = Date()
         self.status = .taking
     }
 
-    init(id: String, medicineName: String, schedule: [String], category: MedicineCategory, frequency: MedicineFrequency, startDate: Date?, endDate: Date?, createdAt: Date, status: MedicineStatus) {
+    init(id: String, medicineName: String, schedule: [String], category: MedicineCategory, frequency: MedicineFrequency, startDate: Date?, endDate: Date?, status: MedicineStatus) {
         self.id = id
         self.medicineName = medicineName
         self.schedule = schedule
@@ -41,7 +39,6 @@ struct MedicineRoutine: Equatable, Identifiable {
         self.frequency = frequency
         self.startDate = startDate
         self.endDate = endDate
-        self.createdAt = createdAt
         self.status = status
     }
 

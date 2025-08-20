@@ -25,6 +25,7 @@ struct NotificationListFeature: Reducer {
     }
 
     @Dependency(\.notificationClient) var notificationClient
+    @Dependency(\.continuousClock) var clock
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -37,13 +38,14 @@ struct NotificationListFeature: Reducer {
                 return .run { send in
                     do {
                         let notifications = try await notificationClient.loadNotifications()
+                        try await clock.sleep(for: .milliseconds(300))
                         await send(.notificationsLoaded(notifications))
                     } catch {
                         await send(.loadingFailed(error.localizedDescription))
                     }
                 }
             case .notificationsLoaded(let notifications):
-                state.notifications = notifications.sorted { $0.timestamp > $1.timestamp }
+                state.notifications = notifications.sorted { $0.timestamp < $1.timestamp }
                 state.isLoading = false
                 return .none
             case .loadingFailed(let error):

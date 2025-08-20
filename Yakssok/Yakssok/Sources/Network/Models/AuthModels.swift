@@ -60,3 +60,7 @@ struct RefreshTokenResponse: Codable, Equatable {
 struct RefreshTokenBody: Codable, Equatable {
     let accessToken: String
 }
+
+struct LogoutRequest: Codable {
+    let deviceId: String
+}
