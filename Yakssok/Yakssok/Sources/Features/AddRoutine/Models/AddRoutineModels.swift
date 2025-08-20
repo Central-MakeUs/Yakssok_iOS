@@ -72,6 +72,7 @@ struct MedicineRegistrationData: Equatable {
     let frequency: MedicineFrequency
     let alarmSound: AlarmSound
     let medicineInfo: MedicineInfo
+    let hasEndDate: Bool
 
     func toMedicineRoutine() -> MedicineRoutine {
         let timeStrings = frequency.times.map { $0.timeString }

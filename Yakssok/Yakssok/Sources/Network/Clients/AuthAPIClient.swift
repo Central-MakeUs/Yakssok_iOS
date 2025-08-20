@@ -11,7 +11,7 @@ import Foundation
 struct AuthAPIClient {
     var login: @Sendable (LoginRequest) async throws -> LoginResponse
     var updateNickname: @Sendable (UpdateNicknameRequest) async throws -> Void
-    var logout: @Sendable () async throws -> Void
+    var logout: @Sendable (LogoutRequest) async throws -> Void
     var refreshToken: @Sendable (String) async throws -> String
     var withdrawal: @Sendable () async throws -> Void
 }
@@ -35,11 +35,11 @@ extension AuthAPIClient: DependencyKey {
             )
         },
 
-        logout: {
+        logout: { request in
             let response: UpdateNicknameResponse = try await APIClient.shared.requestWithTokenRefresh(
                 endpoint: .logout,
                 method: .PUT,
-                body: Optional<String>.none
+                body: request
             )
 
             if response.code != 0 {

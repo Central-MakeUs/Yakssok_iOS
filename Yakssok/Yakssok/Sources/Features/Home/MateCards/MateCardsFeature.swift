@@ -10,6 +10,7 @@ import ComposableArchitecture
 struct MateCardsFeature: Reducer {
     struct State: Equatable {
         var cards: [MateCard] = []
+        var cardToDelete: String? = nil
     }
 
     @CasePathable
@@ -18,6 +19,9 @@ struct MateCardsFeature: Reducer {
         case cardTapped(id: String)
         case loadCards
         case cardsLoaded([MateCard])
+        case messageWasSent(targetUserId: String)
+        case startCardDeletion(id: String)
+        case completeCardDeletion
         case delegate(Delegate)
 
         enum Delegate: Equatable {
@@ -47,7 +51,7 @@ struct MateCardsFeature: Reducer {
                 guard let card = state.cards.first(where: { $0.id == cardId }) else {
                     return .none
                 }
-                
+
                 guard let userId = Int(cardId) else {
                     return .none
                 }
@@ -69,6 +73,23 @@ struct MateCardsFeature: Reducer {
 
             case .cardsLoaded(let cards):
                 state.cards = cards
+                return .none
+
+            case .messageWasSent(let targetUserId):
+                return .send(.startCardDeletion(id: targetUserId))
+
+            case .startCardDeletion(let cardId):
+                state.cardToDelete = cardId
+                return .run { send in
+                    try await Task.sleep(for: .milliseconds(600))
+                    await send(.completeCardDeletion)
+                }
+
+            case .completeCardDeletion:
+                if let cardToDelete = state.cardToDelete {
+                    state.cards.removeAll { $0.id == cardToDelete }
+                    state.cardToDelete = nil
+                }
                 return .none
 
             case .delegate:

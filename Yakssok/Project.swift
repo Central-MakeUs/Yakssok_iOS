@@ -28,13 +28,17 @@ let project = Project(
                         "Pretendard-Bold.otf"
                     ],
                     "CFBundleDisplayName": "약쏙",
-                    "CFBundleShortVersionString": "1.0",
-                    "CFBundleVersion": "9",
+                    "CFBundleShortVersionString": "1.1",
+                    "CFBundleVersion": "10",
                     "KAKAO_NATIVE_APP_KEY": "$(KAKAO_NATIVE_APP_KEY)",
                     "API_BASE_URL": "https://yakssok.site",
                     "MASTER_ACCESS_TOKEN": "$(MASTER_ACCESS_TOKEN)",
                     "MASTER_REFRESH_TOKEN": "$(MASTER_REFRESH_TOKEN)",
                     "MASTER_PASSWORD": "$(MASTER_PASSWORD)",
+                    "FirebaseAppDelegateProxyEnabled": false,
+                    "UIBackgroundModes": [
+                        "remote-notification"
+                    ],
                     "CFBundleURLTypes": [
                         [
                             "CFBundleURLName": "kakao",
@@ -43,12 +47,18 @@ let project = Project(
                         [
                             "CFBundleURLName": "apple",
                             "CFBundleURLSchemes": ["$(PRODUCT_BUNDLE_IDENTIFIER)"]
+                        ],
+                        [
+                            "CFBundleURLName": "yakssok",
+                            "CFBundleURLSchemes": ["yakssok"]
                         ]
                     ],
                     "LSApplicationQueriesSchemes": [
                         "kakaokompassauth",
                         "kakaolink"
-                    ]
+                    ],
+                    "AppsFlyerDevKey": "$(APPSFLYER_DEV_KEY)",
+                    "AppID": "$(ITUNES_APP_ID)"
                 ]
             ),
             sources: ["Yakssok/Sources/**"],
@@ -62,7 +72,8 @@ let project = Project(
                 .external(name: "KakaoSDKUser"),
                 .external(name: "FirebaseCore"),
                 .external(name: "FirebaseMessaging"),
-                .external(name: "YakssokDesignSystem")
+                .external(name: "YakssokDesignSystem"),
+                .external(name: "AppsFlyerLib")
             ],
             settings: .settings(
                 base: [

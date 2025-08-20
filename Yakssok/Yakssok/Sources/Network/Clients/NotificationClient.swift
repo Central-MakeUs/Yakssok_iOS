@@ -9,6 +9,7 @@ import ComposableArchitecture
 
 struct NotificationClient {
     var loadNotifications: () async throws -> [NotificationItem]
+    var registerDevice: @Sendable (FCMTokenRequest) async throws -> Void
 }
 
 extension NotificationClient: DependencyKey {
@@ -25,10 +26,16 @@ extension NotificationClient: DependencyKey {
             }
 
             return response.body.content.map { $0.toNotificationItem() }
+        },
+        registerDevice: { request in
+            let _: FCMTokenResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .registerDevice,
+                method: .POST,
+                body: request
+            )
         }
     )
 }
-
 
 extension DependencyValues {
     var notificationClient: NotificationClient {

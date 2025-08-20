@@ -15,46 +15,18 @@ struct MateCardsClient {
 extension MateCardsClient: DependencyKey {
     static let liveValue = Self(
         loadCards: {
-            let followingResponse: FollowingListResponse = try await APIClient.shared.requestWithTokenRefresh(
-                endpoint: .getFollowingList,
+            let response: FriendsMedicationStatusResponse = try await APIClient.shared.requestWithTokenRefresh(
+                endpoint: .getFriendsMedicationStatus,
                 method: .GET,
                 body: Optional<String>.none
             )
 
-            guard followingResponse.code == 0 else {
-                throw APIError.serverError(followingResponse.code)
+            guard response.code == 0 else {
+                throw APIError.serverError(response.code)
             }
 
-            var mateCards: [MateCard] = []
-            let today = Date()
-
-            for friend in followingResponse.body.followingInfoResponses {
-                do {
-                    let scheduleResponse: MedicationScheduleResponse = try await APIClient.shared.requestWithTokenRefresh(
-                        endpoint: .getFriendMedicationSchedulesToday(friend.userId),
-                        method: .GET,
-                        body: Optional<String>.none
-                    )
-
-                    guard scheduleResponse.code == 0 else { continue }
-
-                    let medicineData = scheduleResponse.toMedicineDataResponse()
-
-                    if let status = getMateStatus(medicineData: medicineData) {
-                        let card = MateCard(
-                            id: String(friend.userId),
-                            userName: friend.nickName,
-                            relationship: friend.relationName,
-                            profileImage: friend.profileImageUrl,
-                            status: status,
-                            todayMedicines: medicineData.todayMedicines,
-                            completedMedicines: medicineData.completedMedicines
-                        )
-                        mateCards.append(card)
-                    }
-                } catch {
-                    continue
-                }
+            let mateCards = response.body.followingMedicationStatusResponses.compactMap { friendStatus in
+                return friendStatus.toMateCard()
             }
 
             return mateCards
@@ -67,23 +39,4 @@ extension DependencyValues {
         get { self[MateCardsClient.self] }
         set { self[MateCardsClient.self] = newValue }
     }
-}
-
-private func getMateStatus(medicineData: MedicineDataResponse) -> MateStatus? {
-    let totalMedicines = medicineData.todayMedicines.count + medicineData.completedMedicines.count
-
-    // 약이 없으면 카드 안 뜸
-    guard totalMedicines > 0 else { return nil }
-
-    // 모든 약을 다 먹었으면 칭찬
-    if medicineData.todayMedicines.isEmpty && medicineData.completedMedicines.count > 0 {
-        return .completed
-    }
-
-    // 안 먹은 약이 있으면 잔소리
-    if medicineData.todayMedicines.count > 0 {
-        return .missedMedicine(count: medicineData.todayMedicines.count)
-    }
-
-    return nil
 }

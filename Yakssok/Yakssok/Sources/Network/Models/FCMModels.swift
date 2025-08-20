@@ -34,13 +34,28 @@ enum FCMSoundType: String, CaseIterable {
     case call = "CALL"
     case vibration = "VIBRATION"
 
-    var fileName: String {
+    var resourceName: String {
         switch self {
-        case .feelGood: return "기분 좋아지는 소리"
-        case .pillShake: return "약통 흔드는 소리"
-        case .scold: return "잔소리 해주는 소리"
-        case .call: return "전화온 듯한 소리"
-        case .vibration: return "진동 소리"
+        case .feelGood: return "feelGood"
+        case .pillShake: return "pillShake"
+        case .scold: return "scold"
+        case .call: return "call"
+        case .vibration: return "vibration"
         }
     }
+
+    var fileName: String {
+        switch self {
+        case .feelGood: return "feelGood.caf"
+        case .pillShake: return "pillShake.caf"
+        case .scold: return "scold.caf"
+        case .call: return "call.caf"
+        case .vibration: return "vibration.caf"
+        }
+    }
+
+    var isAvailable: Bool {
+        return Bundle.main.url(forResource: resourceName, withExtension: "caf") != nil
+    }
+
 }

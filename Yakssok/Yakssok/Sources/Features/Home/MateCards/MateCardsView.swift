@@ -25,9 +25,32 @@ struct MateCardsView: View {
                         }
                         .padding(.leading, index == 0 ? horizontalPadding : 0)
                         .padding(.trailing, index == viewStore.cards.count - 1 ? horizontalPadding : 0)
+                        .offset(y: cardDeleteOffset(for: card.id, viewStore: viewStore))
+                        .opacity(cardDeleteOpacity(for: card.id, viewStore: viewStore))
+                        .animation(.spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0), value: viewStore.cardToDelete)
                     }
                 }
             }
         }
+    }
+
+    // 카드 삭제 애니메이션
+    private func cardDeleteOffset(for cardId: String, viewStore: ViewStore<MateCardsFeature.State, MateCardsFeature.Action>) -> CGFloat {
+        guard let cardToDelete = viewStore.cardToDelete, cardToDelete == cardId else {
+            return 0
+        }
+        // 위로 슝 날아가게
+        return -200
+    }
+
+    private func cardDeleteScale(for cardId: String, viewStore: ViewStore<MateCardsFeature.State, MateCardsFeature.Action>) -> CGFloat {
+        return 1.0
+    }
+
+    private func cardDeleteOpacity(for cardId: String, viewStore: ViewStore<MateCardsFeature.State, MateCardsFeature.Action>) -> Double {
+        guard let cardToDelete = viewStore.cardToDelete, cardToDelete == cardId else {
+            return 1.0
+        }
+        return 0.3
     }
 }

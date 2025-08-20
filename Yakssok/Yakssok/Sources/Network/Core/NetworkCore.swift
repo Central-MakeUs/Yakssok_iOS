@@ -59,6 +59,7 @@ enum APIEndpoints {
     // MARK: - Friend Medicine Endpoints
     case getFriendMedicationSchedulesToday(Int)
     case getFriendMedicationSchedules(Int, Date, Date)
+    case getFriendsMedicationStatus
 
     // MARK: - Feedback Endpoint
     case sendFeedback
@@ -143,6 +144,8 @@ enum APIEndpoints {
             let start = formatter.string(from: startDate)
             let end = formatter.string(from: endDate)
             return "/api/medication-schedules/friends/\(friendId)?startDate=\(start)&endDate=\(end)"
+        case .getFriendsMedicationStatus:
+            return "/api/friends/medication-status"
 
         // Feedback
         case .sendFeedback:
@@ -411,7 +414,7 @@ class APIClient {
     private func handleTokenExpiry() {
         // 토큰이 있을 때만 클리어하고 알림 전송
         if TokenManager.shared.accessToken != nil || TokenManager.shared.refreshToken != nil {
-            TokenManager.shared.clearAllTokens()
+            TokenManager.shared.clearTokens()
             NotificationCenter.default.post(name: Self.tokenExpiredNotification, object: nil)
         }
     }

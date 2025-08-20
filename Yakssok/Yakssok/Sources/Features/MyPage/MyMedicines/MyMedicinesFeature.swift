@@ -22,13 +22,13 @@ struct MyMedicinesFeature: Reducer {
         var filteredRoutines: [MedicineRoutine] {
             switch selectedTab {
             case .all:
-                return routines.sorted { $0.createdAt > $1.createdAt }
+                return routines.sorted { Int($0.id) ?? 0 > Int($1.id) ?? 0 }
             case .beforeTaking:
-                return routines.filter { $0.status == .beforeTaking }.sorted { $0.createdAt > $1.createdAt }
+                return routines.filter { $0.status == .beforeTaking }.sorted { Int($0.id) ?? 0 > Int($1.id) ?? 0 }
             case .taking:
-                return routines.filter { $0.status == .taking }.sorted { $0.createdAt > $1.createdAt }
+                return routines.filter { $0.status == .taking }.sorted { Int($0.id) ?? 0 > Int($1.id) ?? 0 }
             case .completed:
-                return routines.filter { $0.status == .completed }.sorted { $0.createdAt > $1.createdAt }
+                return routines.filter { $0.status == .completed }.sorted { Int($0.id) ?? 0 > Int($1.id) ?? 0 }
             }
         }
     }

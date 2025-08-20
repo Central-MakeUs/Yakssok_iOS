@@ -7,13 +7,14 @@
 
 import ComposableArchitecture
 import Foundation
+import UserNotifications
 
 struct MyPageFeature: Reducer {
     struct State: Equatable {
         var userProfile: UserProfile?
         var medicineCount: Int = 0
         var mateCount: Int = 0
-        var appVersion: String = "1.0"
+        var appVersion: String = "1.1"
         var isLoading: Bool = false
         var error: String? = nil
         var myMedicines: MyMedicinesFeature.State?
@@ -25,11 +26,17 @@ struct MyPageFeature: Reducer {
         var addRoutine: AddRoutineFeature.State?
         var showPrivacyPolicy: Bool = false
         var showTermsOfUse: Bool = false
+
+        // 알림 권한 관리
+        var permissionGranted: Bool = false
+        var alertOn: Bool = false
     }
 
     @CasePathable
     enum Action: Equatable {
         case onAppear
+        case setInitialPermissionState(Bool)
+        case appDidBecomeActive
         case loadUserProfile
         case userProfileLoaded(UserProfileResponse)
         case userProfileLoadFailed(String)
@@ -57,6 +64,11 @@ struct MyPageFeature: Reducer {
         case startDataSubscription
         case stopDataSubscription
 
+        // 알림 권한 관리
+        case checkNotificationPermission
+        case notificationPermissionChecked(Bool)
+        case notificationToggled(Bool)
+
         case delegate(Delegate)
 
         @CasePathable
@@ -68,6 +80,7 @@ struct MyPageFeature: Reducer {
     }
 
     @Dependency(\.userClient) var userClient
+    @Dependency(\.fcmClient) var fcmClient
 
     var body: some ReducerOf<Self> {
         Reduce(handleAction)
@@ -96,11 +109,98 @@ struct MyPageFeature: Reducer {
 
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
         switch action {
+
         case .onAppear:
+            // 저장된 토글 상태 복원
+            let hasToggleSetting = UserDefaults.standard.object(forKey: "userNotificationToggle") != nil
+            let savedToggle = UserDefaults.standard.bool(forKey: "userNotificationToggle")
+            state.alertOn = hasToggleSetting ? savedToggle : true
+
             return .merge(
                 .send(.loadUserProfile),
-                .send(.startDataSubscription)
+                .send(.startDataSubscription),
+                .run { send in
+                    // 권한 상태 먼저 설정
+                    let granted = await NotificationPermissionManager.shared.checkPermissionStatus()
+                    await send(.setInitialPermissionState(granted))
+
+                    // 콜백 설정
+                    NotificationPermissionManager.shared.onPermissionChanged = { callbackGranted in
+                        Task { @MainActor in
+                            await send(.notificationPermissionChecked(callbackGranted))
+                        }
+                    }
+                }
             )
+
+        case .setInitialPermissionState(let granted):
+            // 초기 상태만 설정, 토글 변경 없음
+            state.permissionGranted = granted
+            return .none
+
+        case .appDidBecomeActive:
+            return .run { send in
+                let granted = await NotificationPermissionManager.shared.checkPermissionStatus()
+                await send(.notificationPermissionChecked(granted))
+            }
+
+        case .checkNotificationPermission:
+            return .run { send in
+                let granted = await NotificationPermissionManager.shared.checkPermissionStatus()
+                await send(.notificationPermissionChecked(granted))
+            }
+
+        case .notificationPermissionChecked(let granted):
+            let wasGranted = state.permissionGranted
+            state.permissionGranted = granted
+
+            // 실제 권한 변경이 있었을 때만 토글 동기화
+            if granted != wasGranted {
+                if granted {
+                    // 권한이 OFF→ON으로 변경됨
+                    state.alertOn = true
+                    UserDefaults.standard.set(true, forKey: "userNotificationToggle")
+                    return .run { _ in
+                        guard TokenManager.shared.isLoggedIn else { return }
+                        try? await fcmClient.sendTokenToServer()
+                        await NotificationPermissionManager.shared.handleAppWillEnterForeground()
+                    }
+                } else {
+                    // 권한이 ON→OFF로 변경됨
+                    state.alertOn = false
+                    UserDefaults.standard.set(false, forKey: "userNotificationToggle")
+                    return .run { _ in
+                        guard TokenManager.shared.isLoggedIn else { return }
+                        await fcmClient.unregister()
+                        await NotificationPermissionManager.shared.handleAppWillEnterForeground()
+                    }
+                }
+            }
+
+            // 권한 상태 변경 없으면 토글 그대로 유지
+            return .none
+
+        case .notificationToggled(let newValue):
+            // 시스템 권한 없으면 토글 동작 안 함
+            guard state.permissionGranted else {
+                return .none
+            }
+
+            // 토글 상태 변경
+            state.alertOn = newValue
+            UserDefaults.standard.set(newValue, forKey: "userNotificationToggle")
+
+            return .run { _ in
+                guard TokenManager.shared.isLoggedIn else { return }
+                if newValue {
+                    try? await fcmClient.sendTokenToServer()
+                } else {
+                    await fcmClient.unregister()
+                }
+
+                // 토글 변경 후 권한 매니저에게 알림 (무한 요청 시작/중단)
+                await NotificationPermissionManager.shared.handleAppWillEnterForeground()
+            }
 
         case .startDataSubscription:
             return .run { send in

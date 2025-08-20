@@ -24,16 +24,16 @@ struct AlarmSelectionFeature: Reducer {
 
             var soundFileName: String {
                 switch self {
-                case .gentle:
-                    return "기분 좋아지는 소리"
-                case .rhythm:
-                    return "약통 흔드는 소리"
-                case .nagging:
-                    return "잔소리 해주는 소리"
-                case .electronic:
-                    return "전화온 듯한 소리"
-                case .vibration:
-                    return "진동 소리"
+                case .gentle: 
+                    return "feelGood"
+                case .rhythm: 
+                    return "pillShake"
+                case .nagging: 
+                    return "scold"
+                case .electronic: 
+                    return "call"
+                case .vibration: 
+                    return "vibration"
                 }
             }
 
@@ -151,7 +151,7 @@ class AudioPlayerManager: ObservableObject {
     func play(_ fileName: String) async {
         await stop()
 
-        guard let url = Bundle.main.url(forResource: fileName, withExtension: "mp3") else {
+        guard let url = Bundle.main.url(forResource: fileName, withExtension: "caf") else {
             return
         }
 

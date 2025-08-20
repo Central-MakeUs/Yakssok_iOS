@@ -217,7 +217,6 @@ private func convertToMedicineDataResponse(_ apiResponse: MedicationListResponse
             ),
             startDate: nil,
             endDate: nil,
-            createdAt: Date(),
             status: convertAPIStatusToMedicineStatus(medicationCard.medicationStatus)
         )
         routines.append(routine)
