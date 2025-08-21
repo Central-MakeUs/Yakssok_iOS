@@ -44,10 +44,10 @@ struct CalendarDayCell: View {
     }
 
     private var dateTextColor: Color {
-        if isSelected {
-            return YKColor.Neutral.grey50
-        } else if day.isToday {
+        if day.isToday {
             return YKColor.Primary.primary400
+        } else if isSelected {
+            return YKColor.Neutral.grey50
         } else {
             return YKColor.Neutral.grey500
         }

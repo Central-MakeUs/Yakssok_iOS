@@ -94,7 +94,8 @@ private struct WeekdayHeaderView: View {
                 ForEach(Array(Layout.weekdays.enumerated()), id: \.offset) { index, weekday in
                     WeekdayText(
                         weekday: weekday,
-                        isSelected: isWeekdaySelected(index: index, viewStore: viewStore)
+                        isSelected: isWeekdaySelected(index: index, viewStore: viewStore),
+                        isToday: isWeekdayToday(index: index, viewStore: viewStore)
                     )
                 }
             }
@@ -105,17 +106,33 @@ private struct WeekdayHeaderView: View {
         guard index < viewStore.currentWeekDates.count else { return false }
         return Calendar.current.isDate(viewStore.currentWeekDates[index], inSameDayAs: viewStore.selectedDate)
     }
+
+    private func isWeekdayToday(index: Int, viewStore: ViewStoreOf<WeeklyCalendarFeature>) -> Bool {
+        guard index < viewStore.currentWeekDates.count else { return false }
+        return Calendar.current.isDateInToday(viewStore.currentWeekDates[index])
+    }
 }
 
 private struct WeekdayText: View {
     let weekday: String
     let isSelected: Bool
+    let isToday: Bool
 
     var body: some View {
         Text(weekday)
             .font(YKFont.body1)
-            .foregroundColor(isSelected ? YKColor.Neutral.grey50 : YKColor.Neutral.grey400)
+            .foregroundColor(textColor)
             .frame(maxWidth: .infinity, minHeight: Layout.weekdayHeight)
+    }
+
+    private var textColor: Color {
+        if isToday {
+            return YKColor.Primary.primary400
+        } else if isSelected {
+            return YKColor.Neutral.grey50
+        } else {
+            return YKColor.Neutral.grey400
+        }
     }
 }
 
@@ -149,12 +166,26 @@ private struct DateButton: View {
         return formatter.string(from: date)
     }
 
+    private var isToday: Bool {
+        Calendar.current.isDateInToday(date)
+    }
+
     var body: some View {
         Button(action: action) {
             Text(dayString)
                 .font(YKFont.subtitle2)
-                .foregroundColor(isSelected ? YKColor.Neutral.grey50 : YKColor.Neutral.grey600)
+                .foregroundColor(textColor)
                 .frame(maxWidth: .infinity, minHeight: Layout.dateHeight)
+        }
+    }
+
+    private var textColor: Color {
+        if isToday {
+            return YKColor.Primary.primary400
+        } else if isSelected {
+            return YKColor.Neutral.grey50
+        } else {
+            return YKColor.Neutral.grey600
         }
     }
 }
