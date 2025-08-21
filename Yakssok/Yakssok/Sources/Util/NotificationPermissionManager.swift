@@ -17,6 +17,8 @@ final class NotificationPermissionManager {
     private let checkInterval: TimeInterval = 30.0
 
     var onPermissionChanged: ((Bool) -> Void)?
+    @MainActor var onToggleChanged: ((Bool) -> Void)?
+    static let toggleChangedNotification = Notification.Name("UserNotificationToggleDidChange")
 
     private init() {}
 
@@ -44,16 +46,16 @@ final class NotificationPermissionManager {
             .contains(settings.authorizationStatus)
     }
 
-    /// 핵심 로직 - 권한 체크하고 처리
+    /// 권한 체크하고 처리
     @MainActor
     private func checkPermissionAndHandle() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
-        let hasPermission = [UNAuthorizationStatus.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
+        let hasSystemPermission = [UNAuthorizationStatus.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus)
 
         // 권한 상태 알림
-        notifyPermissionChanged(granted: hasPermission)
+        notifyPermissionChanged(granted: hasSystemPermission)
 
-        if hasPermission {
+        if hasSystemPermission {
             // 시스템 권한 있음
             UIApplication.shared.registerForRemoteNotifications()
 
@@ -62,22 +64,22 @@ final class NotificationPermissionManager {
                 // 토글 ON → 정상 동작
                 stopPeriodicPermissionCheck()
             } else {
-                // 토글 OFF → 무한 요청 시작
-                await showCriticalPermissionAlert()
+                // 토글 OFF → 토글 켜기 요청
+                await showToggleOnAlert()
                 startPeriodicPermissionCheck()
             }
         } else {
-            // 시스템 권한 없음 → 무한 요청 시작
+            // 시스템 권한 없음 → 시스템 설정으로 이동 요청
             switch settings.authorizationStatus {
             case .notDetermined:
                 // 아직 물어보지 않음 → 바로 요청
                 await requestPermissionDirectly()
             case .denied:
-                // 거부됨 → 무한 요청
-                await showCriticalPermissionAlert()
+                // 거부됨 → 시스템 설정으로 이동
+                await showSystemPermissionAlert()
                 startPeriodicPermissionCheck()
             default:
-                await showCriticalPermissionAlert()
+                await showSystemPermissionAlert()
                 startPeriodicPermissionCheck()
             }
         }
@@ -103,19 +105,19 @@ final class NotificationPermissionManager {
                 stopPeriodicPermissionCheck()
                 notifyPermissionChanged(granted: true)
             } else {
-                await showCriticalPermissionAlert()
+                await showSystemPermissionAlert()
                 startPeriodicPermissionCheck()
                 notifyPermissionChanged(granted: false)
             }
         } catch {
-            await showCriticalPermissionAlert()
+            await showSystemPermissionAlert()
             notifyPermissionChanged(granted: false)
         }
     }
 
-    /// 권한 요청 알림창 표시
+    /// 시스템 권한 요청 알림창 (시스템 설정으로 이동)
     @MainActor
-    private func showCriticalPermissionAlert() async {
+    private func showSystemPermissionAlert() async {
         guard !isShowingAlert else { return }
         isShowingAlert = true
 
@@ -130,6 +132,41 @@ final class NotificationPermissionManager {
                 if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(settingsUrl)
                 }
+                self.isShowingAlert = false
+                continuation.resume()
+            })
+
+            alert.addAction(UIAlertAction(title: "나중에", style: .cancel) { _ in
+                self.isShowingAlert = false
+                continuation.resume()
+            })
+
+            presentAlert(alert)
+        }
+    }
+
+    /// 앱 내 토글 켜기 요청 알림창
+    @MainActor
+    private func showToggleOnAlert() async {
+        guard !isShowingAlert else { return }
+        isShowingAlert = true
+
+        return await withCheckedContinuation { continuation in
+            let alert = UIAlertController(
+                title: "알림 권한 요청",
+                message: "약 알람과 잔소리•칭찬 수신을 위해 알림 권한이 필요합니다.",
+                preferredStyle: .alert
+            )
+
+            alert.addAction(UIAlertAction(title: "알림 켜기", style: .default) { _ in
+                UserDefaults.standard.set(true, forKey: "userNotificationToggle")
+                self.onToggleChanged?(true)
+                NotificationCenter.default.post(
+                    name: Self.toggleChangedNotification,
+                    object: nil,
+                    userInfo: ["enabled": true]
+                )
+                self.stopPeriodicPermissionCheck()
                 self.isShowingAlert = false
                 continuation.resume()
             })
