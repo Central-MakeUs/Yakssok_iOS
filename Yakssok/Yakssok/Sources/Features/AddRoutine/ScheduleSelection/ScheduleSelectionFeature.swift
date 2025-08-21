@@ -118,8 +118,7 @@ struct ScheduleSelectionFeature: Reducer {
                         state.startDate = date
                     }
                     state.showDatePicker = false
-                    // 종료일 선택 후 자동으로 주기 선택 모달 열기
-                    return .send(.showFrequencyModal)
+                    return .none
                 }
 
             case .endDateToggled:

@@ -13,6 +13,7 @@ struct MateProfileView: View {
     let isSelected: Bool
     let profileSize: CGFloat
     let selectedBorderWidth: CGFloat
+    var currentUserId: String? = nil
     let action: () -> Void
 
     var body: some View {
@@ -52,15 +53,32 @@ private extension MateProfileView {
             .frame(width: profileSize, height: profileSize)
             .background(
                 Group {
-                    if let profileImageURL = user.profileImage {
-                        AsyncImage(url: URL(string: profileImageURL)) { image in
-                            image
+                    if let profileImageURL = user.profileImage,
+                       let url = URL(string: profileImageURL) {
+                        if let cached = ImageCache.shared.image(for: url) {
+                            Image(uiImage: cached)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
                                 .frame(width: profileSize, height: profileSize)
                                 .clipped()
-                        } placeholder: {
-                            defaultProfileIcon
+                        } else {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .frame(width: 20, height: 20)
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: profileSize, height: profileSize)
+                                        .clipped()
+                                case .failure:
+                                    defaultProfileIcon
+                                @unknown default:
+                                    defaultProfileIcon
+                                }
+                            }
                         }
                     } else {
                         defaultProfileIcon
@@ -73,7 +91,9 @@ private extension MateProfileView {
     }
 
     var defaultProfileIcon: some View {
-        Image(ProfileImageManager.getImageName(for: user.id))
+        let imageName = ProfileImageManager.getDefaultImageName(for: user, currentUserId: currentUserId)
+
+        return Image(imageName)
             .resizable()
             .aspectRatio(contentMode: .fill)
             .frame(width: profileSize, height: profileSize)

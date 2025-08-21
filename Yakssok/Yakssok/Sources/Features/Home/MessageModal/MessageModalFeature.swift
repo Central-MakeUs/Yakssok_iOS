@@ -19,6 +19,7 @@ struct MessageModalFeature: Reducer {
         let medicineCount: Int
         let relationship: String
         let medicines: [Medicine]
+        let profileImageURL: String?
         var isCustomMessageMode: Bool = false
         var isSending: Bool = false
 

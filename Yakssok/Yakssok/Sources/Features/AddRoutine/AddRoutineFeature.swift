@@ -64,6 +64,7 @@ struct AddRoutineFeature: Reducer {
                         var categoryState = CategorySelectionFeature.State()
                         categoryState.medicineName = categoryData.medicineName
                         categoryState.selectedCategory = categoryData.category
+                        categoryState.userNickname = state.categorySelection?.userNickname ?? ""
                         return categoryState
                     } ?? .init()
                     return .none

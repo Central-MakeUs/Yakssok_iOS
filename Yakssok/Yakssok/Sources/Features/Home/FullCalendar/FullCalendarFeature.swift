@@ -23,6 +23,9 @@ struct FullCalendarFeature: Reducer {
         var mateRegistration: MateRegistrationFeature.State?
         var myPage: MyPageFeature.State?
 
+        var isLoadingMyPage: Bool = false
+        var isLoadingNotifications: Bool = false
+
         var currentMonth: String {
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "ko_KR")
@@ -35,14 +38,15 @@ struct FullCalendarFeature: Reducer {
             selectedDate: Date = Date(),
             userSelection: MateSelectionFeature.State? = .init(),
             medicineList: MedicineListFeature.State? = .init(),
-            monthlyMedicineStatus: [String: MedicineStatus] = [:]
+            monthlyMedicineStatus: [String: MedicineStatus] = [:],
+            calendarDays: [CalendarDay] = []
         ) {
             self.currentDate = currentDate
             self.selectedDate = selectedDate
             self.monthlyMedicineStatus = monthlyMedicineStatus
             self.userSelection = userSelection
             self.medicineList = medicineList
-            self.calendarDays = generateCalendarDays(for: currentDate)
+            self.calendarDays = calendarDays.isEmpty ? generateCalendarDays(for: currentDate) : calendarDays
         }
     }
 
@@ -62,6 +66,12 @@ struct FullCalendarFeature: Reducer {
 
         case notificationTapped
         case menuTapped
+        case preloadMyPageData
+        case myPageDataLoaded(UserProfileResponse)
+        case myPagePreloadFailed(String)
+        case preloadNotificationData
+        case notificationDataLoaded([NotificationItem])
+        case notificationPreloadFailed(String)
         case showAddRoutine
         case dismissAddRoutine
         case showNotificationList
@@ -90,6 +100,7 @@ struct FullCalendarFeature: Reducer {
 
     @Dependency(\.medicineClient) var medicineClient
     @Dependency(\.userClient) var userClient
+    @Dependency(\.notificationClient) var notificationClient
 
     var body: some ReducerOf<Self> {
         Reduce(handleAction)
@@ -116,15 +127,7 @@ struct FullCalendarFeature: Reducer {
     private func handleAction(_ state: inout State, _ action: Action) -> Effect<Action> {
         switch action {
         case .onAppear:
-            state.calendarDays = generateCalendarDays(for: state.currentDate)
-
-            return .merge(
-                .send(.loadUserProfile),
-                .send(.loadMonthlyData),
-                .send(.startDataSubscription),
-                .send(.userSelection(.onAppear)),
-                .send(.medicineList(.onAppear))
-            )
+            return .send(.startDataSubscription)
 
         case .startDataSubscription:
             return .run { send in
@@ -190,14 +193,11 @@ struct FullCalendarFeature: Reducer {
 
                     let monthlyStatus: [String: MedicineStatus]
 
-                    // 선택된 사용자에 따라 다른 API 호출
                     if let selectedUser = selectedUser,
                        let friendId = Int(selectedUser.id),
                        selectedUser.id != currentUser?.id {
-                        // 친구의 월간 데이터 로드
                         monthlyStatus = try await medicineClient.loadFriendMonthlyStatus(friendId, startOfMonth, endOfMonth)
                     } else {
-                        // 본인의 월간 데이터 로드
                         monthlyStatus = try await medicineClient.loadMonthlyStatus(startOfMonth, endOfMonth)
                     }
 
@@ -242,10 +242,81 @@ struct FullCalendarFeature: Reducer {
             )
 
         case .notificationTapped:
-            return .send(.showNotificationList)
+            guard !state.isLoadingNotifications else { return .none }
+            state.isLoadingNotifications = true
+            return .send(.preloadNotificationData)
 
         case .menuTapped:
-            return .send(.showMyPage)
+            guard !state.isLoadingMyPage else { return .none }
+            state.isLoadingMyPage = true
+            return .send(.preloadMyPageData)
+
+        // 마이페이지 프리로딩
+        case .preloadMyPageData:
+            return .run { send in
+                do {
+                    let response = try await userClient.loadUserProfile()
+                    await send(.myPageDataLoaded(response))
+                } catch {
+                    await send(.myPagePreloadFailed(error.localizedDescription))
+                }
+            }
+
+        case .myPageDataLoaded(let response):
+            state.isLoadingMyPage = false
+
+            var myPageState = MyPageFeature.State()
+            myPageState.userProfile = UserProfile(
+                name: response.body.nickname,
+                profileImage: response.body.profileImageUrl,
+                relationship: nil
+            )
+            myPageState.medicineCount = response.body.medicationCount
+            myPageState.mateCount = response.body.followingCount
+            myPageState.appVersion = "1.2"
+
+            let hasToggleSetting = UserDefaults.standard.object(forKey: "userNotificationToggle") != nil
+            let savedToggle = UserDefaults.standard.bool(forKey: "userNotificationToggle")
+            myPageState.alertOn = hasToggleSetting ? savedToggle : true
+
+            state.myPage = myPageState
+
+            return .run { _ in
+                if let imageUrl = response.body.profileImageUrl,
+                   let url = URL(string: imageUrl) {
+                    await ImageCache.shared.prefetch(url)
+                }
+            }
+
+        case .myPagePreloadFailed(let error):
+            state.isLoadingMyPage = false
+            state.myPage = .init()
+            return .none
+
+        // 알림 페이지 프리로딩
+        case .preloadNotificationData:
+            return .run { send in
+                do {
+                    let notifications = try await notificationClient.loadNotifications()
+                    await send(.notificationDataLoaded(notifications))
+                } catch {
+                    await send(.notificationPreloadFailed(error.localizedDescription))
+                }
+            }
+
+        case .notificationDataLoaded(let notifications):
+            state.isLoadingNotifications = false
+
+            var notificationState = NotificationListFeature.State()
+            notificationState.notifications = notifications.sorted { $0.timestamp < $1.timestamp }
+
+            state.notificationList = notificationState
+            return .none
+
+        case .notificationPreloadFailed(let error):
+            state.isLoadingNotifications = false
+            state.notificationList = .init()
+            return .none
 
         case .showAddRoutine:
             let userName = state.currentUserNickname ?? ""

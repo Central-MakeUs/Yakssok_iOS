@@ -62,14 +62,17 @@ struct ProfileEditFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .run { send in
-                    do {
-                        let response = try await userClient.loadUserProfile()
-                        await send(.profileLoaded(response))
-                    } catch {
-                        await send(.profileUpdateFailed("프로필 정보를 불러올 수 없습니다."))
+                if state.nickname.isEmpty {
+                    return .run { send in
+                        do {
+                            let response = try await userClient.loadUserProfile()
+                            await send(.profileLoaded(response))
+                        } catch {
+                            // error
+                        }
                     }
                 }
+                return .none
 
             case .backButtonTapped:
                 return .send(.delegate(.backToMyPage))
@@ -145,7 +148,7 @@ struct ProfileEditFeature: Reducer {
                         await send(.profileUpdateFailed(error.localizedDescription))
                     }
                 }
-                
+
             case .profileApiSuccess:
                 state.isLoading = false
                 return .run { send in
@@ -153,7 +156,7 @@ struct ProfileEditFeature: Reducer {
                     try await Task.sleep(nanoseconds: 500_000_000)
                     await send(.delegate(.profileUpdated))
                 }
-                
+
             case .profileUpdateFailed(let error):
                 state.isLoading = false
                 state.error = error

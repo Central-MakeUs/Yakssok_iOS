@@ -30,6 +30,10 @@ struct MyPageFeature: Reducer {
         // 알림 권한 관리
         var permissionGranted: Bool = false
         var alertOn: Bool = false
+
+        var isLoadingMyMedicines: Bool = false
+        var isLoadingMyMates: Bool = false
+        var isLoadingProfileEdit: Bool = false
     }
 
     @CasePathable
@@ -50,6 +54,17 @@ struct MyPageFeature: Reducer {
         case withdrawalTapped
         case showMateRegistration
         case showAddRoutine
+
+        case preloadMyMedicinesData
+        case myMedicinesDataLoaded([MedicineRoutine])
+        case myMedicinesPreloadFailed(String)
+        case preloadMyMatesData
+        case myMatesDataLoaded(following: [User], followers: [User])
+        case myMatesPreloadFailed(String)
+        case preloadProfileEditData
+        case profileEditDataLoaded(UserProfileResponse)
+        case profileEditPreloadFailed(String)
+
         case myMedicines(MyMedicinesFeature.Action)
         case myMates(MyMatesFeature.Action)
         case profileEdit(ProfileEditFeature.Action)
@@ -81,6 +96,7 @@ struct MyPageFeature: Reducer {
 
     @Dependency(\.userClient) var userClient
     @Dependency(\.fcmClient) var fcmClient
+    @Dependency(\.medicineClient) var medicineClient
 
     var body: some ReducerOf<Self> {
         Reduce(handleAction)
@@ -117,7 +133,6 @@ struct MyPageFeature: Reducer {
             state.alertOn = hasToggleSetting ? savedToggle : true
 
             return .merge(
-                .send(.loadUserProfile),
                 .send(.startDataSubscription),
                 .run { send in
                     // 권한 상태 먼저 설정
@@ -134,7 +149,6 @@ struct MyPageFeature: Reducer {
             )
 
         case .setInitialPermissionState(let granted):
-            // 초기 상태만 설정, 토글 변경 없음
             state.permissionGranted = granted
             return .none
 
@@ -154,10 +168,8 @@ struct MyPageFeature: Reducer {
             let wasGranted = state.permissionGranted
             state.permissionGranted = granted
 
-            // 실제 권한 변경이 있었을 때만 토글 동기화
             if granted != wasGranted {
                 if granted {
-                    // 권한이 OFF→ON으로 변경됨
                     state.alertOn = true
                     UserDefaults.standard.set(true, forKey: "userNotificationToggle")
                     return .run { _ in
@@ -166,7 +178,6 @@ struct MyPageFeature: Reducer {
                         await NotificationPermissionManager.shared.handleAppWillEnterForeground()
                     }
                 } else {
-                    // 권한이 ON→OFF로 변경됨
                     state.alertOn = false
                     UserDefaults.standard.set(false, forKey: "userNotificationToggle")
                     return .run { _ in
@@ -177,16 +188,13 @@ struct MyPageFeature: Reducer {
                 }
             }
 
-            // 권한 상태 변경 없으면 토글 그대로 유지
             return .none
 
         case .notificationToggled(let newValue):
-            // 시스템 권한 없으면 토글 동작 안 함
             guard state.permissionGranted else {
                 return .none
             }
 
-            // 토글 상태 변경
             state.alertOn = newValue
             UserDefaults.standard.set(newValue, forKey: "userNotificationToggle")
 
@@ -198,7 +206,6 @@ struct MyPageFeature: Reducer {
                     await fcmClient.unregister()
                 }
 
-                // 토글 변경 후 권한 매니저에게 알림 (무한 요청 시작/중단)
                 await NotificationPermissionManager.shared.handleAppWillEnterForeground()
             }
 
@@ -258,7 +265,105 @@ struct MyPageFeature: Reducer {
                 .send(.delegate(.backToHome))
             )
 
+        // 내 복용약 프리로딩
+        case .myMedicinesTapped:
+            guard !state.isLoadingMyMedicines else { return .none }
+            state.isLoadingMyMedicines = true
+            return .send(.preloadMyMedicinesData)
+
+        case .preloadMyMedicinesData:
+            return .run { send in
+                do {
+                    let medicineData = try await medicineClient.loadMedicineData()
+                    await send(.myMedicinesDataLoaded(medicineData.routines))
+                } catch {
+                    await send(.myMedicinesPreloadFailed(error.localizedDescription))
+                }
+            }
+
+        case .myMedicinesDataLoaded(let routines):
+            state.isLoadingMyMedicines = false
+
+            var myMedicinesState = MyMedicinesFeature.State()
+            myMedicinesState.routines = routines
+
+            state.myMedicines = myMedicinesState
+            return .none
+
+        case .myMedicinesPreloadFailed(let error):
+            state.isLoadingMyMedicines = false
+            state.myMedicines = .init()
+            return .none
+
+        // 내 메이트 프리로딩
+        case .myMatesTapped:
+            guard !state.isLoadingMyMates else { return .none }
+            state.isLoadingMyMates = true
+            return .send(.preloadMyMatesData)
+
+        case .preloadMyMatesData:
+            return .run { send in
+                do {
+                    async let followingTask = userClient.loadFollowingsForMyPage()
+                    async let followersTask = userClient.loadFollowers()
+
+                    let following = try await followingTask
+                    let followers = try await followersTask
+
+                    await send(.myMatesDataLoaded(following: following, followers: followers))
+                } catch {
+                    await send(.myMatesPreloadFailed(error.localizedDescription))
+                }
+            }
+
+        case .myMatesDataLoaded(let following, let followers):
+            state.isLoadingMyMates = false
+
+            var myMatesState = MyMatesFeature.State()
+            myMatesState.followingUsers = following
+            myMatesState.followerUsers = followers
+
+            state.myMates = myMatesState
+            return .none
+
+        case .myMatesPreloadFailed(let error):
+            state.isLoadingMyMates = false
+            state.myMates = .init()
+            return .none
+
+        // 프로필 편집 프리로딩
         case .profileEditTapped:
+            guard !state.isLoadingProfileEdit else { return .none }
+            state.isLoadingProfileEdit = true
+            return .send(.preloadProfileEditData)
+
+        case .preloadProfileEditData:
+            return .run { send in
+                do {
+                    let response = try await userClient.loadUserProfile()
+                    await send(.profileEditDataLoaded(response))
+                } catch {
+                    await send(.profileEditPreloadFailed(error.localizedDescription))
+                }
+            }
+
+        case .profileEditDataLoaded(let response):
+            state.isLoadingProfileEdit = false
+
+            var profileEditState = ProfileEditFeature.State()
+            profileEditState.nickname = response.body.nickname
+            profileEditState.profileImage = response.body.profileImageUrl
+
+            state.profileEdit = profileEditState
+            return .run { _ in
+                if let imageUrl = response.body.profileImageUrl,
+                   let url = URL(string: imageUrl) {
+                    await ImageCache.shared.prefetch(url)
+                }
+            }
+
+        case .profileEditPreloadFailed(let error):
+            state.isLoadingProfileEdit = false
             state.profileEdit = .init()
             return .none
 
@@ -268,11 +373,7 @@ struct MyPageFeature: Reducer {
 
         case .profileEdit(.delegate(.profileUpdated)):
             state.profileEdit = nil
-            return .none
-
-        case .myMedicinesTapped:
-            state.myMedicines = .init()
-            return .none
+            return .send(.loadUserProfile)
 
         case .myMedicines(.delegate(.backToMyPage)):
             state.myMedicines = nil
@@ -280,10 +381,6 @@ struct MyPageFeature: Reducer {
 
         case .myMedicines(.delegate(.navigateToAddMedicine)):
             return .send(.showAddRoutine)
-
-        case .myMatesTapped:
-            state.myMates = .init()
-            return .none
 
         case .myMates(.delegate(.navigateToAddMate)):
             return .send(.showMateRegistration)

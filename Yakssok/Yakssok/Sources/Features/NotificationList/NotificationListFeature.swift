@@ -31,7 +31,8 @@ struct NotificationListFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .send(.loadNotifications)
+                return .none
+
             case .loadNotifications:
                 state.isLoading = true
                 state.error = nil
@@ -44,14 +45,17 @@ struct NotificationListFeature: Reducer {
                         await send(.loadingFailed(error.localizedDescription))
                     }
                 }
+
             case .notificationsLoaded(let notifications):
                 state.notifications = notifications.sorted { $0.timestamp < $1.timestamp }
                 state.isLoading = false
                 return .none
+
             case .loadingFailed(let error):
                 state.error = error
                 state.isLoading = false
                 return .none
+
             case .backButtonTapped:
                 return .none
             }
