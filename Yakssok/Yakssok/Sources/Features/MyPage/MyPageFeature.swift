@@ -98,6 +98,8 @@ struct MyPageFeature: Reducer {
     @Dependency(\.fcmClient) var fcmClient
     @Dependency(\.medicineClient) var medicineClient
 
+    private let toggleBroadcastID = "toggleBroadcastID"
+
     var body: some ReducerOf<Self> {
         Reduce(handleAction)
             .ifLet(\.myMedicines, action: \.myMedicines) {
@@ -134,18 +136,37 @@ struct MyPageFeature: Reducer {
 
             return .merge(
                 .send(.startDataSubscription),
+
                 .run { send in
-                    // 권한 상태 먼저 설정
                     let granted = await NotificationPermissionManager.shared.checkPermissionStatus()
                     await send(.setInitialPermissionState(granted))
 
-                    // 콜백 설정
-                    NotificationPermissionManager.shared.onPermissionChanged = { callbackGranted in
-                        Task { @MainActor in
-                            await send(.notificationPermissionChecked(callbackGranted))
+                    await MainActor.run {
+                        NotificationPermissionManager.shared.onPermissionChanged = { callbackGranted in
+                            Task { @MainActor in
+                                await send(.notificationPermissionChecked(callbackGranted))
+                            }
+                        }
+                        NotificationPermissionManager.shared.onToggleChanged = { newToggleValue in
+                            Task { @MainActor in
+                                await send(.notificationToggled(newToggleValue))
+                            }
+                        }
+                    }
+                },
+
+                .run { send in
+                    let center = NotificationCenter.default
+                    let name = NotificationPermissionManager.toggleChangedNotification
+                    let stream = center.notifications(named: name)
+
+                    for await note in stream {
+                        if let enabled = note.userInfo?["enabled"] as? Bool {
+                            await send(.notificationToggled(enabled))
                         }
                     }
                 }
+                .cancellable(id: toggleBroadcastID, cancelInFlight: true)
             )
 
         case .setInitialPermissionState(let granted):
