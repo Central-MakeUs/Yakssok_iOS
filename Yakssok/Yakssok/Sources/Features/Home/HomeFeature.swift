@@ -294,7 +294,13 @@ struct HomeFeature: Reducer {
             myPageState.alertOn = hasToggleSetting ? savedToggle : true
 
             state.myPage = myPageState
-            return .none
+
+            return .run { _ in
+                if let imageUrl = response.body.profileImageUrl,
+                   let url = URL(string: imageUrl) {
+                    await ImageCache.shared.prefetch(url)
+                }
+            }
 
         case .myPagePreloadFailed(let error):
             state.isLoadingMyPage = false

@@ -62,6 +62,16 @@ struct ProfileEditFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
+                if state.nickname.isEmpty {
+                    return .run { send in
+                        do {
+                            let response = try await userClient.loadUserProfile()
+                            await send(.profileLoaded(response))
+                        } catch {
+                            // error
+                        }
+                    }
+                }
                 return .none
 
             case .backButtonTapped:

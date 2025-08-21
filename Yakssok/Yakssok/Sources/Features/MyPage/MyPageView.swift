@@ -106,21 +106,28 @@ private struct ProfileSection: View {
             HStack(spacing: Layout.profileSpacing) {
                 // 프로필 이미지
                 Group {
-                    if let profileImage = viewStore.userProfile?.profileImage {
-                        AsyncImage(url: URL(string: profileImage)) { image in
-                            image
+                    if let profileImage = viewStore.userProfile?.profileImage,
+                       let url = URL(string: profileImage) {
+                        if let cached = ImageCache.shared.image(for: url) {
+                            Image(uiImage: cached)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            // 카카오 계정 기본 프로필 또는 기본 이미지
-                            Image("default-profile-1")
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
+                                .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
+                                .clipShape(Circle())
+                        } else {
+                            AsyncImage(url: url) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Image("default-profile-1")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                            }
+                            .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
+                            .clipShape(Circle())
                         }
-                        .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
-                        .clipShape(Circle())
                     } else {
-                        // 가입 시 카카오 계정 프로필 사진이 디폴트 값
                         Image("default-profile-1")
                             .resizable()
                             .aspectRatio(contentMode: .fill)

@@ -355,7 +355,12 @@ struct MyPageFeature: Reducer {
             profileEditState.profileImage = response.body.profileImageUrl
 
             state.profileEdit = profileEditState
-            return .none
+            return .run { _ in
+                if let imageUrl = response.body.profileImageUrl,
+                   let url = URL(string: imageUrl) {
+                    await ImageCache.shared.prefetch(url)
+                }
+            }
 
         case .profileEditPreloadFailed(let error):
             state.isLoadingProfileEdit = false
@@ -368,7 +373,7 @@ struct MyPageFeature: Reducer {
 
         case .profileEdit(.delegate(.profileUpdated)):
             state.profileEdit = nil
-            return .none
+            return .send(.loadUserProfile)
 
         case .myMedicines(.delegate(.backToMyPage)):
             state.myMedicines = nil

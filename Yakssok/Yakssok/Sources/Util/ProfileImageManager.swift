@@ -11,13 +11,7 @@ enum ProfileImageManager {
     private static let currentUserKey = "current-user-profile-image"
 
     static func getCurrentUserImageName() -> String {
-        if let saved = UserDefaults.standard.string(forKey: currentUserKey) {
-            return saved
-        }
-
-        let image = "default-profile-\(Int.random(in: 1...3))"
-        UserDefaults.standard.set(image, forKey: currentUserKey)
-        return image
+        return "default-profile-1"
     }
 
     static func getImageName(for userId: String) -> String {
@@ -40,5 +34,20 @@ enum ProfileImageManager {
         let key = "profile-image-\(userId)"
         let image = "default-profile-\(Int.random(in: 1...3))"
         UserDefaults.standard.set(image, forKey: key)
+    }
+}
+
+extension ProfileImageManager {
+    static func getImageName(for userId: String, isCurrentUser: Bool = false) -> String {
+        if isCurrentUser {
+            return "default-profile-1"
+        }
+
+        return getImageName(for: userId)
+    }
+
+    static func getDefaultImageName(for user: User, currentUserId: String?) -> String {
+        let isCurrentUser = user.id == currentUserId
+        return getImageName(for: user.id, isCurrentUser: isCurrentUser)
     }
 }
