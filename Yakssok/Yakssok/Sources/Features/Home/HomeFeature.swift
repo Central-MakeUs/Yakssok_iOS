@@ -474,7 +474,8 @@ struct HomeFeature: Reducer {
             messageType: messageType,
             medicineCount: medicineCount,
             relationship: card.relationship,
-            medicines: medicines
+            medicines: medicines,
+            profileImageURL: card.profileImage
         )
         return .none
     }
