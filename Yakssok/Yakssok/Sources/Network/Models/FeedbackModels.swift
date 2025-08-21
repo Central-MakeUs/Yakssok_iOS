@@ -84,7 +84,7 @@ extension FollowingMedicationStatusResponse {
         switch feedbackType {
         case "NAG":
             status = .missedMedicine(count: medicationCount)
-        case "ENCOURAGEMENT":
+        case "PRAISE":
             status = .completed
         default:
             return nil
@@ -97,7 +97,7 @@ extension FollowingMedicationStatusResponse {
             profileImage: profileImageUrl,
             status: status,
             todayMedicines: feedbackType == "NAG" ? medicines : [], // 잔소리: 안먹은 약
-            completedMedicines: feedbackType == "ENCOURAGEMENT" ? medicines : [] // 칭찬: 먹은 약
+            completedMedicines: feedbackType == "PRAISE" ? medicines : [] // 칭찬: 먹은 약
         )
     }
 
