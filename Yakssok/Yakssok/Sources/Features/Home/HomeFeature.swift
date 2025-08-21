@@ -442,12 +442,18 @@ struct HomeFeature: Reducer {
     }
 
     private func refreshAllComponentsData(_ state: inout State) -> Effect<Action> {
-        return .run { send in
+        return .run { [selectedUser = state.userSelection?.selectedUser] send in
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await send(.loadUserProfile) }
                 group.addTask { await send(.userSelection(.loadUsers)) }
                 group.addTask { await send(.mateCards(.loadCards)) }
-                group.addTask { await send(.medicineList(.loadInitialData)) }
+
+                // 선택된 유저가 있으면 해당 유저 데이터도 업데이트
+                if let user = selectedUser {
+                    group.addTask { await send(.medicineList(.updateSelectedUser(user))) }
+                } else {
+                    group.addTask { await send(.medicineList(.loadInitialData)) }
+                }
             }
         }
     }
