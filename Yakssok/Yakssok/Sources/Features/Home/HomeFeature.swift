@@ -7,6 +7,7 @@
 
 import Foundation
 import ComposableArchitecture
+import WidgetKit
 
 struct HomeFeature: Reducer {
     struct State: Equatable {
@@ -296,6 +297,30 @@ struct HomeFeature: Reducer {
             state.selectedDate = date
             return .send(.medicineList(.updateSelectedDate(date)))
 
+        case .medicineList(.medicineDataLoaded(let response)):
+            return .run { _ in
+                await MainActor.run {
+                    AppDataSharingManager.shared.updateWidgetMedicineData(response.todayMedicines)
+                }
+            }
+
+        case .medicineList(.delegate(.medicineStatusChanged)):
+            return .merge(
+                .send(.mateCards(.loadCards)),
+                .run { _ in
+                    await MainActor.run {
+                        WidgetCenter.shared.reloadTimelines(ofKind: "YakssokWidget")
+                    }
+                }
+            )
+
+        case .medicineList(.medicineApiSuccess(let medicineId)):
+            return .run { _ in
+                await MainActor.run {
+                    AppDataSharingManager.shared.updateMedicineCompletion(medicineId: medicineId)
+                }
+            }
+
         // MARK: - Delegate Actions
         case .myPage(.delegate(.backToHome)):
             state.myPage = nil
@@ -325,16 +350,29 @@ struct HomeFeature: Reducer {
         case .medicineList(.delegate(.addMedicineRequested)):
             return .send(.showAddRoutine)
 
-        case .medicineList(.delegate(.medicineStatusChanged)):
-            return .send(.mateCards(.loadCards))
-
         case .myPage(.delegate(.logoutCompleted)):
             state.myPage = nil
-            return .send(.delegate(.logoutCompleted))
+            // 로그아웃 시 위젯 데이터 초기화
+            return .merge(
+                .send(.delegate(.logoutCompleted)),
+                .run { _ in
+                    await MainActor.run {
+                        AppDataSharingManager.shared.clearWidgetData()
+                    }
+                }
+            )
 
         case .myPage(.delegate(.withdrawalCompleted)):
             state.myPage = nil
-            return .send(.delegate(.withdrawalCompleted))
+            // 회원탈퇴 시 위젯 데이터 초기화
+            return .merge(
+                .send(.delegate(.withdrawalCompleted)),
+                .run { _ in
+                    await MainActor.run {
+                        AppDataSharingManager.shared.clearWidgetData()
+                    }
+                }
+            )
 
         case .notificationPermissionChanged(let granted):
             if state.myPage != nil {
