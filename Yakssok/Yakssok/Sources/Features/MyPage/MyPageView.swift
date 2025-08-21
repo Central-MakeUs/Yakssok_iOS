@@ -181,8 +181,6 @@ private struct StatsSection: View {
                     viewStore.send(.myMedicinesTapped)
                 }
 
-                StitchLine()
-
                 // 내 메이트
                 StatCard(
                     count: viewStore.mateCount,
@@ -250,18 +248,6 @@ private struct StatCard: View {
             .padding(.vertical, 16)
             .background(backgroundColor)
             .cornerRadius(20)
-        }
-    }
-}
-
-private struct StitchLine: View {
-    var body: some View {
-        VStack(spacing: 2) {
-            ForEach(0..<10, id: \.self) { index in
-                Rectangle()
-                    .fill(index % 2 == 0 ? YKColor.Primary.primary400 : YKColor.Neutral.grey100)
-                    .frame(width: 2, height: 4)
-            }
         }
     }
 }
