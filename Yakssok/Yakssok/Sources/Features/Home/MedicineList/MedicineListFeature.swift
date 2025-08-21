@@ -20,6 +20,7 @@ struct MedicineListFeature {
         var selectedDate: Date = Date()
         var isLoading: Bool = false
         var error: String?
+        var isPreloaded: Bool = false
 
         var animatingMedicineId: String? = nil
         var animationDirection: AnimationDirection? = nil
@@ -99,10 +100,15 @@ struct MedicineListFeature {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .merge(
-                    .send(.loadInitialData),
-                    .send(.startDataSubscription)
-                )
+                if state.isPreloaded {
+                    state.isPreloaded = false
+                    return .send(.startDataSubscription)
+                } else {
+                    return .merge(
+                        .send(.loadInitialData),
+                        .send(.startDataSubscription)
+                    )
+                }
 
             case .startDataSubscription:
                 return .run { send in

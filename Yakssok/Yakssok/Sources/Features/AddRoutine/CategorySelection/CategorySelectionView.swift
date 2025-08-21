@@ -11,7 +11,6 @@ import YakssokDesignSystem
 
 struct CategorySelectionView: View {
     let store: StoreOf<CategorySelectionFeature>
-    @State private var localMedicineName: String = ""
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
@@ -25,9 +24,6 @@ struct CategorySelectionView: View {
 
                 Spacer()
             }
-            .onAppear {
-                localMedicineName = viewStore.medicineName
-            }
         }
     }
 
@@ -38,7 +34,10 @@ struct CategorySelectionView: View {
                 .foregroundColor(YKColor.Neutral.grey950)
 
             MedicineNameTextField(
-                text: $localMedicineName,
+                text: viewStore.binding(
+                    get: \.medicineName,
+                    send: CategorySelectionFeature.Action.medicineNameChanged
+                ),
                 placeholder: AddRoutineConstants.Placeholder.medicineName,
                 characterCount: viewStore.medicineNameCharacterCount,
                 onTextChanged: { name in

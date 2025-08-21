@@ -11,7 +11,7 @@ import YakssokDesignSystem
 
 struct MateSelectionView: View {
     let store: StoreOf<MateSelectionFeature>
-    
+
     private let profileSize: CGFloat = 52
     private let spacing: CGFloat = 12
     private let selectedBorderWidth: CGFloat = 2
@@ -19,29 +19,58 @@ struct MateSelectionView: View {
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: spacing) {
-                    ForEach(Array(viewStore.users.enumerated()), id: \.element.id) { index, user in
-                        MateProfileView(
-                            user: user,
-                            isSelected: user.id == viewStore.selectedUserId,
-                            profileSize: profileSize,
-                            selectedBorderWidth: selectedBorderWidth
-                        ) {
-                            viewStore.send(.userSelected(userId: user.id))
-                        }
-                        .padding(.leading, index == 0 ? 16 : 0)
-                    }
-                    AddMateButton(profileSize: profileSize) {
-                        viewStore.send(.addUserButtonTapped)
-                    }
-                    .padding(.trailing, 16)
-                }
-                .padding(selectedBorderWidth)
+                createUserProfilesHStack(viewStore: viewStore)
             }
         }
         .onAppear {
             store.send(.onAppear)
         }
+    }
+
+    @ViewBuilder
+    private func createUserProfilesHStack(viewStore: ViewStoreOf<MateSelectionFeature>) -> some View {
+        HStack(spacing: spacing) {
+            createUserProfiles(viewStore: viewStore)
+            createAddMateButton(viewStore: viewStore)
+        }
+        .padding(selectedBorderWidth)
+    }
+
+    @ViewBuilder
+    private func createUserProfiles(viewStore: ViewStoreOf<MateSelectionFeature>) -> some View {
+        ForEach(Array(viewStore.users.enumerated()), id: \.element.id) { index, user in
+            createMateProfileView(
+                user: user,
+                index: index,
+                viewStore: viewStore
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func createMateProfileView(
+        user: User,
+        index: Int,
+        viewStore: ViewStoreOf<MateSelectionFeature>
+    ) -> some View {
+        MateProfileView(
+            user: user,
+            isSelected: user.id == viewStore.selectedUserId,
+            profileSize: profileSize,
+            selectedBorderWidth: selectedBorderWidth,
+            currentUserId: viewStore.currentUser?.id
+        ) {
+            viewStore.send(.userSelected(userId: user.id))
+        }
+        .padding(.leading, index == 0 ? 16 : 0)
+    }
+
+    @ViewBuilder
+    private func createAddMateButton(viewStore: ViewStoreOf<MateSelectionFeature>) -> some View {
+        AddMateButton(profileSize: profileSize) {
+            viewStore.send(.addUserButtonTapped)
+        }
+        .padding(.trailing, 16)
     }
 }
 

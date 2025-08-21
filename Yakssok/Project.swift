@@ -28,8 +28,8 @@ let project = Project(
                         "Pretendard-Bold.otf"
                     ],
                     "CFBundleDisplayName": "약쏙",
-                    "CFBundleShortVersionString": "1.1",
-                    "CFBundleVersion": "10",
+                    "CFBundleShortVersionString": "1.2",
+                    "CFBundleVersion": "2",
                     "KAKAO_NATIVE_APP_KEY": "$(KAKAO_NATIVE_APP_KEY)",
                     "API_BASE_URL": "https://yakssok.site",
                     "MASTER_ACCESS_TOKEN": "$(MASTER_ACCESS_TOKEN)",
@@ -73,7 +73,38 @@ let project = Project(
                 .external(name: "FirebaseCore"),
                 .external(name: "FirebaseMessaging"),
                 .external(name: "YakssokDesignSystem"),
-                .external(name: "AppsFlyerLib")
+                .external(name: "AppsFlyerLib"),
+                .target(name: "YakssokWidget")
+            ],
+            settings: .settings(
+                base: [
+                    "DEVELOPMENT_TEAM": "VT34K852T5",
+                    "CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION": "YES"
+                ]
+            )
+        ),
+        .target(
+            name: "YakssokWidget",
+            destinations: [.iPhone],
+            product: .appExtension,
+            bundleId: "com.yakssok.app.widget",
+            deploymentTargets: .iOS("17.0"),
+            infoPlist: .extendingDefault(
+                with: [
+                    "CFBundleDisplayName": "약쏙 위젯",
+                    "CFBundleShortVersionString": "1.2",
+                    "CFBundleVersion": "2",
+                    "NSExtension": [
+                        "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"]
+                ]
+            ),
+            sources: [
+                "YakssokWidget/Sources/**"
+            ],
+            resources: ["YakssokWidget/Resources/**"],
+            entitlements: "YakssokWidget/YakssokWidget.entitlements",
+            dependencies: [
+                .external(name: "YakssokDesignSystem")
             ],
             settings: .settings(
                 base: [

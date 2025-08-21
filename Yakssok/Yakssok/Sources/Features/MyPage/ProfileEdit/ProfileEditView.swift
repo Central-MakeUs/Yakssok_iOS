@@ -60,6 +60,7 @@ struct ProfileEditView: View {
            }
            .onAppear {
                store.send(.onAppear)
+               localNickname = viewStore.nickname
            }
            .onChange(of: viewStore.nickname) { oldValue, newValue in
                localNickname = newValue
@@ -111,21 +112,46 @@ private struct ProfileImageSection: View {
                                 Image(uiImage: selectedImage)
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
-                            } else if let profileImageURL = viewStore.profileImage {
-                                AsyncImage(url: URL(string: profileImageURL)) { image in
-                                    image
+                            } else if let urlString = viewStore.profileImage,
+                                      let url = URL(string: urlString) {
+
+                                if let cached = ImageCache.shared.image(for: url) {
+                                    Image(uiImage: cached)
                                         .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                } placeholder: {
-                                    Image("default-profile-1")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
+                                        .scaledToFill()
+                                        .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
+                                        .clipShape(Circle())
+                                } else {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .empty:
+                                            ProgressView()
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .scaledToFill()
+                                        case .failure:
+                                            Image("default-profile-1")
+                                                .resizable()
+                                                .scaledToFill()
+                                        @unknown default:
+                                            Image("default-profile-1")
+                                                .resizable()
+                                                .scaledToFill()
+                                        }
+                                    }
+                                    .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
+                                    .clipShape(Circle())
                                 }
+
                             } else {
                                 Image("default-profile-1")
                                     .resizable()
-                                    .aspectRatio(contentMode: .fill)
+                                    .scaledToFill()
+                                    .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
+                                    .clipShape(Circle())
                             }
+
                         }
                         .frame(width: Layout.profileImageSize, height: Layout.profileImageSize)
                         .clipShape(Circle())

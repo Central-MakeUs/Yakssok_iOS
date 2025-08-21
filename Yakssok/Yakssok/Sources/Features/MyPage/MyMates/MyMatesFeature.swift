@@ -45,10 +45,7 @@ struct MyMatesFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .merge(
-                    .send(.loadMates),
-                    .send(.startDataSubscription)
-                )
+                return .send(.startDataSubscription)
 
             case .startDataSubscription:
                 return .run { send in
