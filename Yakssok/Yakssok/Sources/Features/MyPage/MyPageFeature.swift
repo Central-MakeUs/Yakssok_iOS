@@ -14,7 +14,7 @@ struct MyPageFeature: Reducer {
         var userProfile: UserProfile?
         var medicineCount: Int = 0
         var mateCount: Int = 0
-        var appVersion: String = "1.1"
+        var appVersion: String = "1.2"
         var isLoading: Bool = false
         var error: String? = nil
         var myMedicines: MyMedicinesFeature.State?
