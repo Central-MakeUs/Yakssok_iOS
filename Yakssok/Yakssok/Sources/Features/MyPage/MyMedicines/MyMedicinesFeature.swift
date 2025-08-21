@@ -85,10 +85,7 @@ struct MyMedicinesFeature: Reducer {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                return .merge(
-                    .send(.loadRoutines),
-                    .send(.startDataSubscription)
-                )
+                return .send(.startDataSubscription)
 
             case .startDataSubscription:
                 return .run { send in
