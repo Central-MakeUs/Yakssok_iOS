@@ -73,7 +73,38 @@ let project = Project(
                 .external(name: "FirebaseCore"),
                 .external(name: "FirebaseMessaging"),
                 .external(name: "YakssokDesignSystem"),
-                .external(name: "AppsFlyerLib")
+                .external(name: "AppsFlyerLib"),
+                .target(name: "YakssokWidget")
+            ],
+            settings: .settings(
+                base: [
+                    "DEVELOPMENT_TEAM": "VT34K852T5",
+                    "CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION": "YES"
+                ]
+            )
+        ),
+        .target(
+            name: "YakssokWidget",
+            destinations: [.iPhone],
+            product: .appExtension,
+            bundleId: "com.yakssok.app.widget",
+            deploymentTargets: .iOS("17.0"),
+            infoPlist: .extendingDefault(
+                with: [
+                    "CFBundleDisplayName": "약쏙 위젯",
+                    "CFBundleShortVersionString": "1.1",
+                    "CFBundleVersion": "10",
+                    "NSExtension": [
+                        "NSExtensionPointIdentifier": "com.apple.widgetkit-extension"                    ]
+                ]
+            ),
+            sources: [
+                "YakssokWidget/Sources/**"
+            ],
+            resources: ["YakssokWidget/Resources/**"],
+            entitlements: "YakssokWidget/YakssokWidget.entitlements",
+            dependencies: [
+                .external(name: "YakssokDesignSystem")
             ],
             settings: .settings(
                 base: [
