@@ -17,6 +17,7 @@ struct AlarmSelectionFeature: Reducer {
 
         enum AlarmType: String, CaseIterable, Equatable {
             case gentle = "gentle"
+
             case rhythm = "rhythm"
             case nagging = "nagging"
             case electronic = "electronic"

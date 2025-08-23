@@ -226,7 +226,6 @@ struct YakssokWidget: Widget {
     }
 }
 
-@main
 struct YakssokWidgetBundle: WidgetBundle {
     var body: some Widget {
         YakssokWidget()
