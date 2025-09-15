@@ -114,7 +114,7 @@ class TokenManager {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: key,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
 
         SecItemDelete(query as CFDictionary)
@@ -163,80 +163,54 @@ actor TokenRefreshManager {
         case refreshing(Task<String, Error>)
     }
 
-    private var refreshState: RefreshState = .idle
-    private var retryCount: Int = 0
-    private let maxRetries: Int = 3
+    private var state: RefreshState = .idle
+    private let maxRetries = 3
 
     func getValidToken() async throws -> String {
-        switch refreshState {
+        switch state {
         case .idle:
             if let token = TokenManager.shared.accessToken {
                 return token
             }
 
-            let refreshTask = Task<String, Error> {
-                try await performTokenRefreshWithRetry()
+            let task = Task<String, Error> {
+                try await self.performTokenRefreshWithRetry()
             }
-            refreshState = .refreshing(refreshTask)
+            state = .refreshing(task)
+            defer { state = .idle }
 
-            do {
-                let newToken = try await refreshTask.value
-                refreshState = .idle
-                retryCount = 0
-                return newToken
-            } catch {
-                refreshState = .idle
-                throw error
-            }
+            return try await task.value
 
-        case .refreshing(let existingTask):
-            return try await existingTask.value
+        case .refreshing(let task):
+            return try await task.value
         }
     }
 
-    func forceRefreshNow() async throws {
-        guard let refreshToken = TokenManager.shared.refreshToken else {
-            throw APIError.serverError(401)
-        }
-
-        let request = RefreshTokenRequest(refreshToken: refreshToken)
-        let response: RefreshTokenResponse = try await APIClient.shared.authRequest(
-            endpoint: .refreshToken,
-            method: .POST,
-            body: request
-        )
-
-        TokenManager.shared.accessToken = response.body.accessToken
+    @discardableResult
+    func forceRefreshNow() async throws -> String {
+        return try await getValidToken()
     }
 
-    private func performTokenRefreshWithRetry() async throws -> String {
-        retryCount += 1
-
-        guard let refreshToken = TokenManager.shared.refreshToken else {
+    private func performTokenRefreshWithRetry(attempt: Int = 0) async throws -> String {
+        guard let refreshToken = TokenManager.shared.refreshToken, !refreshToken.isEmpty else {
             throw APIError.serverError(401)
         }
 
         do {
-            let request = RefreshTokenRequest(refreshToken: refreshToken)
-            let response: RefreshTokenResponse = try await APIClient.shared.authRequest(
+            let req = RefreshTokenRequest(refreshToken: refreshToken)
+            let res: RefreshTokenResponse = try await APIClient.shared.authRequest(
                 endpoint: .refreshToken,
                 method: .POST,
-                body: request
+                body: req
             )
-
-            TokenManager.shared.accessToken = response.body.accessToken
-            retryCount = 0
-            return response.body.accessToken
+            TokenManager.shared.accessToken = res.body.accessToken
+            return res.body.accessToken
 
         } catch {
-            if retryCount >= maxRetries {
-                throw error
-            }
-
-            let delay = pow(2.0, Double(retryCount))
-            try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-
-            return try await performTokenRefreshWithRetry()
+            if attempt >= maxRetries { throw error }
+            let delaySec = pow(2.0, Double(attempt + 1))
+            try await Task.sleep(nanoseconds: UInt64(delaySec * 1_000_000_000))
+            return try await performTokenRefreshWithRetry(attempt: attempt + 1)
         }
     }
 }
