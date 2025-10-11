@@ -25,6 +25,7 @@ struct AuthFeature: Reducer {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+
             case .login(.authenticationCompleted(let needsOnboarding)):
                 state.login = nil
                 if needsOnboarding {
@@ -35,14 +36,22 @@ struct AuthFeature: Reducer {
                 return .none
 
             case .onboarding(.startButtonTapped):
-                state.onboarding = nil
+                return .none
+
+            case .onboarding(.onboardingCompleted):
+                let nickname = state.onboarding?.nickname ?? ""
                 state.loading = LoadingFeature.State(
-                    nickname: state.onboarding?.nickname ?? "",
+                    nickname: nickname,
                     authorizationCode: "",
                     oauthType: "",
                     identityToken: nil
                 )
-                return .none
+                state.onboarding = nil
+
+                return .run { send in
+                    try await Task.sleep(nanoseconds: 800_000_000)
+                    await send(.loading(.registrationCompleted))
+                }
 
             case .loading(.registrationCompleted):
                 state.loading = nil
