@@ -56,11 +56,13 @@ struct LogoutModalFeature: Reducer {
 
                         // 서버 로그아웃
                         let deviceId = DeviceIdManager.shared.stableDeviceId
-                        let request = LogoutRequest(deviceId: deviceId)
+                        guard let rt = TokenManager.shared.refreshToken, !rt.isEmpty else {
+                            throw APIError.serverError(401)
+                        }
+                        let request = LogoutRequest(deviceId: deviceId, refreshToken: rt)
                         try await authAPIClient.logout(request)
 
                         await send(.logoutSuccess)
-
                     } catch {
                         await send(.logoutFailed(error.localizedDescription))
                     }
