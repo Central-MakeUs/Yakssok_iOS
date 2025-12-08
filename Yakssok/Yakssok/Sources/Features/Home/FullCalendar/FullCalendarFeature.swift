@@ -273,7 +273,7 @@ struct FullCalendarFeature: Reducer {
             )
             myPageState.medicineCount = response.body.medicationCount
             myPageState.mateCount = response.body.followingCount
-            myPageState.appVersion = "1.4"
+            myPageState.appVersion = "1.5"
 
             let hasToggleSetting = UserDefaults.standard.object(forKey: "userNotificationToggle") != nil
             let savedToggle = UserDefaults.standard.bool(forKey: "userNotificationToggle")
