@@ -158,11 +158,7 @@ class TokenManager {
 }
 
 actor TokenRefreshManager {
-    private enum RefreshState {
-        case idle
-        case refreshing(Task<String, Error>)
-    }
-
+    private enum RefreshState { case idle, refreshing(Task<String, Error>) }
     private var state: RefreshState = .idle
     private let maxRetries = 3
 
@@ -172,13 +168,8 @@ actor TokenRefreshManager {
             if let token = TokenManager.shared.accessToken {
                 return token
             }
-
-            let task = Task<String, Error> {
-                try await self.performTokenRefreshWithRetry()
-            }
-            state = .refreshing(task)
-            defer { state = .idle }
-
+            let task = Task<String, Error> { try await self.performTokenRefreshWithRetry() }
+            state = .refreshing(task); defer { state = .idle }
             return try await task.value
 
         case .refreshing(let task):
@@ -188,7 +179,7 @@ actor TokenRefreshManager {
 
     @discardableResult
     func forceRefreshNow() async throws -> String {
-        return try await getValidToken()
+        return try await performTokenRefreshWithRetry()
     }
 
     private func performTokenRefreshWithRetry(attempt: Int = 0) async throws -> String {
@@ -203,8 +194,15 @@ actor TokenRefreshManager {
                 method: .POST,
                 body: req
             )
-            TokenManager.shared.accessToken = res.body.accessToken
-            return res.body.accessToken
+            let newAT = res.body.accessToken
+            let newRT = res.body.refreshToken
+
+            if let rotatedRT = newRT, !rotatedRT.isEmpty {
+                TokenManager.shared.saveTokens(newAT, rotatedRT)
+            } else {
+                TokenManager.shared.accessToken = newAT
+            }
+            return newAT
 
         } catch {
             if attempt >= maxRetries { throw error }

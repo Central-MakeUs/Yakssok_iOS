@@ -407,7 +407,7 @@ class APIClient {
     }
 
     private func refreshTokenAndRetry() async throws {
-        _ = try await TokenManager.shared.getValidTokenAsync()
+        _ = try await TokenManager.shared.refreshOnceOnLaunch()
     }
 
     @MainActor
