@@ -145,7 +145,7 @@ private struct CustomMessageView: View {
 
     var body: some View {
         WithViewStore(store, observe: { $0 }) { viewStore in
-            let placeholderText = viewStore.messageType == .nagging ? "한 줄 잔소리" : "한 줄 응원"
+            let placeholderText = viewStore.messageType == .nagging ? "한 줄 잔소리" : "한 줄 칭찬"
 
             textFieldView(viewStore: viewStore, placeholderText: placeholderText)
                 .onAppear {
@@ -231,7 +231,6 @@ private struct CustomMessageView: View {
     }
 }
 
-// MARK: - Header Views (기존 코드 유지)
 private struct ModalHeaderView: View {
     let store: StoreOf<MessageModalFeature>
     let targetUser: String
@@ -251,8 +250,7 @@ private struct ModalHeaderView: View {
                             profileImageURL: viewStore.profileImageURL
                         )
                         UserInfoView(
-                            targetUser: targetUser,
-                            relationship: viewStore.relationship
+                            targetUser: targetUser
                         )
                     }
                     Spacer()
@@ -321,14 +319,9 @@ private struct ModalProfileImageView: View {
 
 private struct UserInfoView: View {
     let targetUser: String
-    let relationship: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.userInfoSpacing) {
-            Text(relationship)
-                .font(YKFont.body2)
-                .foregroundColor(YKColor.Neutral.grey400)
-
             Text(targetUser)
                 .font(YKFont.body2)
                 .foregroundColor(YKColor.Neutral.grey600)
