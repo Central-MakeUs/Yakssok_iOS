@@ -66,7 +66,7 @@ struct OnboardingView: View {
     }
 
     private var instructionText: AttributedString {
-        var text = AttributedString("약쏙에서 사용할 닉네임을 작성해보아요!")
+        var text = AttributedString("약을 먹어야할 때, 닉네임으로 불러드릴게요.")
 
         if let range = text.range(of: "닉네임") {
             text[range].foregroundColor = YKColor.Primary.primary400

@@ -16,10 +16,12 @@ struct MateCardItemView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ProfileSection(card: card)
-            Spacer().frame(height: Layout.profileToStatusSpacing)
+            Spacer().frame(height: 8)
             StatusSection(card: card)
-            Spacer().frame(height: Layout.statusToButtonSpacing)
+                .frame(maxWidth: .infinity, alignment: .center)
+            Spacer().frame(height: 4)
             ActionButton(card: card, onTap: onTap)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .padding(Layout.cardPadding)
         .background(
@@ -33,10 +35,14 @@ private struct ProfileSection: View {
     let card: MateCard
 
     var body: some View {
-        HStack(spacing: Layout.profileImageSpacing) {
+        VStack(spacing: 8) {
             CardProfileImageView(card: card)
-            UserInfoView(card: card)
+            Text(card.userName)
+                .font(YKFont.body2)
+                .foregroundColor(YKColor.Neutral.grey900)
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 
@@ -69,22 +75,6 @@ private struct CardProfileImageView: View {
                         .clipShape(Circle())
                 }
             }
-    }
-}
-
-private struct UserInfoView: View {
-    let card: MateCard
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Layout.userInfoSpacing) {
-            Text(card.relationship)
-                .font(YKFont.body2)
-                .foregroundColor(YKColor.Neutral.grey400)
-
-            Text(card.userName)
-                .font(YKFont.body2)
-                .foregroundColor(YKColor.Neutral.grey600)
-        }
     }
 }
 
@@ -165,9 +155,9 @@ private enum Layout {
     static let cardCornerRadius: CGFloat = 16
     static let profileImageSize: CGFloat = 52
     static let profileImageSpacing: CGFloat = 8
-    static let userInfoSpacing: CGFloat = 2
-    static let profileToStatusSpacing: CGFloat = 20
-    static let statusToButtonSpacing: CGFloat = 8
+    static let userInfoSpacing: CGFloat = 4
+    static let profileToStatusSpacing: CGFloat = 8
+    static let statusToButtonSpacing: CGFloat = 4
     static let statusIconSpacing: CGFloat = 8
     static let statusIconSize: CGFloat = 20
     static let buttonWidth: CGFloat = 120
