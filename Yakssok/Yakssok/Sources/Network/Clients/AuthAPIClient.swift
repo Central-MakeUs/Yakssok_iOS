@@ -12,7 +12,7 @@ struct AuthAPIClient {
     var login: @Sendable (LoginRequest) async throws -> LoginResponse
     var updateNickname: @Sendable (UpdateNicknameRequest) async throws -> Void
     var logout: @Sendable (LogoutRequest) async throws -> Void
-    var refreshToken: @Sendable (String) async throws -> String
+    var refreshToken: @Sendable (String) async throws -> RefreshTokenResponse
     var withdrawal: @Sendable () async throws -> Void
 }
 
@@ -54,7 +54,7 @@ extension AuthAPIClient: DependencyKey {
                 method: .POST,
                 body: request
             )
-            return response.body.accessToken
+            return response
         },
 
         withdrawal: {

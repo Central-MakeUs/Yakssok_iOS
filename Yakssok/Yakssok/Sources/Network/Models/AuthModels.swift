@@ -59,8 +59,10 @@ struct RefreshTokenResponse: Codable, Equatable {
 
 struct RefreshTokenBody: Codable, Equatable {
     let accessToken: String
+    let refreshToken: String?
 }
 
 struct LogoutRequest: Codable {
     let deviceId: String
+    let refreshToken: String?
 }
