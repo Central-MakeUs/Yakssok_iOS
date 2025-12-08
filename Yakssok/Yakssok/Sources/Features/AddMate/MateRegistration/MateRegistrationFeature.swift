@@ -19,7 +19,14 @@ struct MateRegistrationFeature: Reducer {
         var error: String?
         var showSuccessMessage: Bool = false
         var showShareSheet: Bool = false
-        var mateRelationship: MateRelationshipFeature.State?
+
+        struct AddedMateInfo: Equatable {
+            let name: String
+            let profileImage: String?
+        }
+
+        var addedMateInfo: AddedMateInfo?
+        var showCompletionModal: Bool = false
 
         var isAddButtonEnabled: Bool {
             let trimmedCode = mateCode.trimmingCharacters(in: .whitespaces)
@@ -38,11 +45,16 @@ struct MateRegistrationFeature: Reducer {
         case dismissShareSheet
         case myCodeLoaded(String)
         case myCodeLoadFailed(String)
-        case addMateSuccess(MateRelationshipFeature.State.MateInfo)
+
+        case addMateSuccess(State.AddedMateInfo)
         case addMateFailed(String)
+
         case dismissSuccessMessage
         case dismissError
-        case mateRelationship(MateRelationshipFeature.Action)
+
+        case completionModalConfirmButtonTapped
+        case dismissCompletionModal
+
         case delegate(Delegate)
 
         @CasePathable
@@ -70,7 +82,10 @@ struct MateRegistrationFeature: Reducer {
                 }
 
             case .backButtonTapped:
-                NotificationCenter.default.post(name: Notification.Name("yakssok.mate.completed"), object: nil)
+                NotificationCenter.default.post(
+                    name: Notification.Name("yakssok.mate.completed"),
+                    object: nil
+                )
                 return .send(.delegate(.mateAddingCompleted))
 
             case .mateCodeChanged(let code):
@@ -96,22 +111,24 @@ struct MateRegistrationFeature: Reducer {
                 state.isLoading = true
                 state.error = nil
 
-                return .run { send in
+                return .run { [inviteCode] send in
                     do {
                         let userInfo = try await mateRegistrationClient.getUserByInviteCode(inviteCode)
 
                         let followingUsers = try await userClient.loadFollowingsForMyPage()
-                        let userNames = followingUsers.map { user in user.name }
+                        let userNames = followingUsers.map { $0.name }
                         let isAlreadyFollowing = userNames.contains(userInfo.nickname)
                         if isAlreadyFollowing {
                             await send(.addMateFailed("이미 등록된 메이트예요!"))
                             return
                         }
 
-                        let mateInfo = MateRelationshipFeature.State.MateInfo(
+                        try await mateRegistrationClient.followFriend(inviteCode, "")
+                        await AppDataManager.shared.notifyDataChanged(.mateAdded)
+
+                        let mateInfo = State.AddedMateInfo(
                             name: userInfo.nickname,
-                            profileImage: userInfo.profileImageUrl,
-                            code: inviteCode
+                            profileImage: userInfo.profileImageUrl
                         )
                         await send(.addMateSuccess(mateInfo))
                     } catch APIError.userNotFound {
@@ -149,12 +166,25 @@ struct MateRegistrationFeature: Reducer {
             case .addMateSuccess(let mateInfo):
                 state.isLoading = false
                 state.mateCode = ""
-                state.mateRelationship = MateRelationshipFeature.State(mateInfo: mateInfo)
+                state.addedMateInfo = mateInfo
+                state.showCompletionModal = true
                 return .none
 
             case .addMateFailed(let error):
                 state.isLoading = false
                 state.error = error
+                return .none
+
+            case .completionModalConfirmButtonTapped:
+                state.showCompletionModal = false
+                NotificationCenter.default.post(
+                    name: Notification.Name("yakssok.mate.completed"),
+                    object: nil
+                )
+                return .send(.delegate(.mateAddingCompleted))
+
+            case .dismissCompletionModal:
+                state.showCompletionModal = false
                 return .none
 
             case .dismissSuccessMessage:
@@ -165,23 +195,9 @@ struct MateRegistrationFeature: Reducer {
                 state.error = nil
                 return .none
 
-            case .mateRelationship(.backButtonTapped):
-                state.mateRelationship = nil
-                return .none
-
-            case .mateRelationship(.delegate(.mateAddingCompleted)):
-                state.mateRelationship = nil
-                return .send(.delegate(.mateAddingCompleted))
-
-            case .mateRelationship:
-                return .none
-
             case .delegate:
                 return .none
             }
-        }
-        .ifLet(\.mateRelationship, action: \.mateRelationship) {
-            MateRelationshipFeature()
         }
     }
 }

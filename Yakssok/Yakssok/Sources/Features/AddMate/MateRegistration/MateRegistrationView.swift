@@ -100,8 +100,15 @@ struct MateRegistrationView: View {
                     }
                 }
 
-                IfLetStore(store.scope(state: \.mateRelationship, action: \.mateRelationship)) { relationshipStore in
-                    MateRelationshipView(store: relationshipStore)
+                WithViewStore(store, observe: { $0 }) { viewStore in
+                    if viewStore.showCompletionModal, let mateInfo = viewStore.addedMateInfo {
+                        MateAddCompletionModalView(
+                            mateInfo: mateInfo,
+                            onConfirm: {
+                                store.send(.completionModalConfirmButtonTapped)
+                            }
+                        )
+                    }
                 }
             }
             .onTapGesture {
@@ -324,6 +331,104 @@ private struct MessageOverlay: View {
                 onDismiss()
             }
         }
+    }
+}
+
+private struct MateAddCompletionModalView: View {
+    let mateInfo: MateRegistrationFeature.State.AddedMateInfo
+    let onConfirm: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea(.all)
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                VStack(spacing: 0) {
+                    // 핸들바
+                    Rectangle()
+                        .foregroundColor(.clear)
+                        .frame(width: 37.44, height: 4)
+                        .background(Color(red: 0.86, green: 0.86, blue: 0.86))
+                        .cornerRadius(999)
+                        .padding(.top, 12)
+
+                    HStack(spacing: 8) {
+                        Text("\(mateInfo.name)님과 메이트가 되었어요!")
+                            .font(YKFont.subtitle1)
+                            .foregroundColor(YKColor.Neutral.grey900)
+                        Image("hands-up")
+                            .frame(width: 24, height: 24)
+                        Spacer()
+                    }
+                    .padding(.leading, 16)
+                    .padding(.bottom, 20)
+                    .padding(.top, 28)
+
+                    MateInfoCardView(mateInfo: mateInfo)
+                        .padding(.horizontal, 16)
+
+                    Spacer()
+                        .frame(height: 60)
+
+                    Button(action: {
+                        onConfirm()
+                    }) {
+                        Text("홈으로")
+                            .font(YKFont.subtitle2)
+                            .foregroundColor(YKColor.Neutral.grey50)
+                            .frame(maxWidth: .infinity, minHeight: 56)
+                            .background(YKColor.Primary.primary400)
+                            .cornerRadius(16)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                }
+                .background(YKColor.Neutral.grey50)
+                .cornerRadius(24)
+                .padding(.horizontal, 13.5)
+            }
+        }
+    }
+}
+
+private struct MateInfoCardView: View {
+    let mateInfo: MateRegistrationFeature.State.AddedMateInfo
+
+    var body: some View {
+        HStack(spacing: 8) {
+            // 프로필 이미지
+            Group {
+                if let profileImageName = mateInfo.profileImage {
+                    AsyncImage(url: URL(string: profileImageName)) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Image("default-profile-1")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
+                } else {
+                    Image("default-profile-1")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                }
+            }
+            .frame(width: 52, height: 52)
+            .clipShape(Circle())
+
+            // 이름
+            VStack(alignment: .leading, spacing: 4) {
+                Text(mateInfo.name)
+                    .font(YKFont.subtitle2)
+                    .foregroundColor(YKColor.Neutral.grey600)
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
